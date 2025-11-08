@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-11-09
+
+### Fixed
+- **File Opening Modes Persistence** - Fixed file opening mode settings not being saved after Obsidian restart
+  - Modified `SettingsStore.#mergeWithDefaults` to properly handle empty object type fields
+  - Added `fileOpenModes` to `DEFAULT_SETTINGS` to ensure proper initialization
+  
+### Changed
+- **Preview Modal** - Simplified reference section UI when no references exist
+  - Removed redundant usage instructions
+  - Now only shows "📝 暂无引用" message
+  
+- **Settings UI** - Cleaned up settings page
+  - Removed redundant notices and tips below behavior options
+
+### Technical
+- Enhanced merge algorithm to preserve Record<string, T> type fields with empty default values
+- Improved settings persistence logic
+
 ## [0.2.0] - 2025-11-09
 
 ### Added
@@ -70,5 +89,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.2.1]: https://github.com/AlbusGuo/albus-figure-manager/releases/tag/0.2.1
 [0.2.0]: https://github.com/AlbusGuo/albus-figure-manager/releases/tag/0.2.0
 [0.1.0]: https://github.com/AlbusGuo/albus-figure-manager/releases/tag/0.1.0

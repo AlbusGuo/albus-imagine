@@ -1,7 +1,7 @@
 {
 	"id": "albus-figure-manager",
 	"name": "Figure Manager",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "1.8.0",
 	"description": "A powerful image management plugin for Obsidian with reference checking, searching, and file operations.",
 	"author": "RavenHogWarts",
