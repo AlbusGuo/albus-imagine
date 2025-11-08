@@ -1,0 +1,68 @@
+name: Release Obsidian plugin
+
+on:
+    push:
+        tags:
+            - "[0-9]+.[0-9]+.[0-9]+*" # 匹配类似 1.0.0 或 1.0.0-beta.1 的格式
+
+permissions:
+    contents: write
+    discussions: write
+
+env:
+    PLUGIN_ID: obsidian-plugin-starter # 插件ID
+
+jobs:
+    build:
+        runs-on: ubuntu-22.04
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # 获取完整的git历史
+
+            - name: Use Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "18.x"
+
+            - name: Prepare manifest
+              id: prepare_manifest
+              run: |
+                  if [[ ${{ github.ref }} == *"beta"* ]]; then
+                    cp manifest-beta.json manifest.json
+                  fi
+
+            - name: Build
+              id: build
+              run: |
+                  npm install -g yarn
+                  yarn
+                  yarn run build --if-present
+                  mkdir ${{ env.PLUGIN_ID }}
+                  cp main.js manifest.json styles.css ${{ env.PLUGIN_ID }}
+                  zip -r ${{ env.PLUGIN_ID }}.zip ${{ env.PLUGIN_ID }}
+                  ls
+                  echo "tag_name=$(git tag --sort version:refname | tail -n 1)" >> $GITHUB_OUTPUT
+
+            - name: Create Release
+              id: create_release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: ${{ github.ref_name }}
+                  draft: false
+                  prerelease: ${{ contains(github.ref, 'beta') }}
+                  generate_release_notes: true
+                  discussion_category_name: "Announcements"
+                  body: |
+                      ${{ contains(github.ref, 'beta') && '🚧 This is a beta release' || '🎉 This is a stable release' }}
+
+                      **Version:** ${{ github.ref_name }}
+                  files: |
+                      ${{ env.PLUGIN_ID }}.zip
+                      main.js
+                      manifest.json
+                      styles.css
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

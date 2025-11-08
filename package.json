@@ -1,0 +1,57 @@
+{
+	"name": "obsidian-plugin-starter",
+	"version": "1.0.0",
+	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node scripts/esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node scripts/esbuild.config.mjs production",
+		"build:local": "tsc -noEmit -skipLibCheck && node scripts/esbuild.config.mjs production keep-console && node scripts/copy-to-vault.mjs",
+		"version": "node scripts/version-bump.mjs",
+		"changelog:u": "conventional-changelog -p angular -i CHANGELOG.md -s -u -n ./scripts/changelog-option.js",
+		"changelog:all": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 -n ./scripts/changelog-option.js",
+		"release:pre": "npm run build && npm run version && npm run changelog:u && npm i",
+		"release:tag": "node scripts/release-tag.mjs",
+		"lint": "eslint . --ext .ts,.tsx",
+		"lint:fix": "eslint . --ext .ts,.tsx --fix",
+		"test": "jest",
+		"test:watch": "jest --watch",
+		"link:data": "node scripts/link-data.mjs"
+	},
+	"keywords": [
+		"Obsidian Plugin"
+	],
+	"author": "RavenHogWarts",
+	"license": "MIT",
+	"engines": {
+		"node": ">=18.x"
+	},
+	"devDependencies": {
+		"@types/jest": "^30.0.0",
+		"@types/node": "^24.9.2",
+		"@types/react": "^19.2.2",
+		"@types/react-dom": "^19.2.2",
+		"@typescript-eslint/eslint-plugin": "8.46.2",
+		"@typescript-eslint/parser": "^8.46.2",
+		"builtin-modules": "5.0.0",
+		"conventional-changelog-cli": "^5.0.0",
+		"esbuild": "0.25.11",
+		"eslint": "^9.38.0",
+		"eslint-plugin-obsidianmd": "^0.1.8",
+		"fs-extra": "^11.3.2",
+		"globals": "^16.4.0",
+		"jest": "^30.2.0",
+		"obsidian": "latest",
+		"postcss": "^8.5.6",
+		"postcss-nesting": "^13.0.2",
+		"ts-jest": "^29.4.5",
+		"tslib": "2.8.1",
+		"typescript": "^5.9.3"
+	},
+	"dependencies": {
+		"dotenv": "^17.2.3",
+		"lucide-react": "^0.548.0",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	}
+}

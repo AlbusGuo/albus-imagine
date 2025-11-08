@@ -1,0 +1,19 @@
+# Release stable version, e.g.: make release v=1.0.0
+release:
+	@git tag "$(v)"
+	@git push origin "$(v)"
+
+# Release beta version, e.g.: make beta v=1.0.0-beta.1
+beta:
+	@git tag "$(v)"
+	@git push origin "$(v)"
+
+# Delete a version, e.g.: make del v=1.0.0
+del:
+	@git tag -d "$(v)"
+	@git push origin --delete "$(v)"
+
+# Legacy command for backward compatibility
+push:
+	@git tag "$(tag)"
+	@git push origin "$(tag)"

@@ -1,0 +1,242 @@
+name: PR Build
+
+on:
+    pull_request_target:
+        branches: [master]
+        types: [opened, synchronize, reopened, labeled]
+
+permissions:
+    contents: read
+    pull-requests: write
+    checks: write
+    statuses: write
+
+env:
+    PLUGIN_ID: obsidian-plugin-starter # 替换为你的插件 ID
+
+jobs:
+    # 安全检查作业 - 验证 PR 来源和标签事件
+    security-check:
+        runs-on: ubuntu-latest
+        outputs:
+            is-safe: ${{ steps.check.outputs.is-safe }}
+            should-build: ${{ steps.check.outputs.should-build }}
+        steps:
+            - name: Check PR safety and build conditions
+              id: check
+              run: |
+                  echo "Event action: ${{ github.event.action }}"
+                  echo "PR from: ${{ github.event.pull_request.head.repo.full_name }}"
+                  echo "Target repo: ${{ github.repository }}"
+
+                  # 检查是否应该构建
+                  should_build="false"
+                  is_safe="false"
+
+                  # 如果是 labeled 事件，只处理 safe-to-build 标签
+                  if [[ "${{ github.event.action }}" == "labeled" ]]; then
+                    echo "Label added: ${{ github.event.label.name }}"
+                    if [[ "${{ github.event.label.name }}" == "safe-to-build" ]]; then
+                      echo "Safe-to-build label added, will proceed with build"
+                      is_safe="true"
+                      should_build="true"
+                    else
+                      echo "Other label added, skipping build"
+                      is_safe="false"
+                      should_build="false"
+                    fi
+                  else
+                    # 其他事件（opened, synchronize, reopened）的安全检查
+                    if [[ "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+                      echo "Internal PR detected, safe to build"
+                      is_safe="true"
+                      should_build="true"
+                    elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'safe-to-build') }}" == "true" ]]; then
+                      echo "External PR with safe-to-build label, safe to build"
+                      is_safe="true"
+                      should_build="true"
+                    else
+                      echo "External PR without safe-to-build label, skipping build"
+                      is_safe="false"
+                      should_build="false"
+                    fi
+                  fi
+
+                  echo "is-safe=$is_safe" >> $GITHUB_OUTPUT
+                  echo "should-build=$should_build" >> $GITHUB_OUTPUT
+
+    build:
+        runs-on: ubuntu-latest
+        needs: security-check
+        if: needs.security-check.outputs.should-build == 'true'
+        steps:
+            - name: Checkout PR code
+              uses: actions/checkout@v4
+              with:
+                  # 重要：检出 PR 的代码而不是目标分支
+                  ref: ${{ github.event.pull_request.head.sha }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "18.x"
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Build plugin
+              run: yarn build
+
+            - name: Prepare artifacts
+              run: |
+                  mkdir -p build-artifacts
+                  TIMESTAMP=$(date +%s)
+                  ARTIFACT_NAME="${{ env.PLUGIN_ID }}-pr-${TIMESTAMP}"
+                  echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
+                  cp main.js manifest.json styles.css build-artifacts/
+                  cd build-artifacts
+                  zip -r "${ARTIFACT_NAME}.zip" .
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.ARTIFACT_NAME }}
+                  path: build-artifacts/
+                  retention-days: 7
+
+            - name: Comment on PR
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const prNumber = context.payload.pull_request.number;
+                      const shortSha = context.payload.pull_request.head.sha.substring(0, 7);
+                      const runId = context.runId;
+                      const eventAction = context.payload.action;
+
+                      // 根据触发事件生成不同的消息
+                      let triggerInfo = '';
+                      if (eventAction === 'labeled') {
+                        triggerInfo = `\n**触发原因：** 添加了 \`safe-to-build\` 标签`;
+                      } else {
+                        triggerInfo = `\n**触发原因：** PR ${eventAction}`;
+                      }
+
+                      // 双时区显示
+                      const utcDate = new Date();
+                      const beijingDate = new Date(utcDate.getTime() + 8 * 60 * 60 * 1000);
+                      const formatBJ = beijingDate.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
+
+                      const commentBody = `## 🔧 PR 构建完成
+
+                      **构建信息：**
+                      - PR: #${prNumber}
+                      - Commit: ${shortSha}
+                      - 构建时间（UTC）: ${utcDate.toISOString()}
+                      - 构建时间（北京时间）: ${formatBJ}${triggerInfo}
+
+                      **下载链接：**
+                      [下载插件构建产物](https://github.com/${{ github.repository }}/actions/runs/${runId})
+
+                      **安装说明：**
+                      1. 点击上方链接下载构建产物
+                      2. 解压 zip 文件
+                      3. 将解压后的文件夹复制到 Obsidian 插件目录：\`<vault>/.obsidian/plugins/${{ env.PLUGIN_ID }}/\`
+                      4. 在 Obsidian 设置中启用插件
+
+                      > ⚠️ 这是测试构建，仅用于预览和测试目的。`;
+
+                      // 查找现有的构建评论
+                      const comments = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: prNumber
+                      });
+
+                      const existingComment = comments.data.find(comment => 
+                        comment.user.login === 'github-actions[bot]' && 
+                        comment.body.includes('🔧 PR 构建完成')
+                      );
+
+                      if (existingComment) {
+                        await github.rest.issues.updateComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          comment_id: existingComment.id,
+                          body: commentBody
+                        });
+                      } else {
+                        await github.rest.issues.createComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: prNumber,
+                          body: commentBody
+                        });
+                      }
+
+    build-status:
+        runs-on: ubuntu-latest
+        needs: [security-check, build]
+        if: always() && needs.security-check.outputs.should-build == 'true'
+        steps:
+            - name: Set commit status
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const state = '${{ needs.build.result }}' === 'success' ? 'success' : 'failure';
+                      const description = state === 'success' ? 'PR 构建成功' : 'PR 构建失败';
+
+                      await github.rest.repos.createCommitStatus({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        sha: '${{ github.event.pull_request.head.sha }}',
+                        state: state,
+                        description: description,
+                        context: 'PR Build',
+                        target_url: `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+                      });
+
+    # 可选：为外部 PR 提供说明
+    external-pr-info:
+        runs-on: ubuntu-latest
+        needs: security-check
+        if: |
+            needs.security-check.outputs.is-safe == 'false' && 
+            github.event.action != 'labeled' &&
+            github.event.pull_request.head.repo.full_name != github.repository
+        steps:
+            - name: Comment on external PR
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const prNumber = context.payload.pull_request.number;
+
+                      const commentBody = `## 🔒 外部 PR 安全检查
+
+                      感谢您的贡献！由于这是来自外部仓库的 PR，出于安全考虑，自动构建已被暂停。
+
+                      **下一步：**
+                      维护者将审查您的代码，如果安全无问题，会添加 \`safe-to-build\` 标签来触发构建。
+
+                      **请耐心等待维护者审查。** 🙏`;
+
+                      // 检查是否已经有类似评论
+                      const comments = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: prNumber
+                      });
+
+                      const existingComment = comments.data.find(comment => 
+                        comment.user.login === 'github-actions[bot]' && 
+                        comment.body.includes('🔒 外部 PR 安全检查')
+                      );
+
+                      if (!existingComment) {
+                        await github.rest.issues.createComment({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: prNumber,
+                          body: commentBody
+                        });
+                      }

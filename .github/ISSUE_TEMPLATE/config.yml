@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+    - name: 💬 Discussion Forum | 讨论区
+      url: https://github.com/RavenHogWarts/obsidian-plugin-starter/discussions
+      about: Please ask general questions here | 请在这里提出一般性问题

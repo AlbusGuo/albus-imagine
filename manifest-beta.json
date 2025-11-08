@@ -1,0 +1,13 @@
+{
+	"id": "obsidian-plugin-starter",
+	"name": "Obsidian Plugin Starter",
+	"version": "1.0.0",
+	"minAppVersion": "1.8.0",
+	"description": "Demonstrates some of the capabilities of the Obsidian API.",
+	"author": "RavenHogWarts",
+	"authorUrl": "https://github.com/RavenHogWarts",
+	"fundingUrl": {
+		"微信/支付宝": "https://s2.loli.net/2024/05/06/lWBj3ObszUXSV2f.png"
+	},
+	"isDesktopOnly": true
+}
