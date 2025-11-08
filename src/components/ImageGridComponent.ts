@@ -84,7 +84,7 @@ export class ImageGridComponent {
 		imgEl.src = getImagePath(image);
 		imgEl.alt = image.name;
 
-		// SVG图片特殊处理
+		// SVG图片特殊处理 - 只有当显示的封面是 SVG 时才应用
 		if (image.displayFile.extension.toLowerCase() === "svg") {
 			imgEl.addClass("image-manager-svg-image");
 		}
@@ -94,7 +94,7 @@ export class ImageGridComponent {
 		const formatBadgeEl = thumbnailEl.createDiv("image-manager-format-badge");
 		formatBadgeEl.setText(extension);
 		formatBadgeEl.addClass(
-			image.isAgx
+			image.isAgx || image.isCustomType
 				? "image-manager-agx-format"
 				: "image-manager-other-format"
 		);

@@ -61,7 +61,7 @@ export class ImagePreviewModal extends Modal {
 			text: extension,
 		});
 		formatTag.addClass(
-			this.image.isAgx
+			this.image.isAgx || this.image.isCustomType
 				? "image-manager-agx-format-tag"
 				: "image-manager-other-format-tag"
 		);
@@ -125,7 +125,7 @@ export class ImagePreviewModal extends Modal {
 		// 保存图片元素引用
 		this.imageElement = img;
 
-		// SVG图片特殊处理
+		// SVG图片特殊处理 - 只有当显示的封面是 SVG 时才应用
 		if (this.image.displayFile.extension.toLowerCase() === "svg") {
 			img.addClass("image-manager-svg-image");
 		}

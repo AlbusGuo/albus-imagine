@@ -14,10 +14,14 @@ export interface ImageItem {
 	path: string;
 	/** 原始文件对象 */
 	originalFile: TFile;
-	/** 显示用的文件对象（对于AGX文件，这是对应的SVG文件） */
+	/** 显示用的文件对象（对于AGX文件或自定义文件类型，这是对应的封面文件） */
 	displayFile: TFile;
 	/** 是否为AGX文件 */
 	isAgx: boolean;
+	/** 是否为自定义文件类型 */
+	isCustomType: boolean;
+	/** 自定义文件类型的配置（如果是自定义类型） */
+	customTypeConfig?: CustomFileTypeConfig;
 	/** 文件统计信息 */
 	stat: {
 		ctime: number;
@@ -46,6 +50,25 @@ export interface ReferenceInfo {
 }
 
 /**
+ * 自定义文件类型配置
+ */
+export interface CustomFileTypeConfig {
+	/** 自定义文件的扩展名（如 "agx"） */
+	fileExtension: string;
+	/** 封面文件的扩展名（如 "svg", "png"） */
+	coverExtension: string;
+	/** 封面文件所在的文件夹（相对路径，空字符串表示同级目录） */
+	coverFolder: string;
+	/** 是否启用 */
+	enabled: boolean;
+}
+
+/**
+ * 文件打开方式
+ */
+export type FileOpenMode = "internal" | "external";
+
+/**
  * 图片管理器设置
  */
 export interface ImageManagerSettings {
@@ -59,6 +82,10 @@ export interface ImageManagerSettings {
 	defaultFilterUnreferenced?: boolean;
 	/** 删除前确认 */
 	confirmDelete?: boolean;
+	/** 自定义文件类型配置 */
+	customFileTypes?: CustomFileTypeConfig[];
+	/** 文件打开方式配置 - key是文件扩展名，value是打开方式 */
+	fileOpenModes?: Record<string, FileOpenMode>;
 }
 
 /**

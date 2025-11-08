@@ -71,6 +71,7 @@ export class ReferenceCheckService {
 		const references: ReferenceInfo[] = [];
 
 		// 对于AGX文件，使用对应的SVG文件来检查引用
+		// 对于自定义文件类型，使用对应的封面文件来检查引用
 		let targetFile = imageItem.originalFile;
 		if (imageItem.isAgx) {
 			const svgPath = imageItem.path.replace(/\.agx$/i, ".svg");
@@ -78,6 +79,9 @@ export class ReferenceCheckService {
 			if (svgFile instanceof TFile) {
 				targetFile = svgFile;
 			}
+		} else if (imageItem.isCustomType && imageItem.displayFile !== imageItem.originalFile) {
+			// 对于自定义文件类型，使用displayFile（封面文件）来检查引用
+			targetFile = imageItem.displayFile;
 		}
 
 		// 使用 Obsidian 的反向链接 API（需要类型断言）

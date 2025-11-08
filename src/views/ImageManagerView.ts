@@ -47,8 +47,10 @@ export class ImageManagerView extends ItemView {
 
 		// 初始化服务
 		this.imageLoader = new ImageLoaderService(this.app);
+		this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
 		this.referenceChecker = new ReferenceCheckService(this.app);
 		this.fileOperations = new FileOperationService(this.app);
+		this.fileOperations.setFileOpenModes(settings.fileOpenModes || {});
 	}
 
 	getViewType(): string {
@@ -78,6 +80,18 @@ export class ImageManagerView extends ItemView {
 	}
 
 	/**
+	 * 更新设置
+	 */
+	updateSettings(settings: ImageManagerSettings): void {
+		this.settings = settings;
+		this.selectedFolder = settings.folderPath || "";
+		this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
+		this.fileOperations.setFileOpenModes(settings.fileOpenModes || {});
+		// 重新加载图片以应用新设置
+		this.loadImages();
+	}
+
+	/**
 	 * 设置布局
 	 */
 	private setupLayout(): void {
@@ -101,44 +115,6 @@ export class ImageManagerView extends ItemView {
 	 */
 	private renderHeader(): void {
 		this.headerContainer.empty();
-
-		// 文件夹路径输入区域
-		const folderInputEl = this.headerContainer.createDiv("image-manager-folder-input");
-		folderInputEl.createSpan({
-			text: "文件夹路径:",
-			cls: "image-manager-folder-label",
-		});
-		
-		const folderInput = folderInputEl.createEl("input", {
-			type: "text",
-			placeholder: "留空显示所有图片",
-			value: this.selectedFolder,
-			cls: "image-manager-folder-path-input",
-		});
-		
-		const applyBtn = folderInputEl.createEl("button", {
-			text: "应用",
-			cls: "image-manager-apply-folder-button",
-		});
-		
-		applyBtn.onclick = async () => {
-			const newPath = folderInput.value.trim();
-			if (newPath !== this.selectedFolder) {
-				this.selectedFolder = newPath;
-				await this.loadImages();
-			}
-		};
-		
-		// 允许按回车键应用
-		folderInput.addEventListener("keypress", async (e) => {
-			if (e.key === "Enter") {
-				const newPath = folderInput.value.trim();
-				if (newPath !== this.selectedFolder) {
-					this.selectedFolder = newPath;
-					await this.loadImages();
-				}
-			}
-		});
 
 		// 统计信息和按钮行
 		const statsActionsRow = this.headerContainer.createDiv("image-manager-stats-actions-row");
@@ -309,7 +285,7 @@ export class ImageManagerView extends ItemView {
 			thumbnailEl.style.cursor = "pointer";
 			
 			const img = thumbnailEl.createEl("img", {
-				cls: image.isAgx ? "image-manager-svg-image" : "image-manager-thumbnail-image",
+				cls: image.displayFile.extension.toLowerCase() === "svg" ? "image-manager-svg-image" : "image-manager-thumbnail-image",
 			});
 			
 			// 设置图片源
@@ -327,13 +303,17 @@ export class ImageManagerView extends ItemView {
 				});
 			};
 
-			// 格式标签
-			if (image.isAgx) {
-				thumbnailEl.createDiv({
-					text: "AGX",
-					cls: "image-manager-format-badge image-manager-agx-format",
-				});
-			}
+			// 格式标签 - 右上角显示文件类型
+			const formatBadge = thumbnailEl.createDiv({
+				text: image.originalFile.extension.toUpperCase(),
+				cls: "image-manager-format-badge",
+			});
+			// AGX 和自定义类型使用强调色，普通图片使用灰色
+			formatBadge.addClass(
+				image.isAgx || image.isCustomType
+					? "image-manager-agx-format"
+					: "image-manager-other-format"
+			);
 
 			// 引用标签 - 统一放在左上角
 			if (image.references) {

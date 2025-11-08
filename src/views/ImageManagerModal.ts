@@ -55,8 +55,10 @@ export class ImageManagerModal extends Modal {
 
 		// Initialize services
 		this.imageLoader = new ImageLoaderService(app);
+		this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
 		this.referenceChecker = new ReferenceCheckService(app);
 		this.fileOperations = new FileOperationService(app);
+		this.fileOperations.setFileOpenModes(settings.fileOpenModes || {});
 		this.imageFilter = new ImageFilterService();
 		this.imageLoadCache = new ImageLoadCache();
 	}

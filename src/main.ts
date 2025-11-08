@@ -74,5 +74,14 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		
+		// 通知所有打开的图片管理器视图更新设置
+		const leaves = this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
+		leaves.forEach(leaf => {
+			const view = leaf.view;
+			if (view instanceof ImageManagerView) {
+				view.updateSettings(this.settings.imageManager || {});
+			}
+		});
 	}
 }

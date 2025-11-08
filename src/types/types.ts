@@ -11,5 +11,6 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
 		showModifiedTime: true,
 		defaultFilterUnreferenced: false,
 		confirmDelete: true,
+		customFileTypes: [],
 	},
 };
