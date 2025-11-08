@@ -2,17 +2,46 @@
  * 图片预览Modal样式
  */
 
+/* 彻底移除 modal-header 的影响 */
+.modal.image-manager-preview-modal-container {
+	padding: 0 !important;
+	max-width: 1200px !important;
+	width: 75vw !important;
+	height: 85vh !important;
+	display: flex !important;
+	flex-direction: column !important;
+}
+
+.modal.image-manager-preview-modal-container .modal-header {
+	display: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	height: 0 !important;
+	min-height: 0 !important;
+}
+
+.modal.image-manager-preview-modal-container .modal-close-button {
+	display: none !important;
+}
+
+/* 预览弹窗内容 */
+.modal.image-manager-preview-modal-container .modal-content {
+	padding: 0 !important;
+	margin: 0 !important;
+	height: 100% !important;
+	display: flex !important;
+	flex-direction: column !important;
+}
+
 /* 预览弹窗 */
 .image-manager-preview-modal {
 	background: var(--background-primary);
 	border-radius: var(--radius-m);
-	width: 80%;
-	height: 80%;
-	max-width: 1400px;
+	width: 100%;
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .image-manager-preview-toolbar {
