@@ -263,16 +263,6 @@ export class ImagePreviewModal extends Modal {
 		});
 
 		noBacklinks.createDiv({ text: "📝 暂无引用" });
-
-		const hint = noBacklinks.createDiv({
-			cls: "image-manager-backlink-hint",
-		});
-
-		hint.createSpan({ text: "使用 " });
-		hint.createEl("code", { text: "![[图片名]]" });
-		hint.createSpan({ text: " 或 " });
-		hint.createEl("code", { text: "![](路径)" });
-		hint.createSpan({ text: " 来引用此图片" });
 	}
 
 	/**

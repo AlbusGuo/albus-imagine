@@ -12,5 +12,6 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
 		defaultFilterUnreferenced: false,
 		confirmDelete: true,
 		customFileTypes: [],
+		fileOpenModes: {},
 	},
 };

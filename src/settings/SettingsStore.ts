@@ -50,11 +50,31 @@ export default class SettingsStore {
 				unknown
 			>;
 			const savedRecord = (saved ?? {}) as Record<string, unknown>;
+			
+			// 遍历默认配置的键
 			for (const key of Object.keys(defaultRecord)) {
-				result[key] = this.#mergeWithDefaults(
-					savedRecord[key],
-					defaultRecord[key]
-				);
+				// 如果默认值是空对象 {}，且保存的值也是对象，则保留保存的值
+				const defaultValue = defaultRecord[key];
+				const savedValue = savedRecord[key];
+				
+				if (
+					defaultValue !== null &&
+					typeof defaultValue === "object" &&
+					!Array.isArray(defaultValue) &&
+					Object.keys(defaultValue as Record<string, unknown>).length === 0 &&
+					savedValue !== null &&
+					typeof savedValue === "object" &&
+					!Array.isArray(savedValue)
+				) {
+					// 空对象类型的字段，保留保存的数据（如 fileOpenModes）
+					result[key] = savedValue;
+				} else {
+					// 其他情况递归合并
+					result[key] = this.#mergeWithDefaults(
+						savedValue,
+						defaultValue
+					);
+				}
 			}
 			return result as unknown as T;
 		}

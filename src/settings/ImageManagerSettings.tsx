@@ -67,13 +67,7 @@ export function ImageManagerSettings() {
 
 	return (
 		<>
-			<SettingTitle>图片管理器</SettingTitle>
-			<SettingDescription>
-				配置图片管理器的基本参数和显示选项。
-				<br />
-				图片引用情况会在加载时自动检查。
-			</SettingDescription>
-
+			<SettingTitle>路径设置</SettingTitle>
 			<div style={{ marginBottom: "1rem" }}>
 				<div style={{ marginBottom: "8px" }}>
 					<label style={{ 
@@ -144,14 +138,6 @@ export function ImageManagerSettings() {
 					updateImageManagerSettings({ confirmDelete: checked })
 				}
 			/>
-
-			<SettingDescription>
-				注意：支持 PNG, JPG, JPEG, GIF, BMP, WEBP, SVG, AGX 格式。
-				<br />
-				AGX文件将自动使用同名的SVG文件作为封面显示，引用检查也会基于SVG文件进行。
-				<br />
-				<strong>提示：</strong>自定义文件类型功能可以让您添加类似AGX的特殊文件格式，自动使用封面文件显示，删除和重命名时会同步处理原文件和封面。
-			</SettingDescription>
 
 			<SettingDivider />
 
