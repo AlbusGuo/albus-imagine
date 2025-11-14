@@ -32,6 +32,12 @@ export class ImageManagerView extends ItemView {
 	private isCheckingReferences = false;
 	private folderSuggest: FolderSuggest | null = null;
 
+	// 虚拟滚动相关
+	private renderedCount = 0;
+	private batchSize = 50; // 每批次渲染的图片数量
+	private isLoadingMore = false;
+	private scrollThreshold = 300; // 距离底部多少像素时开始加载
+
 	// Services
 	private imageLoader: ImageLoaderService;
 	private referenceChecker: ReferenceCheckService;
@@ -111,6 +117,9 @@ export class ImageManagerView extends ItemView {
 		// 创建网格容器 - 使用 grid-panel 包裹
 		const gridPanel = contentEl.createDiv("image-manager-grid-panel");
 		this.gridContainer = gridPanel;
+
+		// 添加滚动监听实现增量加载
+		this.gridContainer.addEventListener("scroll", () => this.handleScroll());
 	}
 
 	/**
@@ -315,17 +324,23 @@ export class ImageManagerView extends ItemView {
 	/**
 	 * 渲染网格
 	 */
-	private renderGrid(): void {
-		this.gridContainer.empty();
+	/**
+	 * 渲染网格
+	 */
+	private renderGrid(append: boolean = false): void {
+		if (!append) {
+			this.gridContainer.empty();
+			this.renderedCount = 0;
+		}
 
-		if (this.isLoading) {
+		if (this.isLoading && !append) {
 			const loadingEl = this.gridContainer.createDiv("image-manager-loading-state");
 			loadingEl.createDiv("image-manager-loading-spinner");
 			loadingEl.createSpan({ text: "加载中..." });
 			return;
 		}
 
-		if (this.filteredImages.length === 0) {
+		if (this.filteredImages.length === 0 && !append) {
 			const emptyEl = this.gridContainer.createDiv("image-manager-empty-state");
 			emptyEl.createSpan({
 				text: this.images.length === 0 ? "没有找到图片" : "没有符合条件的图片",
@@ -337,10 +352,22 @@ export class ImageManagerView extends ItemView {
 			return;
 		}
 
-		// 创建网格容器
-		const gridEl = this.gridContainer.createDiv("image-manager-grid");
+		// 查找或创建网格容器
+		let gridEl: HTMLElement | null = null;
+		if (append) {
+			gridEl = this.gridContainer.querySelector(".image-manager-grid");
+		}
+		if (!gridEl) {
+			gridEl = this.gridContainer.createDiv("image-manager-grid");
+		}
 
-		this.filteredImages.forEach((image) => {
+		// 计算本次要渲染的图片范围
+		const startIndex = this.renderedCount;
+		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
+		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
+
+		// 渲染图片
+		imagesToRender.forEach((image) => {
 			const itemEl = gridEl.createDiv("image-manager-grid-item");
 
 			// 缩略图容器
@@ -470,6 +497,64 @@ export class ImageManagerView extends ItemView {
 				this.handleDelete(image);
 			};
 		});
+
+		this.renderedCount = endIndex;
+
+		// 更新加载更多指示器
+		this.updateLoadMoreIndicator();
+	}
+
+	/**
+	 * 处理滚动事件
+	 */
+	private handleScroll(): void {
+		if (this.isLoadingMore || this.renderedCount >= this.filteredImages.length) {
+			return;
+		}
+
+		const container = this.gridContainer;
+		const scrollTop = container.scrollTop;
+		const scrollHeight = container.scrollHeight;
+		const clientHeight = container.clientHeight;
+
+		// 当滚动到接近底部时加载更多
+		if (scrollHeight - scrollTop - clientHeight < this.scrollThreshold) {
+			this.loadMoreImages();
+		}
+	}
+
+	/**
+	 * 加载更多图片
+	 */
+	private loadMoreImages(): void {
+		if (this.isLoadingMore || this.renderedCount >= this.filteredImages.length) {
+			return;
+		}
+
+		this.isLoadingMore = true;
+		
+		// 使用 requestAnimationFrame 避免阻塞
+		requestAnimationFrame(() => {
+			this.renderGrid(true); // append = true
+			this.isLoadingMore = false;
+		});
+	}
+
+	/**
+	 * 更新"加载更多"指示器
+	 */
+	private updateLoadMoreIndicator(): void {
+		// 移除旧的指示器
+		const oldIndicator = this.gridContainer.querySelector(".image-manager-load-more");
+		if (oldIndicator) {
+			oldIndicator.remove();
+		}
+
+		// 如果还有更多内容，添加指示器
+		if (this.renderedCount < this.filteredImages.length) {
+			const indicator = this.gridContainer.createDiv("image-manager-load-more");
+			indicator.setText(`已显示 ${this.renderedCount} / ${this.filteredImages.length} 张图片`);
+		}
 	}
 
 	/**
