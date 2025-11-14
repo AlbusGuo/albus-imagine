@@ -99,22 +99,9 @@ export class FileOperationService {
 	}
 
 	/**
-	 * 删除文件
+	 * 删除文件（不再使用 confirm，由调用方处理确认逻辑）
 	 */
-	async deleteFile(image: ImageItem, confirmDelete = true): Promise<void> {
-		// 确认删除
-		if (confirmDelete) {
-			let extraMessage = "";
-			if (image.isAgx) {
-				extraMessage = "（同时会删除对应的SVG文件）";
-			} else if (image.isCustomType && image.customTypeConfig) {
-				extraMessage = `（同时会删除对应的${image.customTypeConfig.coverExtension.toUpperCase()}封面文件）`;
-			}
-			const message = `确定要删除文件 "${image.name}" 吗？${extraMessage}`;
-			const confirmed = confirm(message);
-			if (!confirmed) return;
-		}
-
+	async deleteFile(image: ImageItem): Promise<void> {
 		try {
 			await this.app.vault.trash(image.originalFile, false);
 
@@ -142,6 +129,18 @@ export class FileOperationService {
 			new Notice(`删除失败: ${error.message}`);
 			throw error;
 		}
+	}
+
+	/**
+	 * 获取删除确认的额外提示信息
+	 */
+	getDeleteExtraMessage(image: ImageItem): string {
+		if (image.isAgx) {
+			return "同时会删除对应的 SVG 封面文件";
+		} else if (image.isCustomType && image.customTypeConfig) {
+			return `同时会删除对应的 ${image.customTypeConfig.coverExtension.toUpperCase()} 封面文件`;
+		}
+		return "";
 	}
 
 	/**

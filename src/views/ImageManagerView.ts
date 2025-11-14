@@ -14,6 +14,7 @@ import { ReferenceCheckService } from "../services/ReferenceCheckService";
 import { FileOperationService } from "../services/FileOperationService";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { RenameModal } from "./RenameModal";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
 export const IMAGE_MANAGER_VIEW_TYPE = "image-manager-view";
 
@@ -542,12 +543,29 @@ export class ImageManagerView extends ItemView {
 	 * 处理删除
 	 */
 	private async handleDelete(image: ImageItem): Promise<void> {
-		try {
-			await this.fileOperations.deleteFile(image, this.settings.confirmDelete);
-			await this.refresh();
-		} catch (error) {
-			// 错误已在 service 中处理
+		// 如果设置中禁用了确认，直接删除
+		if (this.settings.confirmDelete === false) {
+			try {
+				await this.fileOperations.deleteFile(image);
+				await this.refresh();
+			} catch (error) {
+				// 错误已在 service 中处理
+			}
+			return;
 		}
+
+		// 显示确认模态框
+		const extraMessage = this.fileOperations.getDeleteExtraMessage(image);
+		const modal = new DeleteConfirmModal(
+			this.app,
+			image,
+			extraMessage,
+			async () => {
+				await this.fileOperations.deleteFile(image);
+				await this.refresh();
+			}
+		);
+		modal.open();
 	}
 
 	/**

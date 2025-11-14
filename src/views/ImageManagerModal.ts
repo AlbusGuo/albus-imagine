@@ -17,6 +17,7 @@ import { SearchSortBarComponent } from "../components/SearchSortBarComponent";
 import { HeaderComponent } from "../components/HeaderComponent";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { RenameModal } from "./RenameModal";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { ImageLoadCache } from "../models/ImageLoadCache";
 
 export class ImageManagerModal extends Modal {
@@ -288,23 +289,41 @@ export class ImageManagerModal extends Modal {
 	 * 删除文件
 	 */
 	private async deleteFile(image: ImageItem): Promise<void> {
-		try {
-			await this.fileOperations.deleteFile(
-				image,
-				this.settings.confirmDelete !== false
-			);
-			// 清除缓存
-			this.referenceChecker.getCache().delete(image.path);
-			this.imageLoadCache.delete(image.path);
+		// 如果设置中禁用了确认，直接删除
+		if (this.settings.confirmDelete === false) {
+			try {
+				await this.fileOperations.deleteFile(image);
+				// 清除缓存
+				this.referenceChecker.getCache().delete(image.path);
+				this.imageLoadCache.delete(image.path);
+				// 重新加载
+				await this.loadImages();
+			} catch (error) {
+				// 错误已在 service 中处理
+			}
+			return;
+		}
+
+		// 显示确认模态框
+		const extraMessage = this.fileOperations.getDeleteExtraMessage(image);
+		const modal = new DeleteConfirmModal(
+			this.app,
+			image,
+			extraMessage,
+			async () => {
+				await this.fileOperations.deleteFile(image);
+				// 清除缓存
+				this.referenceChecker.getCache().delete(image.path);
+				this.imageLoadCache.delete(image.path);
 			// 重新加载
 			await this.loadImages();
-		} catch (error) {
-			// Error already handled in service
 		}
-	}
+	);
+	modal.open();
+}
 
-	onClose(): void {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
+onClose(): void {
+	const { contentEl } = this;
+	contentEl.empty();
+}
 }
