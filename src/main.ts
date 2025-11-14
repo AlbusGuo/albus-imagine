@@ -19,7 +19,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 		// 添加功能区图标 - 打开图片管理器
 		const ribbonIconEl = this.addRibbonIcon(
-			"image",
+			"images",
 			"图片管理器",
 			(evt: MouseEvent) => {
 				this.openImageManager();

@@ -62,7 +62,7 @@ export class ImageManagerView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "image";
+		return "images";
 	}
 
 	async onOpen(): Promise<void> {
