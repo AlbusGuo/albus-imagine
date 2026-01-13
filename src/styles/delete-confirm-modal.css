@@ -65,3 +65,31 @@
 	background: var(--color-red);
 	border-color: var(--color-red);
 }
+
+/* 加载状态 */
+.delete-confirm-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	gap: 16px;
+}
+
+.delete-confirm-loading-spinner {
+	width: 32px;
+	height: 32px;
+	border: 3px solid var(--background-modifier-border);
+	border-top-color: var(--interactive-accent);
+	border-radius: 50%;
+	animation: delete-spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes delete-spinner-rotate {
+	to { transform: rotate(360deg); }
+}
+
+.delete-confirm-loading-text {
+	color: var(--text-muted);
+	font-size: 14px;
+}

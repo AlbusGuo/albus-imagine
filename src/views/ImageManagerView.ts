@@ -920,21 +920,29 @@ export class ImageManagerView extends ItemView {
 			this.filteredImages,
 			async () => {
 				const total = this.filteredImages.length;
-				let successCount = 0;
-				let errorCount = 0;
-
 				const notice = new Notice(`正在删除 ${total} 张图片...`, 0);
 
-				// 批量删除
-				for (const image of this.filteredImages) {
-					try {
-						await this.fileOperations.deleteFile(image);
+				// 使用 Promise.allSettled 并行删除以提高性能
+				const deletePromises = this.filteredImages.map(image => 
+					this.fileOperations.deleteFile(image, true) // 使用静默模式
+						.then(() => ({ status: 'success' as const, image }))
+						.catch((error) => ({ status: 'error' as const, image, error }))
+				);
+
+				const results = await Promise.allSettled(deletePromises);
+				
+				// 统计结果
+				let successCount = 0;
+				let errorCount = 0;
+				
+				for (const result of results) {
+					if (result.status === 'fulfilled' && result.value.status === 'success') {
 						successCount++;
-						// 更新进度
-						notice.setMessage(`正在删除: ${successCount}/${total}`);
-					} catch (error) {
+					} else {
 						errorCount++;
-						console.error(`删除文件失败: ${image.path}`, error);
+						if (result.status === 'fulfilled' && result.value.status === 'error') {
+							console.error(`删除文件失败: ${result.value.image.path}`, result.value.error);
+						}
 					}
 				}
 

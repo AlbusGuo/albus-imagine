@@ -1,7 +1,7 @@
 {
 	"id": "albus-imagine",
 	"name": "Imagine",
-	"version": "1.2.4",
+	"version": "1.2.5",
 	"minAppVersion": "1.11.4",
 	"description": "A powerful image management plugin for Obsidian with managing, resizing and viewing features.",
 	"author": "Albus",

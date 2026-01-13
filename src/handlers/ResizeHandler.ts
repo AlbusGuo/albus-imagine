@@ -20,6 +20,7 @@ export class ResizeHandler {
 	private lastUpdate = 1;
 	private updatedWidth = 0;
 	private lastMoveTime = 0;
+	private rafId: number | null = null;
 
 	constructor(plugin: Plugin, settings: ImageResizeSettings) {
 		this.plugin = plugin;
@@ -206,10 +207,18 @@ export class ResizeHandler {
 		newHeight = Math.round(newHeight);
 		this.updatedWidth = newWidth;
 		
-		img.style.width = `${newWidth}px`;
+		// 使用 requestAnimationFrame 优化 DOM 更新，减少抖动
+		if (this.rafId !== null) {
+			cancelAnimationFrame(this.rafId);
+		}
+		this.rafId = requestAnimationFrame(() => {
+			img.style.width = `${newWidth}px`;
+			this.rafId = null;
+		});
 		
+		// 降低 markdown 更新频率到 250ms，减少编辑器抖动
 		const now = Date.now();
-		if (now - this.lastMoveTime < 100) {
+		if (now - this.lastMoveTime < 250) {
 			return;
 		}
 		
@@ -222,22 +231,39 @@ export class ResizeHandler {
 	 * 结束拖拽调整
 	 */
 	private endDrag(img: HTMLImageElement, target_pos: number): void {
-		// 移除所有内联样式，确保markdown尺寸设置生效
-		img.style.removeProperty('width');
-		img.style.removeProperty('height');
-		img.style.removeProperty('max-width');
-		img.style.removeProperty('max-height');
-
+		// 清理待处理的 requestAnimationFrame
+		if (this.rafId !== null) {
+			cancelAnimationFrame(this.rafId);
+			this.rafId = null;
+		}
+		
+		// 计算最终宽度
+		let finalWidth = this.updatedWidth;
 		if (this.settings.resizeInterval > 1) {
 			const resize_interval = this.settings.resizeInterval;
 			const width_offset = this.lastUpdate > 0 ? resize_interval : 0;
 			
-			if (this.updatedWidth % resize_interval !== 0) {
-				this.updatedWidth = Math.floor(this.updatedWidth / resize_interval) * resize_interval + width_offset;
+			if (finalWidth % resize_interval !== 0) {
+				finalWidth = Math.floor(finalWidth / resize_interval) * resize_interval + width_offset;
 			}
-			
-			this.linkUpdateService.updateImageLinkWithNewSize(img, target_pos, this.updatedWidth, 0);
 		}
+
+		// 先设置最终宽度到样式，防止闪烁
+		img.style.width = `${finalWidth}px`;
+		
+		// 更新 markdown 链接
+		this.linkUpdateService.updateImageLinkWithNewSize(img, target_pos, finalWidth, 0);
+		
+		// 延迟移除内联样式，等待 markdown 渲染完成
+		// 使用 requestAnimationFrame 确保在下一帧移除，让 markdown 的尺寸先生效
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				img.style.removeProperty('width');
+				img.style.removeProperty('height');
+				img.style.removeProperty('max-width');
+				img.style.removeProperty('max-height');
+			});
+		});
 
 		this.isDragging = false;
 		this.dragTarget = null;

@@ -1,0 +1,111 @@
+/* ========================================
+图片添加 dark 参数可在深色模式下反色
+======================================== */
+
+.theme-dark img[alt*="dark"] {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+.theme-dark .image-embed[src*="#dark"] img {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+
+/* ========================================
+图片排版位置
+======================================== */
+img[alt$="center"]:not([class*="emoji"]),
+.markdown-source-view.mod-cm6 img[alt$="center"]:not([class*="emoji"]),
+.internal-embed.image-embed.is-loaded[alt$="center"] img[alt$="right"]:not([class*="emoji"]),
+body:not(.image-zoom) .view-content img[alt$="center"]:not([class*="emoji"]) {
+  margin: auto !important;
+  display: block;
+}
+
+img[alt$="inline"]:not([class*="emoji"]) {
+  display: inline !important;
+  padding: 0.05em 0.05em !important;
+  vertical-align: bottom;
+}
+
+img[alt$="left"]:not([class*="emoji"]) {
+  float: left;
+  padding: 0.5em 0.5em 0.5em 0.5em !important;
+}
+
+img[alt$="right"]:not([class*="emoji"]) {
+  float: right;
+  padding: 0.5em 0.5em 0.5em 0.5em !important;
+}
+
+/* ========================================
+图片标题
+======================================== */
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"] {
+  clear: both;
+  margin: 0 auto !important;
+  width: fit-content;
+  display: block;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"]::after {
+  content: attr(alt);
+  margin: 0.5rem 0;
+  display: block;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"] {
+  position: relative;
+  float: left;
+  margin: 0.5rem 1rem 0.5rem 0 !important;
+  clear: both;
+  display: table;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"]::after {
+  content: attr(alt);
+  padding: 0 0.5rem;
+  margin: 0.5rem 0 1rem;
+  display: table-caption;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"] {
+  position: relative;
+  float: right;
+  margin: 0.5rem 0 0.5rem 1rem !important;
+  clear: both;
+  display: table;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"]::after {
+  content: attr(alt);
+  padding: 0 0.5rem;
+  margin: 0.5rem 0 1rem;
+  display: table-caption;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="inline"] {
+  clear: both;
+  margin: 0 auto !important;
+  width: fit-content;
+  display: inline-table;
+}
+
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="inline"]::after {
+  content: attr(alt);
+  padding: 0 0.7em;
+  margin: 0.5rem 0;
+  display: block;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+}

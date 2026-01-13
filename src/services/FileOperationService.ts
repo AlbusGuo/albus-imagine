@@ -64,8 +64,10 @@ export class FileOperationService {
 
 	/**
 	 * 删除文件（不再使用 confirm，由调用方处理确认逻辑）
+	 * @param image 要删除的图片项
+	 * @param silent 静默模式，不显示成功通知（用于批量删除）
 	 */
-	async deleteFile(image: ImageItem): Promise<void> {
+	async deleteFile(image: ImageItem, silent: boolean = false): Promise<void> {
 		try {
 			await this.app.vault.trash(image.originalFile, false);
 
@@ -88,9 +90,13 @@ export class FileOperationService {
 				}
 			}
 
-			new Notice("文件删除成功");
+			if (!silent) {
+				new Notice("文件删除成功");
+			}
 		} catch (error) {
-			new Notice(`删除失败: ${error.message}`);
+			if (!silent) {
+				new Notice(`删除失败: ${error.message}`);
+			}
 			throw error;
 		}
 	}
