@@ -1,5 +1,4 @@
 import { ImageManagerSettings } from "./image-manager.types";
-import { ModifierHotkey, MODIFIER_HOTKEYS } from "../views/ImageViewerConstants";
 
 /**
  * 图片调整大小插件的设置接口

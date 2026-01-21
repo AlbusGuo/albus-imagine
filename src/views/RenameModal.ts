@@ -71,13 +71,13 @@ export class RenameModal extends Modal {
 		});
 
 		confirmBtn.addEventListener("click", () => {
-			this.handleConfirm();
+			void this.handleConfirm();
 		});
 
 		// 回车确认
 		this.inputEl.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
-				this.handleConfirm();
+				void this.handleConfirm();
 			} else if (e.key === "Escape") {
 				this.close();
 			}

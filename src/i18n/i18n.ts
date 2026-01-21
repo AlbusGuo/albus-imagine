@@ -33,14 +33,15 @@ export class I18n {
 		}
 	}
 
-	private flattenObject(obj: any, prefix = ""): Record<string, string> {
+	private flattenObject(obj: Record<string, unknown>, prefix = ""): Record<string, string> {
 		return Object.keys(obj).reduce(
 			(acc: Record<string, string>, k: string) => {
 				const pre = prefix.length ? prefix + "." : "";
-				if (typeof obj[k] === "object") {
-					Object.assign(acc, this.flattenObject(obj[k], pre + k));
-				} else {
-					acc[pre + k] = obj[k];
+				const value = obj[k];
+				if (typeof value === "object" && value !== null) {
+					Object.assign(acc, this.flattenObject(value as Record<string, unknown>, pre + k));
+				} else if (typeof value === "string") {
+					acc[pre + k] = value;
 				}
 				return acc;
 			},

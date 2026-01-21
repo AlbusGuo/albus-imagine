@@ -65,6 +65,10 @@
 	border-color: var(--text-muted);
 }
 
+.image-manager-folder-button.is-hidden {
+	display: none;
+}
+
 .image-manager-folder-icon {
 	display: flex;
 	align-items: center;
@@ -107,15 +111,20 @@
 
 /* 文件夹建议列表 */
 .image-manager-suggestion-container {
+	position: fixed;
+	z-index: 10000;
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-	box-shadow: var(--shadow-s);
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+	max-height: 300px;
+	overflow-y: auto;
 }
 
 .image-manager-suggestion-item {
-	padding: 6px 12px;
+	padding: 8px 12px;
 	cursor: pointer;
+	user-select: none;
 	font-size: 13px;
 	color: var(--text-normal);
 }

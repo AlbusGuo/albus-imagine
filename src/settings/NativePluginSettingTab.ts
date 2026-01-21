@@ -76,10 +76,10 @@ export class NativePluginSettingTab extends PluginSettingTab {
 				text: TAB_LABELS[tab]
 			});
 
-			button.addEventListener('click', async () => {
+			button.addEventListener('click', () => {
 				this.activeTab = tab;
 				this.plugin.settings.settingsTab = tab;
-				await this.plugin.saveSettings();
+				void this.plugin.saveSettings();
 				this.display();
 			});
 		});

@@ -127,7 +127,7 @@ export class ImagePickerModal extends Modal {
 			cls: "image-manager-folder-input-inline",
 		});
 
-		buttonEl.style.display = "none";
+		buttonEl.addClass("is-hidden");
 
 		if (this.folderSuggest) {
 			this.folderSuggest.destroy();
@@ -145,17 +145,17 @@ export class ImagePickerModal extends Modal {
 			if (e.key === "Enter") {
 				await this.refresh();
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			} else if (e.key === "Escape") {
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			}
 		});
 
 		folderInput.addEventListener("blur", () => {
 			setTimeout(() => {
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			}, 200);
 		});
 

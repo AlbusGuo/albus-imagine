@@ -2,7 +2,7 @@
  * 文件操作服务
  */
 
-import { App, Notice, TFile, FileSystemAdapter } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 import { ImageItem, CustomFileTypeConfig } from "../types/image-manager.types";
 
 export class FileOperationService {
@@ -25,7 +25,7 @@ export class FileOperationService {
 	 */
 	async renameFile(image: ImageItem, newName: string): Promise<void> {
 		try {
-			const newPath = image.path.replace(/[^\/]+$/, newName);
+			const newPath = image.path.replace(/[^/]+$/, newName);
 			await this.app.fileManager.renameFile(
 				image.originalFile,
 				newPath

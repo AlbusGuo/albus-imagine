@@ -55,7 +55,7 @@ export class LinkUpdateService {
 			this.updateExternalLink(activeView, img, target_pos, newWidth, newHeight, inTable, inCallout);
 		} else if (isExcalidraw) {
 			const draw_base_name = this.getExcalidrawBaseName(img);
-			img.style.maxWidth = 'none';
+			img.addClass('image-excalidraw-no-max-width');
 			this.updateInternalLink(activeView, img, target_pos, draw_base_name, newWidth, newHeight, inTable, inCallout);
 		} else {
 			imageName = img.closest('.internal-embed')?.getAttribute('src') || null;
@@ -79,7 +79,17 @@ export class LinkUpdateService {
 		if (!imageName) return;
 
 		const editor = activeView.editor;
-		const editorView = (editor as any).cm;
+		const editorView = (editor as unknown as { 
+			cm: { 
+				state: { 
+					doc: { 
+						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
+						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
+					} 
+				};
+				dispatch: (changes: unknown) => void;
+			} 
+		}).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 
 		if (!inCallout && !inTable) {
@@ -105,7 +115,7 @@ export class LinkUpdateService {
 			callout: /^>/
 		};
 		const mode = inTable ? 'table' : 'callout';
-		const start_reg = startReg[mode as keyof typeof startReg];
+		const start_reg = startReg[mode];
 		const start_line_number = target_line.number;
 		const matched_results: LinkMatch[] = [];
 		const matched_lines: number[] = [];
@@ -173,7 +183,17 @@ export class LinkUpdateService {
 		inCallout: boolean
 	): void {
 		const editor = activeView.editor;
-		const editorView = (editor as any).cm;
+		const editorView = (editor as unknown as { 
+			cm: { 
+				state: { 
+					doc: { 
+						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
+						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
+					} 
+				};
+				dispatch: (changes: unknown) => void;
+			} 
+		}).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 		const link = target.getAttribute('src');
 		const altText = target.getAttribute('alt');
@@ -203,7 +223,7 @@ export class LinkUpdateService {
 			callout: /^>/
 		};
 		const mode = inTable ? 'table' : 'callout';
-		const start_reg = startReg[mode as keyof typeof startReg];
+		const start_reg = startReg[mode];
 		const start_line_number = target_line.number;
 		const matched_results: LinkMatch[] = [];
 		const matched_lines: number[] = [];
@@ -267,8 +287,8 @@ export class LinkUpdateService {
 		new_width: number,
 		intable: boolean
 	): LinkMatch[] {
-		const regWikiLink = /\!\[\[[^\[\]]*?\]\]/g;
-		const regMdLink = /\!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
+		const regWikiLink = /!\[\[[^\[\]]*?\]\]/g;
+		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
 		const target_name_mdlink = target_name.replace(/ /g, '%20');
 
 		if (!line_text.includes(target_name) && !line_text.includes(target_name_mdlink)) {
@@ -359,7 +379,7 @@ export class LinkUpdateService {
 		intable: boolean
 	): LinkMatch[] {
 		const result: LinkMatch[] = [];
-		const regMdLink = /\!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
+		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
 
 		if (!line_text.includes(link)) {
 			return [];

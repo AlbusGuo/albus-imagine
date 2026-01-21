@@ -50,7 +50,6 @@ export class BatchDeleteConfirmModal extends Modal {
 
 		// 警告信息
 		const warningEl = this.bodyEl.createDiv("delete-confirm-modal-extra");
-		warningEl.style.marginTop = "12px";
 		warningEl.setText("此操作不可撤销！");
 
 		// 按钮区域
@@ -70,8 +69,8 @@ export class BatchDeleteConfirmModal extends Modal {
 			cls: "delete-confirm-modal-delete",
 			text: "删除全部",
 		});
-		confirmBtn.addEventListener("click", async () => {
-			await this.handleConfirm();
+		confirmBtn.addEventListener("click", () => {
+			void this.handleConfirm();
 		});
 
 		// 默认聚焦取消按钮（更安全）
@@ -96,7 +95,7 @@ export class BatchDeleteConfirmModal extends Modal {
 			this.showLoadingState();
 			await this.onConfirm();
 			this.close();
-		} catch (error) {
+		} catch {
 			// 错误已在调用方处理，恢复界面以便用户看到错误提示
 			this.hideLoadingState();
 		}

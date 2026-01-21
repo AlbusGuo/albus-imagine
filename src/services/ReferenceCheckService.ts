@@ -39,7 +39,7 @@ export class ReferenceCheckService {
 				}
 
 				// 使用新的反向链接API查找引用
-				const references = await this.findReferencesUsingBacklinks(imageItem);
+				const references = this.findReferencesUsingBacklinks(imageItem);
 
 				const result = {
 					references: references,
@@ -65,9 +65,9 @@ export class ReferenceCheckService {
 	/**
 	 * 使用 Obsidian 反向链接 API 查找引用
 	 */
-	private async findReferencesUsingBacklinks(
+	private findReferencesUsingBacklinks(
 		imageItem: ImageItem
-	): Promise<ReferenceInfo[]> {
+	): ReferenceInfo[] {
 		const references: ReferenceInfo[] = [];
 
 		// 对于自定义文件类型，使用对应的封面文件来检查引用
@@ -77,8 +77,10 @@ export class ReferenceCheckService {
 			targetFile = imageItem.displayFile;
 		}
 
-		// 使用 Obsidian 的反向链接 API（需要类型断言）
-		const metadataCache = this.app.metadataCache as any;
+		// 使用 Obsidian 的反向链接 API
+		const metadataCache = this.app.metadataCache as {
+			getBacklinksForFile?: (file: TFile) => { data?: Map<string, unknown> } | undefined;
+		};
 		const backlinks = metadataCache.getBacklinksForFile?.(targetFile);
 		
 		if (!backlinks || !backlinks.data) {

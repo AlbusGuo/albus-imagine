@@ -41,7 +41,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			"images",
 			"图片管理器",
 			(evt: MouseEvent) => {
-				this.openImageManager();
+				void this.openImageManager();
 			}
 		);
 		ribbonIconEl.addClass("albus-figure-manager-ribbon-icon");
@@ -51,7 +51,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			id: "open-image-manager",
 			name: "打开图片管理器",
 			callback: () => {
-				this.openImageManager();
+				void this.openImageManager();
 			},
 		});
 
@@ -145,7 +145,6 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 	onunload() {
 		// 清理工作
-		this.app.workspace.detachLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
 		this.resizeHandler = null;
 		
 		if (this.imageViewerManager) {

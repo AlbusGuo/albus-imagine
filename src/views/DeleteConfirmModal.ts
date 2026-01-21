@@ -56,8 +56,8 @@ export class DeleteConfirmModal extends Modal {
 			cls: "delete-confirm-delete-button",
 			text: "删除",
 		});
-		confirmBtn.addEventListener("click", async () => {
-			await this.handleConfirm();
+		confirmBtn.addEventListener("click", () => {
+			void this.handleConfirm();
 		});
 
 		// 默认聚焦取消按钮（更安全）
@@ -80,7 +80,7 @@ export class DeleteConfirmModal extends Modal {
 		try {
 			await this.onConfirm();
 			this.close();
-		} catch (error) {
+		} catch {
 			// 错误已在调用方处理，保持模态框打开以便用户看到错误提示
 		}
 	}

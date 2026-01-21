@@ -30,22 +30,8 @@ export class ImagePreviewModal extends Modal {
 	onOpen(): void {
 		const { contentEl, modalEl } = this;
 		
-		// 隐藏默认的 modal-header 和关闭按钮
-		const modalHeader = modalEl.querySelector('.modal-header');
-		if (modalHeader) {
-			(modalHeader as HTMLElement).style.display = 'none';
-		}
-		const modalCloseButton = modalEl.querySelector('.modal-close-button');
-		if (modalCloseButton) {
-			(modalCloseButton as HTMLElement).style.display = 'none';
-		}
-		
 		// 设置 Modal 容器样式
 		modalEl.addClass("image-manager-preview-modal-container");
-		modalEl.style.padding = '0';
-		modalEl.style.maxWidth = '1200px';
-		modalEl.style.width = '75vw';
-		modalEl.style.height = '85vh';
 		
 		contentEl.addClass("image-manager-preview-modal");
 		contentEl.empty();
@@ -188,7 +174,8 @@ export class ImagePreviewModal extends Modal {
 			// 应用缩放
 			if (this.imageElement) {
 				this.imageElement.style.transform = `scale(${this.imageScale})`;
-				this.imageElement.style.cursor = this.imageScale > 1 ? "zoom-out" : "zoom-in";
+				this.imageElement.removeClass("cursor-zoom-in", "cursor-zoom-out");
+				this.imageElement.addClass(this.imageScale > 1 ? "cursor-zoom-out" : "cursor-zoom-in");
 			}
 		});
 
@@ -197,7 +184,8 @@ export class ImagePreviewModal extends Modal {
 			if (this.imageScale !== 1) {
 				this.imageScale = 1;
 				img.style.transform = "scale(1)";
-				img.style.cursor = "zoom-in";
+				img.removeClass("cursor-zoom-in", "cursor-zoom-out");
+				img.addClass("cursor-zoom-in");
 			}
 		});
 

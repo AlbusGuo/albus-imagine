@@ -104,7 +104,7 @@ export class ResizeHandler {
 		const isInResizeArea = x > rect.width - edgeSize && y > rect.height - edgeSize;
 
 		if (isInResizeArea) {
-			this.startDrag(event, img, editor);
+			this.startDrag(event, img, editor as unknown as { cm: { state: { doc: { lineAt: (pos: number) => { from: number; to: number; number: number; text: string } } }; posAtDOM: (node: Node) => number; dispatch: (changes: unknown) => void } });
 		}
 	}
 
@@ -132,9 +132,11 @@ export class ResizeHandler {
 		const isInResizeArea = x > rect.width - edgeSize && y > rect.height - edgeSize;
 
 		if (isInResizeArea) {
-			img.style.cursor = 'nwse-resize';
+			img.addClass('image-cursor-nwse-resize');
+			img.removeClass('image-cursor-default');
 		} else {
-			img.style.cursor = '';
+			img.removeClass('image-cursor-nwse-resize');
+			img.addClass('image-cursor-default');
 		}
 	}
 
@@ -143,13 +145,14 @@ export class ResizeHandler {
 	 */
 	private handleMouseLeave(event: MouseEvent): void {
 		const img = event.target as HTMLImageElement;
-		img.style.cursor = '';
+		img.removeClass('image-cursor-nwse-resize');
+		img.addClass('image-cursor-default');
 	}
 
 	/**
 	 * 开始拖拽调整大小
 	 */
-	private startDrag(event: MouseEvent, img: HTMLImageElement, editor: any): void {
+	private startDrag(event: MouseEvent, img: HTMLImageElement, editor: { cm: { state: { doc: { lineAt: (pos: number) => { from: number; to: number; number: number; text: string } } }; posAtDOM: (node: Node) => number; dispatch: (changes: unknown) => void } }): void {
 		this.isDragging = true;
 		this.dragTarget = img;
 		this.startX = event.clientX;

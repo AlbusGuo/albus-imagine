@@ -7,6 +7,20 @@
 	position: relative;
 }
 
+/* 鼠标样式类 */
+.image-cursor-nwse-resize {
+	cursor: nwse-resize !important;
+}
+
+.image-cursor-default {
+	cursor: default !important;
+}
+
+/* Excalidraw 图片样式 */
+.image-excalidraw-no-max-width {
+	max-width: none !important;
+}
+
 /* 右下角调整区域指示器 */
 .image-resizable::after {
 	content: '';

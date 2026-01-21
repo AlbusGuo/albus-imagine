@@ -134,7 +134,7 @@ export class ImageManagerView extends ItemView {
 		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
 		this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
 		// 重新加载图片以应用新设置
-		this.loadImages();
+		void this.loadImages();
 	}
 
 	/**
@@ -177,7 +177,7 @@ export class ImageManagerView extends ItemView {
 		});
 		const folderIcon = folderBtn.createSpan({ cls: "image-manager-folder-icon" });
 		setIcon(folderIcon, "folder");
-		const folderText = folderBtn.createSpan({ 
+		folderBtn.createSpan({ 
 			text: this.selectedFolder || "所有图片",
 			cls: "image-manager-folder-text"
 		});
@@ -198,7 +198,7 @@ export class ImageManagerView extends ItemView {
 
 		// 引用检查状态提示
 		if (this.isCheckingReferences) {
-			const statusEl = rightSection.createEl("span", {
+			rightSection.createEl("span", {
 				text: "正在检查引用...",
 				cls: "image-manager-checking-status",
 			});
@@ -208,11 +208,8 @@ export class ImageManagerView extends ItemView {
 		if (this.showUnreferencedOnly && this.filteredImages.length > 0) {
 			const batchDeleteBtn = rightSection.createEl("button", {
 				text: "批量删除",
-				cls: "image-manager-check-refs-button",
+				cls: "image-manager-check-refs-button batch-delete",
 			});
-			batchDeleteBtn.style.background = "var(--text-error)";
-			batchDeleteBtn.style.color = "var(--text-on-accent)";
-			batchDeleteBtn.style.borderColor = "var(--text-error)";
 			batchDeleteBtn.onclick = () => this.handleBatchDelete();
 		}
 
@@ -266,7 +263,7 @@ export class ImageManagerView extends ItemView {
 		});
 
 		// 隐藏按钮，显示输入框
-		buttonEl.style.display = "none";
+		buttonEl.addClass("is-hidden");
 
 		// 创建FolderSuggest
 		if (this.folderSuggest) {
@@ -287,10 +284,10 @@ export class ImageManagerView extends ItemView {
 			if (e.key === "Enter") {
 				await this.refresh();
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			} else if (e.key === "Escape") {
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			}
 		});
 
@@ -298,7 +295,7 @@ export class ImageManagerView extends ItemView {
 		folderInput.addEventListener("blur", () => {
 			setTimeout(() => {
 				inputContainer.remove();
-				buttonEl.style.display = "";
+				buttonEl.removeClass("is-hidden");
 			}, 200);
 		});
 
@@ -429,13 +426,13 @@ export class ImageManagerView extends ItemView {
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
 		// 使用 requestAnimationFrame 批量渲染，避免阻塞
-		requestAnimationFrame(async () => {
+		requestAnimationFrame(() => {
 			const itemElements = this.renderImageBatch(gridEl!, imagesToRender);
 			this.renderedCount = endIndex;
 			this.updateLoadMoreIndicator();
 			
 			// 渲染后立即检查这批图片的引用
-			await this.checkBatchReferences(imagesToRender, itemElements);
+			void this.checkBatchReferences(imagesToRender, itemElements);
 		});
 	}
 
@@ -456,7 +453,7 @@ export class ImageManagerView extends ItemView {
 			thumbnailEl.onclick = () => {
 				this.handlePreview(image);
 			};
-			thumbnailEl.style.cursor = "pointer";
+			thumbnailEl.addClass("cursor-pointer");
 			
 			// 检查封面是否缺失
 			if (image.coverMissing) {
@@ -815,11 +812,12 @@ export class ImageManagerView extends ItemView {
 				case "name":
 					compareValue = a.name.localeCompare(b.name);
 					break;
-				case "references":
+				case "references": {
 					const aRefs = a.referenceCount || 0;
 					const bRefs = b.referenceCount || 0;
 					compareValue = aRefs - bRefs;
 					break;
+				}
 			}
 
 			return this.sortOrder === "asc" ? compareValue : -compareValue;
@@ -852,7 +850,7 @@ export class ImageManagerView extends ItemView {
 			try {
 				await this.fileOperations.renameFile(image, newName);
 				await this.refresh();
-			} catch (error) {
+			} catch {
 				// 错误已在 service 中处理
 			}
 		}).open();
@@ -868,7 +866,7 @@ export class ImageManagerView extends ItemView {
 				await this.fileOperations.deleteFile(image);
 				// 优化：只从内存中移除，而不是重新加载所有图片
 				this.removeImageFromList(image);
-			} catch (error) {
+			} catch {
 				// 错误已在 service 中处理
 			}
 			return;
@@ -980,9 +978,9 @@ export class ImageManagerView extends ItemView {
 	private async saveLastSelectedFolder(): Promise<void> {
 		try {
 			// 直接使用 Obsidian 的数据持久化 API
-			const plugin = (this.app as any).plugins?.plugins?.["albus-imagine"];
+			const plugin = (this.app as unknown as { plugins: { plugins: { "albus-imagine"?: { loadData: () => Promise<unknown>; saveData: (data: unknown) => Promise<void>; settings: { imageManager: { lastSelectedFolder: string } } } } } }).plugins?.plugins?.["albus-imagine"];
 			if (plugin) {
-				const data = await plugin.loadData() || {};
+				const data = (await plugin.loadData()) as { imageManager?: { lastSelectedFolder?: string } } || {};
 				if (!data.imageManager) {
 					data.imageManager = {};
 				}

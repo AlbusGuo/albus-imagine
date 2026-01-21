@@ -46,4 +46,4 @@ type JoinPath<T extends string[]> = T extends []
 export type TranslationKeys = JoinPath<PathsToStringProps<BaseMessage>>;
 
 // 参数类型定义
-export type TranslationParams = Record<string, any> | any[];
+export type TranslationParams = Record<string, string | number | boolean> | (string | number | boolean)[];

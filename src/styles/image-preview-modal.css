@@ -141,6 +141,15 @@
 	max-height: 100%;
 	object-fit: contain;
 	border-radius: var(--radius-s);
+	transition: transform 0.1s ease;
+}
+
+.image-manager-preview-image.cursor-zoom-in {
+	cursor: zoom-in;
+}
+
+.image-manager-preview-image.cursor-zoom-out {
+	cursor: zoom-out;
 }
 
 /* 右侧信息区域 */

@@ -80,8 +80,8 @@ export default class SettingsStore {
 		}
 
 		// 基元或数组：类型不匹配或未提供则回退到默认值
-		const isArrayDefault = Array.isArray(defaults as unknown);
-		const isArraySaved = Array.isArray(saved as unknown);
+		const isArrayDefault = Array.isArray(defaults);
+		const isArraySaved = Array.isArray(saved);
 		if (
 			saved === undefined ||
 			(typeof defaults !== typeof saved && !isArrayDefault) ||

@@ -3,8 +3,7 @@
  * 使用 Obsidian 的 AbstractInputSuggest API
  */
 
-import { App, TFolder, TAbstractFile } from "obsidian";
-import { TextComponent } from "obsidian";
+import { App, TFolder } from "obsidian";
 
 export class FolderSuggest {
 	private app: App;
@@ -102,14 +101,6 @@ export class FolderSuggest {
 		// 创建建议框
 		this.suggestEl = document.createElement("div");
 		this.suggestEl.addClass("image-manager-suggestion-container");
-		this.suggestEl.style.position = "fixed";  // 改为 fixed 定位
-		this.suggestEl.style.zIndex = "10000";  // 提高 z-index
-		this.suggestEl.style.background = "var(--background-primary)";
-		this.suggestEl.style.border = "1px solid var(--background-modifier-border)";
-		this.suggestEl.style.borderRadius = "4px";
-		this.suggestEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-		this.suggestEl.style.maxHeight = "300px";
-		this.suggestEl.style.overflowY = "auto";
 		this.suggestEl.style.minWidth = this.inputEl.offsetWidth + "px";
 
 		// 定位
@@ -120,13 +111,10 @@ export class FolderSuggest {
 		// 添加建议项
 		this.folders.forEach((folder, index) => {
 			const item = this.suggestEl!.createDiv("image-manager-suggestion-item");
-			item.style.padding = "8px 12px";
-			item.style.cursor = "pointer";
-			item.style.userSelect = "none";  // 防止文本选择
 			item.textContent = folder.path || "(根目录)";
 
 			if (index === this.selectedIndex) {
-				item.style.background = "var(--background-modifier-hover)";
+				item.addClass("is-selected");
 			}
 
 			// 使用 mousedown 而不是 click，避免焦点问题

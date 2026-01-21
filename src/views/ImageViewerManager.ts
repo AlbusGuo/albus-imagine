@@ -1,6 +1,6 @@
 import { App } from 'obsidian';
 import { ImageViewerView } from './ImageViewerView';
-import { VIEW_IMG_SELECTOR, MODIFIER_HOTKEYS, ModifierHotkey } from './ImageViewerConstants';
+import { VIEW_IMG_SELECTOR } from './ImageViewerConstants';
 import { ImageViewerSettings } from '../types/types';
 
 /**
@@ -133,12 +133,13 @@ export class ImageViewerManager {
 
 		// 保存原始光标样式
 		if (targetEl.getAttribute(ImageViewerManager.IMG_ORIGIN_CURSOR) === null) {
+			const computedStyle = window.getComputedStyle(targetEl);
 			targetEl.setAttribute(
 				ImageViewerManager.IMG_ORIGIN_CURSOR,
-				targetEl.style.cursor || ''
+				computedStyle.cursor || ''
 			);
 		}
-		targetEl.style.cursor = 'zoom-in';
+		targetEl.addClass('afm-cursor-zoom-in');
 	};
 
 	/**
@@ -151,10 +152,7 @@ export class ImageViewerManager {
 		}
 
 		// 恢复原始光标样式
-		const originCursor = targetEl.getAttribute(ImageViewerManager.IMG_ORIGIN_CURSOR);
-		if (originCursor !== null) {
-			targetEl.style.cursor = originCursor;
-		}
+		targetEl.removeClass('afm-cursor-zoom-in');
 	};
 
 	/**

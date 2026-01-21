@@ -8,6 +8,7 @@ import {
 	SUPPORTED_IMAGE_EXTENSIONS,
 	SortOrder,
 	CustomFileTypeConfig,
+	ImageExtension,
 } from "../types/image-manager.types";
 
 export class ImageLoaderService {
@@ -56,7 +57,7 @@ export class ImageLoaderService {
 			// 文件类型筛选
 			const extension = file.extension.toLowerCase();
 			const isImage = SUPPORTED_IMAGE_EXTENSIONS.includes(
-				extension as any
+				extension as ImageExtension
 			);
 
 			// 检查是否为自定义文件类型
@@ -90,7 +91,7 @@ export class ImageLoaderService {
 	/**
 	 * 处理单个图片文件
 	 */
-	private async processImageFile(file: TFile): Promise<ImageItem> {
+	private processImageFile(file: TFile): ImageItem {
 		const extension = file.extension.toLowerCase();
 		let displayFile = file;
 		let isCustomType = false;

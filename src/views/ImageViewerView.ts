@@ -56,7 +56,6 @@ export class ImageViewerView {
 		// <div class="afm-img-viewer-container">
 		this.containerEl = createDiv();
 		this.containerEl.addClass(IMAGE_VIEWER_CLASS.CONTAINER);
-		this.containerEl.style.display = 'none';
 		parentEl.appendChild(this.containerEl);
 
 		// <div class="afm-img-container">
@@ -246,7 +245,7 @@ export class ImageViewerView {
 
 		// 显示容器
 		if (this.containerEl) {
-			this.containerEl.style.display = 'block';
+			this.containerEl.addClass('is-visible');
 			this.isVisible = true;
 		}
 
@@ -294,7 +293,7 @@ export class ImageViewerView {
 	 */
 	close(): void {
 		if (this.containerEl) {
-			this.containerEl.style.display = 'none';
+			this.containerEl.removeClass('is-visible');
 			this.isVisible = false;
 		}
 

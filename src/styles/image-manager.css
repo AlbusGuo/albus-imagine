@@ -170,6 +170,17 @@
 	border-color: var(--interactive-accent) !important;
 }
 
+.image-manager-check-refs-button.batch-delete {
+	background: var(--text-error);
+	color: var(--text-on-accent);
+	border-color: var(--text-error);
+}
+
+.image-manager-check-refs-button.batch-delete:hover {
+	background: var(--text-error);
+	opacity: 0.9;
+}
+
 .image-manager-filter-button:disabled,
 .image-manager-check-refs-button:disabled {
 	opacity: 0.5;
@@ -383,6 +394,10 @@
 	background: var(--background-secondary);
 	overflow: hidden;
 	flex-shrink: 0;
+}
+
+.image-manager-thumbnail.cursor-pointer {
+	cursor: pointer;
 }
 
 .image-manager-thumbnail-image {

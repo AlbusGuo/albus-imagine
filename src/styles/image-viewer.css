@@ -17,6 +17,10 @@
 	display: none;
 }
 
+.afm-img-viewer-container.is-visible {
+	display: block;
+}
+
 /* 图片容器 - 对应 .oit .oit-img-container */
 .afm-img-viewer-container .afm-img-container {
 	position: fixed;
@@ -29,6 +33,10 @@
 	max-height: none;
 	pointer-events: auto;
 	cursor: pointer;
+}
+
+.afm-cursor-zoom-in {
+	cursor: zoom-in !important;
 }
 
 /* 透明图片的棋盘背景 - 对应 .oit .img-default-background */
