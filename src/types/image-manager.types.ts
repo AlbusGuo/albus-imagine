@@ -73,8 +73,6 @@ export interface ImageManagerSettings {
 	showFileSize?: boolean;
 	/** 显示修改时间 */
 	showModifiedTime?: boolean;
-	/** 默认筛选未引用图片 */
-	defaultFilterUnreferenced?: boolean;
 	/** 删除前确认 */
 	confirmDelete?: boolean;
 	/** 深色模式下SVG图片反色处理 */

@@ -146,24 +146,6 @@ export class NativePluginSettingTab extends PluginSettingTab {
 				});
 		});
 
-		// 默认过滤未引用
-		group.addSetting((setting) => {
-			setting
-				.setName('默认过滤未引用图片')
-				.setDesc('打开图片管理器时默认显示未引用的图片')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageManager?.defaultFilterUnreferenced || false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.defaultFilterUnreferenced = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
 		// 默认排序字段
 		group.addSetting((setting) => {
 			setting
@@ -211,11 +193,11 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		group.addSetting((setting) => {
 			setting
 				.setName('排除文件夹')
-				.setDesc('在图片管理器中排除这些文件夹（每行一个路径）')
+				.setDesc('在图片管理器中排除这些文件夹')
 				.addTextArea((text) => {
 					const excludedFolders = this.plugin.settings.imageManager?.excludedFolders || [];
 					text
-						.setPlaceholder('输入要排除的文件夹路径，每行一个\n例如：\n.obsidian\nTemplates\nArchive')
+						.setPlaceholder('输入要排除的文件夹路径, 每行一个')
 						.setValue(excludedFolders.join('\n'))
 						.onChange(debounce(async (value) => {
 							if (!this.plugin.settings.imageManager) {

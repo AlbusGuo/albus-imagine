@@ -1,6 +1,6 @@
 {
 	"name": "albus-imagine",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"description": "A comprehensive image management plugin for managing, inserting, resizing, viewing, and batch processing images.",
 	"main": "main.js",
 	"scripts": {

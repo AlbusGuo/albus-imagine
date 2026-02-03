@@ -61,7 +61,7 @@ export class ImageManagerView extends ItemView {
 		this.settings = settings;
 		// 优先使用上次选择的文件夹，否则使用默认文件夹
 		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
-		this.showUnreferencedOnly = settings.defaultFilterUnreferenced || false;
+		this.showUnreferencedOnly = false;
 		// 使用默认排序设置
 		this.sortField = settings.defaultSortField || "mtime";
 		this.sortOrder = settings.defaultSortOrder || "desc";

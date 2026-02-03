@@ -43,7 +43,6 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
 		lastSelectedFolder: "",
 		showFileSize: true,
 		showModifiedTime: true,
-		defaultFilterUnreferenced: false,
 		confirmDelete: true,
 		invertSvgInDarkMode: true,
 		customFileTypes: [],
