@@ -433,8 +433,16 @@ export class ImageManagerView extends ItemView {
 			this.renderedCount = endIndex;
 			this.updateLoadMoreIndicator();
 			
-			// 渲染后立即检查这批图片的引用
-			void this.checkBatchReferences(imagesToRender, itemElements);
+			// 延迟检查引用，使用 requestIdleCallback 或 setTimeout 确保不阻塞渲染
+			if (typeof requestIdleCallback !== 'undefined') {
+				requestIdleCallback(() => {
+					void this.checkBatchReferences(imagesToRender, itemElements);
+				}, { timeout: 2000 });
+			} else {
+				setTimeout(() => {
+					void this.checkBatchReferences(imagesToRender, itemElements);
+				}, 100);
+			}
 		});
 	}
 
@@ -447,6 +455,8 @@ export class ImageManagerView extends ItemView {
 		
 		images.forEach((image) => {
 			const itemEl = gridEl.createDiv("image-manager-grid-item");
+			// 添加 data-path 属性用于后续查找和删除
+			itemEl.setAttribute("data-path", image.path);
 			
 			// 多选模式下添加选中样式
 			if (this.isMultiSelectMode && this.selectedImages.has(image.path)) {
@@ -763,6 +773,7 @@ export class ImageManagerView extends ItemView {
 
 	/**
 	 * 检查一批图片的引用并更新显示
+	 * 使用更小的批次和异步处理，避免阻塞UI
 	 */
 	private async checkBatchReferences(
 		images: ImageItem[],
@@ -776,24 +787,35 @@ export class ImageManagerView extends ItemView {
 		}
 		
 		try {
-			// 批量检查引用
-			const updatedImages = await this.referenceChecker.checkReferences(needCheckImages);
-			
-			// 更新主数组中的引用信息
-			updatedImages.forEach(updatedImg => {
-				const index = this.images.findIndex(img => img.path === updatedImg.path);
-				if (index !== -1) {
-					this.images[index] = updatedImg;
+			// 使用更小的批次（每次最多10张），避免长时间阻塞
+			const miniBatchSize = 10;
+			for (let i = 0; i < needCheckImages.length; i += miniBatchSize) {
+				const miniBatch = needCheckImages.slice(i, Math.min(i + miniBatchSize, needCheckImages.length));
+				
+				// 检查这小批次的引用
+				const updatedImages = await this.referenceChecker.checkReferences(miniBatch);
+				
+				// 更新主数组中的引用信息
+				updatedImages.forEach(updatedImg => {
+					const index = this.images.findIndex(img => img.path === updatedImg.path);
+					if (index !== -1) {
+						this.images[index] = updatedImg;
+					}
+				});
+				
+				// 更新DOM显示引用信息
+				elements.forEach(({ image, element }) => {
+					const updatedImg = updatedImages.find(img => img.path === image.path);
+					if (updatedImg && updatedImg.references !== undefined) {
+						this.updateReferenceDisplay(element, updatedImg);
+					}
+				});
+				
+				// 每处理一小批后，给UI线程一些时间
+				if (i + miniBatchSize < needCheckImages.length) {
+					await new Promise(resolve => setTimeout(resolve, 10));
 				}
-			});
-			
-			// 更新DOM显示引用信息
-			elements.forEach(({ image, element }) => {
-				const updatedImg = updatedImages.find(img => img.path === image.path);
-				if (updatedImg && updatedImg.references !== undefined) {
-					this.updateReferenceDisplay(element, updatedImg);
-				}
-			});
+			}
 		} catch (error) {
 			console.error("批量检查引用失败:", error);
 		}
@@ -974,17 +996,30 @@ export class ImageManagerView extends ItemView {
 	}
 
 	/**
-	 * 从列表中移除图片（优化后的删除逻辑）
+	 * 从列表中移除图片（优化后的删除逻辑，保持滚动位置）
 	 */
 	private removeImageFromList(image: ImageItem): void {
 		// 从 images 数组中移除
 		this.images = this.images.filter(img => img.path !== image.path);
 		// 从 filteredImages 数组中移除
 		this.filteredImages = this.filteredImages.filter(img => img.path !== image.path);
+		// 从选中列表中移除（如果存在）
+		this.selectedImages.delete(image.path);
 		// 清除引用缓存
 		this.referenceChecker.clearCache();
-		// 重新渲染网格（只渲染，不重新加载）
-		this.renderGrid();
+		
+		// 直接从DOM中移除对应元素，而不是重新渲染整个网格
+		const gridEl = this.gridContainer.querySelector(".image-manager-grid");
+		if (gridEl) {
+			const itemEl = gridEl.querySelector(`[data-path="${CSS.escape(image.path)}"]`);
+			if (itemEl) {
+				itemEl.remove();
+				this.renderedCount--;
+			}
+		}
+		
+		// 更新加载更多指示器
+		this.updateLoadMoreIndicator();
 		// 更新头部统计信息
 		this.renderHeader();
 	}
@@ -1053,8 +1088,9 @@ export class ImageManagerView extends ItemView {
 					new Notice(`删除完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
 				}
 				
-				// 刷新管理器以确保数据一致性
-				await this.refresh();
+				// 更新UI（不刷新，保持滚动位置）
+				this.updateLoadMoreIndicator();
+				this.renderHeader();
 			}
 		);
 		modal.open();
@@ -1124,19 +1160,30 @@ export class ImageManagerView extends ItemView {
 				this.isMultiSelectMode = false;
 				this.selectedImages.clear();
 				
-				// 刷新管理器
-				await this.refresh();
+				// 更新UI（不刷新整个视图，保持滚动位置）
+				this.updateLoadMoreIndicator();
+				this.renderHeader();
 			}
 		);
 		modal.open();
 	}
 
 	/**
-	 * 从内存中移除图片（不重新加载）
+	 * 从内存中移除图片（不重新加载，用于批量删除）
 	 */
 	private removeImageFromMemory(image: ImageItem): void {
 		this.images = this.images.filter(img => img.path !== image.path);
 		this.filteredImages = this.filteredImages.filter(img => img.path !== image.path);
+		
+		// 直接从DOM中移除对应元素
+		const gridEl = this.gridContainer.querySelector(".image-manager-grid");
+		if (gridEl) {
+			const itemEl = gridEl.querySelector(`[data-path="${CSS.escape(image.path)}"]`);
+			if (itemEl) {
+				itemEl.remove();
+				this.renderedCount--;
+			}
+		}
 	}
 
 	/**

@@ -26,30 +26,22 @@ export class ReferenceCheckService {
 
 		try {
 			const updatedImages = [...images];
-			const batchSize = 20; // 每批处理20张图片
 			let processedCount = 0;
 
-			// 分批处理所有图片的引用检查
-			for (let i = 0; i < updatedImages.length; i += batchSize) {
-				const batch = updatedImages.slice(i, Math.min(i + batchSize, updatedImages.length));
-				
-				// 处理当前批次
-				for (let j = 0; j < batch.length; j++) {
-					const imageItem = batch[j];
-					const actualIndex = i + j;
-					const cacheKey = imageItem.path;
+			// 同步处理所有图片（引用检查本身很快，不需要分批）
+			for (let i = 0; i < updatedImages.length; i++) {
+				const imageItem = updatedImages[i];
+				const cacheKey = imageItem.path;
 
-					// 检查缓存
-					if (this.referenceCache.has(cacheKey)) {
-						const cachedResult = this.referenceCache.get(cacheKey)!;
-						updatedImages[actualIndex] = {
-							...imageItem,
-							references: cachedResult.references,
-							referenceCount: cachedResult.referenceCount,
-						};
-						continue;
-					}
-
+				// 检查缓存
+				if (this.referenceCache.has(cacheKey)) {
+					const cachedResult = this.referenceCache.get(cacheKey)!;
+					updatedImages[i] = {
+						...imageItem,
+						references: cachedResult.references,
+						referenceCount: cachedResult.referenceCount,
+					};
+				} else {
 					// 使用新的反向链接API查找引用
 					const references = this.findReferencesUsingBacklinks(imageItem);
 
@@ -61,21 +53,25 @@ export class ReferenceCheckService {
 					// 缓存结果
 					this.referenceCache.set(cacheKey, result);
 
-					updatedImages[actualIndex] = {
+					updatedImages[i] = {
 						...imageItem,
 						...result,
 					};
 				}
 				
-				processedCount += batch.length;
+				processedCount++;
 				
-				// 调用进度回调
-				if (onProgress) {
+				// 调用进度回调（每10张更新一次）
+				if (onProgress && processedCount % 10 === 0) {
 					onProgress(processedCount, updatedImages.length);
+					// 每处理10张图片，给UI线程一些时间
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
-				
-				// 给 UI 线程一些时间更新，避免阻塞
-				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+			
+			// 最后更新一次进度
+			if (onProgress && processedCount > 0) {
+				onProgress(processedCount, updatedImages.length);
 			}
 
 			return updatedImages;
