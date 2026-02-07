@@ -13,6 +13,9 @@ export class ImageViewerManager {
 	private imgSelector: string = '';
 	private registeredDocs: Set<Document> = new Set();
 	private static readonly IMG_ORIGIN_CURSOR = 'data-afm-origin-cursor';
+	/** 记录 mousedown 位置，用于区分点击与拖拽 */
+	private mouseDownPos: { x: number; y: number } | null = null;
+	private static readonly DRAG_THRESHOLD = 5;
 
 	constructor(app: App, settings: ImageViewerSettings) {
 		this.app = app;
@@ -81,7 +84,7 @@ export class ImageViewerManager {
 		}
 		// 移除捕获阶段的监听
 		doc.removeEventListener('click', this.clickImageCapture, true);
-
+		doc.removeEventListener('mousedown', this.trackMouseDown, true);
 
 		if (this.settings.triggerMode === 'off') {
 			this.imgSelector = '';
@@ -90,11 +93,24 @@ export class ImageViewerManager {
 
 		// 监听所有img元素
 		this.imgSelector = 'img';
+		doc.addEventListener('mousedown', this.trackMouseDown, true);
 		// 在捕获阶段监听点击事件，优先阻止默认行为
 		doc.addEventListener('click', this.clickImageCapture, true);
 		doc.on('click', this.imgSelector, this.clickImage);
 		doc.on('mouseover', this.imgSelector, this.mouseoverImg);
 		doc.on('mouseout', this.imgSelector, this.mouseoutImg);
+	}
+
+// 修复: 拖拽缩放图片时，触发图片预览的问题
+	private trackMouseDown = (event: MouseEvent): void => {
+		this.mouseDownPos = { x: event.clientX, y: event.clientY };
+	};
+
+	private isDragClick(event: MouseEvent): boolean {
+		if (!this.mouseDownPos) return false;
+		const dx = Math.abs(event.clientX - this.mouseDownPos.x);
+		const dy = Math.abs(event.clientY - this.mouseDownPos.y);
+		return dx > ImageViewerManager.DRAG_THRESHOLD || dy > ImageViewerManager.DRAG_THRESHOLD;
 	}
 
 	/**
@@ -103,6 +119,10 @@ export class ImageViewerManager {
 	private clickImageCapture = (event: MouseEvent): void => {
 		const targetEl = event.target as HTMLElement;
 		if (targetEl && targetEl.tagName === 'IMG' && this.isClickable(targetEl as HTMLImageElement, event)) {
+			// 拖拽结束不触发预览
+			if (this.isDragClick(event)) {
+				return;
+			}
 			// 在捕获阶段就阻止事件，防止 Obsidian 的默认图片查看器
 			event.stopPropagation();
 			event.stopImmediatePropagation();
@@ -119,7 +139,7 @@ export class ImageViewerManager {
 	 */
 	private clickImage = (event: MouseEvent): void => {
 		const targetEl = event.target as HTMLImageElement;
-		if (this.isClickable(targetEl, event) && this.viewer) {
+		if (this.isClickable(targetEl, event) && !this.isDragClick(event) && this.viewer) {
 			this.viewer.open(targetEl);
 		}
 	};
@@ -133,7 +153,11 @@ export class ImageViewerManager {
 			return;
 		}
 
-		// 保存原始光标样式
+
+		if (this.settings.triggerMode === 'click') {
+			return;
+		}
+
 		if (targetEl.getAttribute(ImageViewerManager.IMG_ORIGIN_CURSOR) === null) {
 			const computedStyle = window.getComputedStyle(targetEl);
 			targetEl.setAttribute(
@@ -149,11 +173,7 @@ export class ImageViewerManager {
 	 */
 	private mouseoutImg = (event: MouseEvent): void => {
 		const targetEl = event.target as HTMLImageElement;
-		if (!this.isClickable(targetEl, event)) {
-			return;
-		}
 
-		// 恢复原始光标样式
 		targetEl.removeClass('afm-cursor-zoom-in');
 	};
 
@@ -163,6 +183,7 @@ export class ImageViewerManager {
 	cleanup(): void {
 		// 移除所有文档的事件监听
 		this.registeredDocs.forEach(doc => {
+			doc.removeEventListener('mousedown', this.trackMouseDown, true);
 			if (this.imgSelector) {
 				doc.removeEventListener('click', this.clickImageCapture, true);
 				doc.off('click', this.imgSelector, this.clickImage);
