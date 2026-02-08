@@ -56,7 +56,7 @@ export class ImageViewerManager {
 
 		switch (this.settings.triggerMode) {
 			case 'click':
-				return true;
+				return !event.ctrlKey && !event.altKey && !event.shiftKey;
 			case 'ctrl-click':
 				return event.ctrlKey && !event.altKey && !event.shiftKey;
 			case 'off':
