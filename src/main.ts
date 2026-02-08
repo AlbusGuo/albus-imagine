@@ -38,7 +38,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 注册视图
 		this.registerView(
 			IMAGE_MANAGER_VIEW_TYPE,
-			(leaf) => new ImageManagerView(leaf, this.settings.imageManager || {})
+			(leaf) => new ImageManagerView(leaf, this.settings.imageManager || {}, this.settings.imageViewer?.quickPreview || 'off')
 		);
 
 		// 添加功能区图标 - 打开图片管理器
@@ -221,7 +221,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		leaves.forEach(leaf => {
 			const view = leaf.view;
 			if (view instanceof ImageManagerView) {
-				view.updateSettings(this.settings.imageManager || {});
+				view.updateSettings(this.settings.imageManager || {}, this.settings.imageViewer?.quickPreview || 'off');
 			}
 		});
 	}

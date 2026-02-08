@@ -123,6 +123,10 @@ export class ImageViewerManager {
 			if (this.isDragClick(event)) {
 				return;
 			}
+
+			if (targetEl.closest('.image-manager-container') || targetEl.closest('.modal-container')) {
+				return;
+			}
 			// 在捕获阶段就阻止事件，防止 Obsidian 的默认图片查看器
 			event.stopPropagation();
 			event.stopImmediatePropagation();
@@ -139,9 +143,14 @@ export class ImageViewerManager {
 	 */
 	private clickImage = (event: MouseEvent): void => {
 		const targetEl = event.target as HTMLImageElement;
-		if (this.isClickable(targetEl, event) && !this.isDragClick(event) && this.viewer) {
-			this.viewer.open(targetEl);
+		if (!targetEl || !this.isClickable(targetEl, event) || this.isDragClick(event) || !this.viewer) {
+			return;
 		}
+		// 图片管理器和模态框有自己的点击逻辑，不拦截
+		if (targetEl.closest('.image-manager-container') || targetEl.closest('.modal-container')) {
+			return;
+		}
+		this.viewer.open(targetEl);
 	};
 
 	/**

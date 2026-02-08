@@ -9,10 +9,12 @@ import {
 	SortOrder,
 	SortField,
 } from "../types/image-manager.types";
+import type { ImageViewerTriggerMode } from "../types/types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { ReferenceCheckService } from "../services/ReferenceCheckService";
 import { FileOperationService } from "../services/FileOperationService";
 import { ImagePreviewModal } from "./ImagePreviewModal";
+import { ImageViewerView } from "./ImageViewerView";
 import { RenameModal } from "./RenameModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { BatchDeleteConfirmModal } from "./BatchDeleteConfirmModal";
@@ -37,6 +39,10 @@ export class ImageManagerView extends ItemView {
 	private isMultiSelectMode = false;
 	private selectedImages: Set<string> = new Set(); // 存储选中图片的路径
 
+	// 快速预览
+	private quickPreview: ImageViewerTriggerMode = "off";
+	private imageViewer: ImageViewerView | null = null;
+
 	// 虚拟滚动相关
 	private renderedCount = 0;
 	private batchSize = 50; // 每批次渲染的图片数量
@@ -53,9 +59,10 @@ export class ImageManagerView extends ItemView {
 	private searchContainer: HTMLElement;
 	private gridContainer: HTMLElement;
 
-	constructor(leaf: WorkspaceLeaf, settings: ImageManagerSettings) {
+	constructor(leaf: WorkspaceLeaf, settings: ImageManagerSettings, quickPreview: ImageViewerTriggerMode = "off") {
 		super(leaf);
 		this.settings = settings;
+		this.quickPreview = quickPreview;
 		// 优先使用上次选择的文件夹，否则使用默认文件夹
 		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
 		this.showUnreferencedOnly = false;
@@ -93,15 +100,20 @@ export class ImageManagerView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
-		// 清理工作
+		// 清理图片查看器
+		if (this.imageViewer) {
+			this.imageViewer.remove();
+			this.imageViewer = null;
+		}
 		this.contentEl.empty();
 	}
 
 	/**
 	 * 更新设置
 	 */
-	updateSettings(settings: ImageManagerSettings): void {
+	updateSettings(settings: ImageManagerSettings, quickPreview: ImageViewerTriggerMode = "off"): void {
 		this.settings = settings;
+		this.quickPreview = quickPreview;
 		// 优先使用上次选择的文件夹，否则使用默认文件夹
 		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
 		this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
@@ -467,7 +479,7 @@ export class ImageManagerView extends ItemView {
 			const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 			
 			// 单击图片：多选模式下切换选中状态，否则打开预览
-			thumbnailEl.onclick = () => {
+			thumbnailEl.onclick = (e: MouseEvent) => {
 				if (this.isMultiSelectMode) {
 					// 多选模式：切换选中状态
 					if (this.selectedImages.has(image.path)) {
@@ -479,8 +491,16 @@ export class ImageManagerView extends ItemView {
 					}
 					// 更新头部按钮状态
 					this.renderHeader();
+				} else if (this.shouldQuickPreview(e)) {
+					// 快速预览模式：放大查看
+					const imgEl = thumbnailEl.querySelector('img') as HTMLImageElement;
+					if (imgEl) {
+						this.openQuickPreview(imgEl);
+					} else {
+						this.handlePreview(image);
+					}
 				} else {
-					// 普通模式：打开预览
+					// 打开详情预览
 					this.handlePreview(image);
 				}
 			};
@@ -911,6 +931,31 @@ export class ImageManagerView extends ItemView {
 			(img) => this.app.vault.getResourcePath(img.displayFile),
 			(filePath) => this.fileOperations.openReferenceFile(filePath)
 		).open();
+	}
+
+	/**
+	 * 判断当前点击是否应触发快速预览
+	 */
+	private shouldQuickPreview(event: MouseEvent): boolean {
+		switch (this.quickPreview) {
+			case 'click':
+				return true;
+			case 'ctrl-click':
+				return event.ctrlKey && !event.altKey && !event.shiftKey;
+			case 'off':
+			default:
+				return false;
+		}
+	}
+
+	/**
+	 * 快速预览：使用图片查看器放大查看
+	 */
+	private openQuickPreview(imgEl: HTMLImageElement): void {
+		if (!this.imageViewer) {
+			this.imageViewer = new ImageViewerView(this.app, { triggerMode: 'click', quickPreview: 'off' });
+		}
+		this.imageViewer.open(imgEl);
 	}
 
 	/**

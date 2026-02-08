@@ -469,10 +469,35 @@ export class NativePluginSettingTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							if (!this.plugin.settings.imageViewer) {
 								this.plugin.settings.imageViewer = {
-									triggerMode: 'ctrl-click'
+									triggerMode: 'ctrl-click',
+									quickPreview: 'off'
 								};
 							}
 							this.plugin.settings.imageViewer.triggerMode = value as any;
+							await this.plugin.saveSettings();
+						});
+				});
+		});
+
+		// 图片管理器中快速预览图片
+		group.addSetting((setting) => {
+			setting
+				.setName('图片快速预览')
+				.setDesc('在图片管理器中点击图片的放大预览方式')
+				.addDropdown((dropdown) => {
+					dropdown
+						.addOption('ctrl-click', 'Ctrl + 点击放大')
+						.addOption('click', '点击放大')
+						.addOption('off', '关闭')
+						.setValue(this.plugin.settings.imageViewer?.quickPreview || 'off')
+						.onChange(async (value) => {
+							if (!this.plugin.settings.imageViewer) {
+								this.plugin.settings.imageViewer = {
+									triggerMode: 'ctrl-click',
+									quickPreview: 'off'
+								};
+							}
+							this.plugin.settings.imageViewer.quickPreview = value as any;
 							await this.plugin.saveSettings();
 						});
 				});

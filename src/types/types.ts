@@ -24,8 +24,10 @@ export type ImageViewerTriggerMode = "ctrl-click" | "click" | "off";
  * 图片查看器设置接口
  */
 export interface ImageViewerSettings {
-	/** 触发模式 */
+	/** 图片预览触发方式 */
 	triggerMode: ImageViewerTriggerMode;
+	/** 图片管理器中图片预览触发模式，默认关闭 */
+	quickPreview: ImageViewerTriggerMode;
 }
 
 export interface IPluginSettings {
@@ -43,6 +45,7 @@ export const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
 
 export const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {
 	triggerMode: "ctrl-click",
+	quickPreview: "off",
 };
 
 export const DEFAULT_SETTINGS: IPluginSettings = {
