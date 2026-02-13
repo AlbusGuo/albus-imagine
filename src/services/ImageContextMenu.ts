@@ -6,6 +6,7 @@ import {
 	Menu,
 	Notice,
 	Platform,
+	setIcon,
 	TFile,
 	View,
 } from "obsidian";
@@ -69,16 +70,296 @@ export class ImageContextMenu extends Component {
 			// 检查是否在编辑器容器中
 			if (!img.closest(".markdown-source-view")) return;
 
-			event.preventDefault();
-			event.stopPropagation();
-
-			const menu = new Menu();
-			this.createContextMenuItems(menu, img, event);
-			menu.showAtMouseEvent(event);
+			// 不阻止默认事件，让 Obsidian 的原生菜单先显示
+			// 延迟显示我们的菜单项，添加到原生菜单中
+			setTimeout(() => {
+				this.addMenuItemsToExistingMenu(img, event);
+			}, 50); // 增加延迟时间，确保原生菜单已经完全显示
 		} catch (error) {
 			console.error('[ImageContextMenu] Error:', error);
 		}
 	};
+
+	/**
+	 * 将我们的菜单项添加到已存在的原生菜单中
+	 */
+	private addMenuItemsToExistingMenu(img: HTMLImageElement, event: MouseEvent): void {
+		// 查找当前显示的右键菜单
+		const menus = document.querySelectorAll('.menu');
+		if (menus.length === 0) {
+			// 如果没找到菜单，创建我们自己的菜单
+			const menu = new Menu();
+			this.createContextMenuItems(menu, img, event);
+			menu.showAtMouseEvent(event);
+			return;
+		}
+
+		// 找到最可能的目标菜单（通常是最后创建的）
+		const targetMenu = menus[menus.length - 1] as HTMLElement;
+		if (!targetMenu) return;
+
+		// 检查是否已经有我们的项目，避免重复添加
+		if (targetMenu.querySelector('.albus-imagine-separator')) return;
+
+		// 添加分隔符
+		const separator = document.createElement('div');
+		separator.addClass('menu-separator', 'albus-imagine-separator');
+		targetMenu.appendChild(separator);
+
+		// 直接将我们的菜单项添加到现有菜单中
+		this.addCustomMenuItems(targetMenu, img);
+	}
+
+	/**
+	 * 添加自定义菜单项到指定容器
+	 */
+	private addCustomMenuItems(container: HTMLElement, img: HTMLImageElement): void {
+		// 添加分隔符
+		container.appendChild(this.createSeparator());
+
+		// 直接创建菜单项
+		this.createMenuItemWithSubmenu(container, "图片对齐", "align-center", img, [
+			{ title: "居中", icon: "align-center", callback: () => this.updateAlignment(img, "center") },
+			{ title: "左侧环绕", icon: "align-left", callback: () => this.updateAlignment(img, "left") },
+			{ title: "右侧环绕", icon: "align-right", callback: () => this.updateAlignment(img, "right") }
+		]);
+
+		this.createMenuItem(container, "深色反色", "moon", () => this.toggleDarkMode(img));
+		this.createMenuItem(container, "编辑标题", "type", () => this.editCaption(img));
+		this.createMenuItem(container, "打开源文件", "file-text", async () => {
+			const imagePath = this.getImagePath(img);
+			if (!imagePath) {
+				new Notice("无法获取图片路径");
+				return;
+			}
+
+			const file = this.app.vault.getAbstractFileByPath(imagePath);
+			if (!(file instanceof TFile)) {
+				new Notice("文件不存在");
+				return;
+			}
+
+			const sourceFile = this.getSourceFileForCover(file);
+			const fileToOpen = sourceFile || file;
+
+			try {
+				await this.app.workspace.openLinkText(fileToOpen.path, '', true);
+			} catch (error) {
+				console.error("打开文件失败:", error);
+				new Notice("打开文件失败");
+			}
+		});
+
+		
+
+		this.createMenuItem(container, "删除链接", "trash-2", async () => {
+			const imagePath = this.getImagePath(img);
+			if (!imagePath) {
+				new Notice("无法获取图片路径");
+				return;
+			}
+
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (!activeView) return;
+
+			const editor = activeView.editor;
+			const match = await this.findSingleImageMatch(editor, imagePath, img);
+			if (!match) {
+				new Notice("未找到图片链接");
+				return;
+			}
+
+			this.removeImageLink(editor, match);
+			new Notice("链接已删除");
+		});
+	}
+
+	/**
+	 * 创建菜单项
+	 */
+	private createMenuItem(container: HTMLElement, title: string, icon: string, callback: (menuItem?: HTMLElement) => void | Promise<void>): void {
+		const menuItem = document.createElement('div');
+		menuItem.addClass('menu-item', 'albus-imagine-menu-item');
+		
+		// 创建图标
+		const menuItemIcon = document.createElement('div');
+		menuItemIcon.addClass('menu-item-icon');
+		
+		// 添加 lucide 图标
+		setIcon(menuItemIcon, icon);
+		
+		// 创建标题
+		const menuItemTitle = document.createElement('div');
+		menuItemTitle.addClass('menu-item-title');
+		menuItemTitle.textContent = title;
+		
+		menuItem.appendChild(menuItemIcon);
+		menuItem.appendChild(menuItemTitle);
+		
+		// 添加点击事件
+		menuItem.addEventListener('click', async (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			await callback(menuItem);
+			// 关闭整个菜单
+			const menu = container.closest('.menu') as HTMLElement;
+			if (menu) {
+				menu.remove();
+			}
+		});
+		
+		// 添加悬停事件
+		menuItem.addEventListener('mouseenter', () => {
+			menuItem.addClass('selected');
+		});
+		
+		menuItem.addEventListener('mouseleave', () => {
+			menuItem.removeClass('selected');
+		});
+		
+		container.appendChild(menuItem);
+	}
+
+	/**
+	 * 创建带子菜单的菜单项
+	 */
+	private createMenuItemWithSubmenu(container: HTMLElement, title: string, icon: string, img: HTMLImageElement, submenuItems: Array<{title: string, icon: string, callback: () => void}>): void {
+		const menuItem = document.createElement('div');
+		menuItem.addClass('menu-item', 'albus-imagine-menu-item', 'has-submenu');
+		
+		// 创建图标
+		const menuItemIcon = document.createElement('div');
+		menuItemIcon.addClass('menu-item-icon');
+		
+		// 添加 lucide 图标
+		setIcon(menuItemIcon, icon);
+		
+		// 创建标题
+		const menuItemTitle = document.createElement('div');
+		menuItemTitle.addClass('menu-item-title');
+		menuItemTitle.textContent = title;
+		
+		// 创建子菜单箭头
+		const submenuArrow = document.createElement('div');
+		submenuArrow.addClass('menu-item-icon', 'submenu-arrow');
+		setIcon(submenuArrow, 'chevron-right');
+		
+		menuItem.appendChild(menuItemIcon);
+		menuItem.appendChild(menuItemTitle);
+		menuItem.appendChild(submenuArrow);
+		
+		// 创建子菜单
+		const submenu = document.createElement('div');
+		submenu.addClass('menu', 'albus-imagine-submenu');
+		
+		// 添加子菜单项
+		submenuItems.forEach(item => {
+			const submenuItem = document.createElement('div');
+			submenuItem.addClass('menu-item');
+			
+			const submenuItemIcon = document.createElement('div');
+			submenuItemIcon.addClass('menu-item-icon');
+			setIcon(submenuItemIcon, item.icon);
+			
+			const submenuItemTitle = document.createElement('div');
+			submenuItemTitle.addClass('menu-item-title');
+			submenuItemTitle.textContent = item.title;
+			
+			submenuItem.appendChild(submenuItemIcon);
+			submenuItem.appendChild(submenuItemTitle);
+			
+			// 添加点击事件
+			submenuItem.addEventListener('click', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				item.callback();
+				// 关闭整个菜单
+				const menu = container.closest('.menu') as HTMLElement;
+				if (menu) {
+					menu.remove();
+				}
+			});
+			
+			// 添加悬停事件
+			submenuItem.addEventListener('mouseenter', () => {
+				submenuItem.addClass('selected');
+			});
+			
+			submenuItem.addEventListener('mouseleave', () => {
+				submenuItem.removeClass('selected');
+			});
+			
+			submenu.appendChild(submenuItem);
+		});
+		
+		// 添加悬停事件显示子菜单
+		let submenuTimeout: number | null = null;
+		
+		menuItem.addEventListener('mouseenter', () => {
+			if (submenuTimeout) {
+				clearTimeout(submenuTimeout);
+				submenuTimeout = null;
+			}
+			
+			// 添加选中样式
+			menuItem.addClass('selected');
+			
+			const rect = menuItem.getBoundingClientRect();
+			const parentRect = container.getBoundingClientRect();
+			
+			// 计算子菜单位置
+			let left = parentRect.right;
+			let top = rect.top;
+			
+			// 检查是否超出屏幕右侧
+			if (left + 200 > window.innerWidth) {
+				left = parentRect.left - 200; // 显示在左侧
+			}
+			
+			// 检查是否超出屏幕底部
+			if (top + submenu.offsetHeight > window.innerHeight) {
+				top = window.innerHeight - submenu.offsetHeight;
+			}
+			
+			submenu.style.position = 'fixed';
+			submenu.style.left = `${left}px`;
+			submenu.style.top = `${top}px`;
+			submenu.style.zIndex = '1000';
+			document.body.appendChild(submenu);
+		});
+		
+		menuItem.addEventListener('mouseleave', () => {
+			menuItem.removeClass('selected');
+			
+			submenuTimeout = window.setTimeout(() => {
+				if (!submenu.matches(':hover')) {
+					submenu.remove();
+				}
+			}, 100);
+		});
+		
+		submenu.addEventListener('mouseenter', () => {
+			if (submenuTimeout) {
+				clearTimeout(submenuTimeout);
+				submenuTimeout = null;
+			}
+		});
+		
+		submenu.addEventListener('mouseleave', () => {
+			submenu.remove();
+		});
+		
+		container.appendChild(menuItem);
+	}
+
+	/**
+	 * 创建分隔符元素
+	 */
+	private createSeparator(): HTMLDivElement {
+		const separator = document.createElement('div');
+		separator.addClass('menu-separator', 'albus-imagine-separator');
+		return separator;
+	}
 
 	private createContextMenuItems(menu: Menu, img: HTMLImageElement, event: MouseEvent): void {
 		this.currentMenu = menu;
