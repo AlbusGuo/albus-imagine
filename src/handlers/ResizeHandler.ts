@@ -95,6 +95,33 @@ export class ResizeHandler {
 	}
 
 	/**
+	 * 检查图片是否在 callout 内
+	 */
+	private isImageInCallout(img: HTMLImageElement): boolean {
+		let element: HTMLElement | null = img;
+		while (element) {
+			if (element.classList.contains('callout')) {
+				return true;
+			}
+			element = element.parentElement;
+		}
+		return false;
+	}
+
+	/**
+	 * 检查是否应该为此图片启用拖拽功能
+	 */
+	private shouldEnableDragResize(img: HTMLImageElement): boolean {
+		const isInCallout = this.isImageInCallout(img);
+		
+		if (isInCallout) {
+			return this.settings.dragResizeCallout;
+		} else {
+			return this.settings.dragResizeGeneral;
+		}
+	}
+
+	/**
 	 * 处理鼠标按下事件
 	 */
 	private handleMouseDown(event: MouseEvent, img: HTMLImageElement): void {
@@ -110,6 +137,11 @@ export class ResizeHandler {
 
 		const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView || activeView.getMode() === 'preview') {
+			return;
+		}
+
+		// 检查是否应该为此图片启用拖拽功能
+		if (!this.shouldEnableDragResize(img)) {
 			return;
 		}
 
@@ -156,6 +188,11 @@ export class ResizeHandler {
 
 		const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView || activeView.getMode() === 'preview') {
+			return;
+		}
+
+		// 检查是否应该为此图片启用拖拽功能
+		if (!this.shouldEnableDragResize(img)) {
 			return;
 		}
 

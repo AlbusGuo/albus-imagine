@@ -367,23 +367,47 @@ export class NativePluginSettingTab extends PluginSettingTab {
 	private displayImageResizeSettings(containerEl: HTMLElement): void {
 		const group = new SettingGroup(containerEl);
 
-		// 启用拖拽调整
+		// 启用一般图片拖拽调整
 		group.addSetting((setting) => {
 			setting
-				.setName('启用拖拽调整大小')
-				.setDesc('是否允许通过拖拽图片边缘来调整图片大小')
+				.setName('启用 Callout 外图片拖拽调整大小')
+				.setDesc('是否允许通过拖拽 Callout 外图片边缘来调整图片大小')
 				.addToggle((toggle) => {
 					toggle
-						.setValue(this.plugin.settings.imageResize?.dragResize !== false)
+						.setValue(this.plugin.settings.imageResize?.dragResizeGeneral !== false)
 						.onChange(async (value) => {
 							if (!this.plugin.settings.imageResize) {
 								this.plugin.settings.imageResize = {
 									resizeInterval: 0,
 									edgeSize: 20,
-									dragResize: true
+									dragResizeGeneral: true,
+									dragResizeCallout: true
 								};
 							}
-							this.plugin.settings.imageResize.dragResize = value;
+							this.plugin.settings.imageResize.dragResizeGeneral = value;
+							await this.plugin.saveSettings();
+						});
+				});
+		});
+
+		// 启用 Callout 内图片拖拽调整
+		group.addSetting((setting) => {
+			setting
+				.setName('启用 Callout 内图片拖拽调整大小')
+				.setDesc('是否允许通过拖拽 Callout 内图片边缘来调整图片大小')
+				.addToggle((toggle) => {
+					toggle
+						.setValue(this.plugin.settings.imageResize?.dragResizeCallout !== false)
+						.onChange(async (value) => {
+							if (!this.plugin.settings.imageResize) {
+								this.plugin.settings.imageResize = {
+									resizeInterval: 0,
+									edgeSize: 20,
+									dragResizeGeneral: true,
+									dragResizeCallout: true
+								};
+							}
+							this.plugin.settings.imageResize.dragResizeCallout = value;
 							await this.plugin.saveSettings();
 						});
 				});
@@ -406,7 +430,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 									this.plugin.settings.imageResize = {
 										resizeInterval: 0,
 										edgeSize: 20,
-										dragResize: true
+										dragResizeGeneral: true,
+										dragResizeCallout: true
 									};
 								}
 								this.plugin.settings.imageResize.resizeInterval = numValue;
@@ -438,7 +463,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 								this.plugin.settings.imageResize = {
 									resizeInterval: 0,
 									edgeSize: 20,
-									dragResize: true
+									dragResizeGeneral: true,
+									dragResizeCallout: true
 								};
 							}
 							this.plugin.settings.imageResize.edgeSize = value;

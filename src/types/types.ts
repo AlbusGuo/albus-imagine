@@ -8,8 +8,10 @@ export interface ImageResizeSettings {
 	resizeInterval: number;
 	/** 边缘检测区域大小（像素） */
 	edgeSize: number;
-	/** 是否启用拖拽调整大小 */
-	dragResize: boolean;
+	/** 是否启用一般图片拖拽调整大小 */
+	dragResizeGeneral: boolean;
+	/** 是否启用 callout 内图片拖拽调整大小 */
+	dragResizeCallout: boolean;
 }
 
 /**
@@ -30,7 +32,8 @@ export interface IPluginSettings {
 export const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
 	resizeInterval: 0,
 	edgeSize: 20,
-	dragResize: true,
+	dragResizeGeneral: true,
+	dragResizeCallout: true,
 };
 
 export const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {

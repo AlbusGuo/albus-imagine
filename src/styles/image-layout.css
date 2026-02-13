@@ -23,10 +23,11 @@
 /* ========================================
 图片排版位置
 ======================================== */
-img[alt$="center"]:not([class*="emoji"]),
-.markdown-source-view.mod-cm6 img[alt$="center"]:not([class*="emoji"]),
-.internal-embed.image-embed.is-loaded[alt$="center"] img[alt$="right"]:not([class*="emoji"]),
-body:not(.image-zoom) .view-content img[alt$="center"]:not([class*="emoji"]) {
+.markdown-source-view.mod-cm6 .image-embed[alt$="center"],
+img[alt$="center"],
+.markdown-source-view.mod-cm6 img[alt$="center"],
+.internal-embed.image-embed.is-loaded[alt$="center"] img[alt$="right"],
+body:not(.image-zoom) .view-content img[alt$="center"] {
   margin: auto !important;
   display: block;
 }
@@ -50,21 +51,21 @@ body:not(.image-zoom) .view-content img[alt$="center"]:not([class*="emoji"]) {
   clear: both;
 }
 
-img[alt$="inline"]:not([class*="emoji"]) {
+img[alt$="inline"] {
   display: inline !important;
   padding: 0.05em 0.05em !important;
   vertical-align: bottom;
 }
 
 /* 编辑模式下的左右对齐 - 使用 margin 而非 float，便于右键定位 */
-.markdown-source-view.mod-cm6 img[alt$="left"]:not([class*="emoji"]) {
+.markdown-source-view.mod-cm6 .image-embed[alt$="left"] {
   margin: auto !important;
   margin-left: 0 !important;
   display: block;
   padding: 0 !important;
 }
 
-.markdown-source-view.mod-cm6 img[alt$="right"]:not([class*="emoji"]) {
+.markdown-source-view.mod-cm6 .image-embed[alt$="right"] {
   margin: auto !important;
   margin-right: 0 !important;
   display: block;
@@ -72,13 +73,13 @@ img[alt$="inline"]:not([class*="emoji"]) {
 }
 
 /* 阅读模式下的左右对齐 - 使用 float */
-img[alt$="left"]:not([class*="emoji"]) {
-  float: left;
+img[alt$="left"] {
+  float: left !important;
   padding: 0.5em 0.5em 0.5em 0.5em !important;
 }
 
-img[alt$="right"]:not([class*="emoji"]) {
-  float: right;
+img[alt$="right"] {
+  float: right !important;
   padding: 0.5em 0.5em 0.5em 0.5em !important;
 }
 
@@ -177,4 +178,14 @@ img[alt$="right"]:not([class*="emoji"]) {
 /* 编辑标题时隐藏 ::after 伪元素 */
 .image-embed.afm-editing-caption::after {
   display: none !important;
+}
+
+/* 标题输入框样式 */
+.afm-caption-input {
+  transition: opacity 0.15s ease-in-out;
+}
+
+/* 编辑状态平滑过渡 */
+.image-embed.afm-editing-caption {
+  transition: none;
 }

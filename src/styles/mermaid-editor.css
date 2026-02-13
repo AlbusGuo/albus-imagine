@@ -1,0 +1,455 @@
+/* Mermaid 超级编辑器样式 */
+
+/* --- 专门为 Mermaid 编辑器模态框设计的样式 --- */
+/* 只影响带有 mermaid-editor-modal 类的模态框 */
+body > .modal-container > .modal.mermaid-editor-modal {
+  width: 85vw !important;
+  height: 85vh !important;
+  max-width: 85vw !important;
+  max-height: 85vh !important;
+}
+
+body > .modal-container > .modal.mermaid-editor-modal .modal-content {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body > .modal-container > .modal.mermaid-editor-modal .modal-header {
+  display: none !important;
+}
+
+/* 为了兼容性，保留旧的类名，但限制作用域 */
+.mermaid-super-modal {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mermaid-super-modal .modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.mermaid-super-modal .modal-header {
+  display: none !important;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  body > .modal-container > .modal.mermaid-editor-modal {
+    width: 95vw !important;
+    height: 95vh !important;
+    max-width: 95vw !important;
+    max-height: 95vh !important;
+  }
+
+  .mermaid-super-modal {
+    width: 98vw !important;
+    height: 95vh !important;
+    max-width: 98vw !important;
+    max-height: 95vh !important;
+  }
+
+  .ms-editor-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .ms-body {
+    flex-direction: column !important;
+  }
+
+  .ms-preview-panel {
+    min-height: 300px;
+  }
+}
+
+/* --- 主布局 --- */
+.ms-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-primary);
+}
+
+.ms-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.ms-editor-panel {
+  width: 450px;
+  min-width: 350px;
+  max-width: 500px;
+  border-right: 1px solid var(--background-modifier-border);
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--background-primary);
+  flex-shrink: 0;
+}
+
+.ms-preview-panel {
+  flex: 1;
+  position: relative;
+  background: var(--background-secondary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- 视口：无滚动条，无拖拽光标 --- */
+.ms-viewport-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.ms-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: default; /* 移除拖拽光标 */
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* --- 无限画布：超大固定尺寸，缩放层绝对居中 --- */
+.ms-zoom-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: fit-content;
+  height: fit-content;
+}
+
+.ms-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ms-canvas svg {
+  max-width: none !important;
+  height: auto;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* 防止 Lucide 图标干扰 */
+.ms-canvas .lucide {
+  display: none !important;
+}
+
+/* 确保 Mermaid 容器正确显示 */
+.ms-canvas .mermaid {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.ms-canvas pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+/* --- 右上角缩放百分比按钮（极简）--- */
+.ms-zoom-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.ms-zoom-controls .ms-btn {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.ms-zoom-controls .ms-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* --- 右下确认按钮 --- */
+.ms-confirm-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 8px 24px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 20;
+}
+
+.ms-confirm-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+/* --- 超宽适配 --- */
+@media (min-width: 1440px) {
+  body > .modal-container > .modal.mermaid-editor-modal {
+    width: 85vw !important;
+    height: 80vh !important;
+    max-width: 85vw !important;
+    max-height: 80vh !important;
+  }
+
+  .ms-editor-panel {
+    width: 500px;
+    max-width: 550px;
+  }
+}
+
+/* --- 通用组件 --- */
+.ms-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--background-primary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  transition: border-color 0.2s;
+  margin-bottom: 4px;
+}
+
+.ms-row:hover {
+  border-color: var(--interactive-accent);
+}
+
+.ms-input, .ms-select {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  flex: 1;
+  min-width: 60px;
+}
+
+.ms-btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--interactive-normal);
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.ms-btn:hover {
+  background: var(--interactive-hover);
+}
+
+.ms-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ms-icon-btn:hover {
+  background: var(--background-modifier-error-hover);
+  color: var(--text-error);
+}
+
+.ms-color-picker {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ms-color-picker:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--background-modifier-border-hover);
+}
+
+.ms-add-btn {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.ms-add-btn:hover {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
+.ms-section-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.ms-arrow {
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.ms-level {
+  width: 30px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* --- 拖拽手柄 & 插入指示器（仅思维导图）--- */
+.ms-drag-handle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 16px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.ms-drag-handle:active {
+  cursor: grabbing;
+}
+
+.ms-row.dragging {
+  opacity: 0.5;
+}
+
+.ms-row.drag-over-top {
+  border-top: 3px solid var(--interactive-accent) !important;
+  margin-top: -1px;
+}
+
+.ms-row.drag-over-bottom {
+  border-bottom: 3px solid var(--interactive-accent) !important;
+  margin-bottom: -1px;
+}
+
+/* --- 思维导图 L1 扁平分组块（无缩进）--- */
+.ms-mindmap-block {
+  margin: 8px 0;
+  padding: 12px;
+  border: 2px solid var(--interactive-accent);
+  border-radius: 8px;
+  background: var(--background-primary-alt);
+}
+
+/* --- Sankey图编辑器样式 --- */
+.ms-list-container {
+  margin: 8px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ms-empty-message {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-style: italic;
+}
+
+.ms-link-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.ms-link-content .ms-input {
+  width: 120px;
+}
+
+.ms-link-content .ms-input[type="number"] {
+  width: 80px;
+}
+
+.ms-mindmap-block .ms-row {
+  margin-left: 0; /* 完全无缩进 */
+}
+
+/* --- Toggle组件样式 --- */
+.ms-toggle-container {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.ms-toggle-container .toggle {
+  background-color: var(--interactive-normal);
+  border-radius: 11px;
+  display: inline-block;
+  height: 22px;
+  position: relative;
+  width: 44px;
+  transition: background-color 0.2s ease;
+}
+
+.ms-toggle-container .toggle:hover {
+  background-color: var(--interactive-hover);
+}
+
+.ms-toggle-container .toggle.is-enabled {
+  background-color: var(--interactive-accent);
+}
+
+.ms-toggle-container .toggle-handle {
+  background-color: var(--text-normal);
+  border-radius: 50%;
+  height: 18px;
+  position: absolute;
+  top: 2px;
+  transition: transform 0.2s ease;
+  width: 18px;
+}
+
+.ms-toggle-container .toggle.is-enabled .toggle-handle {
+  transform: translateX(22px);
+  background-color: var(--text-on-accent);
+}

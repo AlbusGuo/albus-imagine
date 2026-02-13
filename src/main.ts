@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf, MarkdownView } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -7,6 +7,7 @@ import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
+import { openMermaidEditor } from "./commands";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -23,7 +24,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.updateSvgInvertClass();
 
 		// 初始化图片调整大小处理器
-		if (this.settings.imageResize?.dragResize) {
+		if (this.settings.imageResize?.dragResizeGeneral || this.settings.imageResize?.dragResizeCallout) {
 			this.initializeResizeHandler();
 		}
 
@@ -67,6 +68,22 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			callback: () => {
 				this.openImagePicker();
 			},
+		});
+
+		// 添加命令 - 打开 Mermaid 编辑器
+		this.addCommand({
+			id: "open-mermaid-editor",
+			name: "Mermaid 可视化编辑器",
+			checkCallback: (checking: boolean) => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (view) {
+					if (!checking) {
+						openMermaidEditor(this.app);
+					}
+					return true;
+				}
+				return false;
+			}
 		});
 
 		// 添加设置选项卡
@@ -184,7 +201,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.updateSvgInvertClass();
 		
 		// 更新调整大小处理器设置
-		if (this.settings.imageResize?.dragResize) {
+		if (this.settings.imageResize?.dragResizeGeneral || this.settings.imageResize?.dragResizeCallout) {
 			if (!this.resizeHandler) {
 				// 如果启用了拖拽调整但处理器未初始化，则初始化
 				this.initializeResizeHandler();

@@ -101,31 +101,62 @@ export class ImageContextMenu extends Component {
 		// 检查是否已经有我们的项目，避免重复添加
 		if (targetMenu.querySelector('.albus-imagine-separator')) return;
 
-		// 添加分隔符
+		// 获取菜单的第一个子元素（如果有）
+		const firstChild = targetMenu.firstChild;
+
+		// 添加分隔符到顶部
 		const separator = document.createElement('div');
 		separator.addClass('menu-separator', 'albus-imagine-separator');
-		targetMenu.appendChild(separator);
+		
+		if (firstChild) {
+			// 如果有子元素，在第一个元素前插入
+			targetMenu.insertBefore(separator, firstChild);
+		} else {
+			// 如果没有子元素，直接添加
+			targetMenu.appendChild(separator);
+		}
 
-		// 直接将我们的菜单项添加到现有菜单中
-		this.addCustomMenuItems(targetMenu, img);
+		// 直接将我们的菜单项添加到现有菜单的顶部
+		this.addCustomMenuItems(targetMenu, img, true);
 	}
 
 	/**
 	 * 添加自定义菜单项到指定容器
 	 */
-	private addCustomMenuItems(container: HTMLElement, img: HTMLImageElement): void {
+	private addCustomMenuItems(container: HTMLElement, img: HTMLImageElement, addToTop: boolean = false): void {
+		// 获取第一个子元素（用于插入到顶部）
+		const firstChild = container.firstChild;
+
 		// 添加分隔符
-		container.appendChild(this.createSeparator());
+		const separator = this.createSeparator();
+		if (addToTop && firstChild) {
+			container.insertBefore(separator, firstChild);
+		} else {
+			container.appendChild(separator);
+		}
 
-		// 直接创建菜单项
-		this.createMenuItemWithSubmenu(container, "图片对齐", "align-center", img, [
-			{ title: "居中", icon: "align-center", callback: () => this.updateAlignment(img, "center") },
-			{ title: "左侧环绕", icon: "align-left", callback: () => this.updateAlignment(img, "left") },
-			{ title: "右侧环绕", icon: "align-right", callback: () => this.updateAlignment(img, "right") }
-		]);
+		// 反转顺序创建菜单项
+		this.createMenuItem(container, "删除链接", "trash-2", async () => {
+			const imagePath = this.getImagePath(img);
+			if (!imagePath) {
+				new Notice("无法获取图片路径");
+				return;
+			}
 
-		this.createMenuItem(container, "深色反色", "moon", () => this.toggleDarkMode(img));
-		this.createMenuItem(container, "编辑标题", "type", () => this.editCaption(img));
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (!activeView) return;
+
+			const editor = activeView.editor;
+			const match = await this.findSingleImageMatch(editor, imagePath, img);
+			if (!match) {
+				new Notice("未找到图片链接");
+				return;
+			}
+
+			this.removeImageLink(editor, match);
+			new Notice("链接已删除");
+		});
+
 		this.createMenuItem(container, "打开源文件", "file-text", async () => {
 			const imagePath = this.getImagePath(img);
 			if (!imagePath) {
@@ -150,28 +181,13 @@ export class ImageContextMenu extends Component {
 			}
 		});
 
-		
-
-		this.createMenuItem(container, "删除链接", "trash-2", async () => {
-			const imagePath = this.getImagePath(img);
-			if (!imagePath) {
-				new Notice("无法获取图片路径");
-				return;
-			}
-
-			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-			if (!activeView) return;
-
-			const editor = activeView.editor;
-			const match = await this.findSingleImageMatch(editor, imagePath, img);
-			if (!match) {
-				new Notice("未找到图片链接");
-				return;
-			}
-
-			this.removeImageLink(editor, match);
-			new Notice("链接已删除");
-		});
+		this.createMenuItem(container, "编辑标题", "type", () => this.editCaption(img));
+		this.createMenuItem(container, "深色反色", "moon", () => this.toggleDarkMode(img));
+		this.createMenuItemWithSubmenu(container, "图片对齐", "align-center", img, [
+			{ title: "居中", icon: "align-center", callback: () => this.updateAlignment(img, "center") },
+			{ title: "左侧环绕", icon: "align-left", callback: () => this.updateAlignment(img, "left") },
+			{ title: "右侧环绕", icon: "align-right", callback: () => this.updateAlignment(img, "right") }
+		]);
 	}
 
 	/**
@@ -217,7 +233,13 @@ export class ImageContextMenu extends Component {
 			menuItem.removeClass('selected');
 		});
 		
-		container.appendChild(menuItem);
+		// 根据参数决定添加到顶部还是底部
+		const firstChild = container.firstChild;
+		if (firstChild) {
+			container.insertBefore(menuItem, firstChild);
+		} else {
+			container.appendChild(menuItem);
+		}
 	}
 
 	/**
@@ -304,16 +326,23 @@ export class ImageContextMenu extends Component {
 			// 添加选中样式
 			menuItem.addClass('selected');
 			
+			// 先将子菜单添加到DOM中，但设为不可见，以便获取正确的尺寸
+			submenu.style.position = 'fixed';
+			submenu.style.visibility = 'hidden';
+			submenu.style.zIndex = '1000';
+			document.body.appendChild(submenu);
+			
 			const rect = menuItem.getBoundingClientRect();
 			const parentRect = container.getBoundingClientRect();
+			const submenuWidth = submenu.offsetWidth;
 			
 			// 计算子菜单位置
 			let left = parentRect.right;
 			let top = rect.top;
 			
 			// 检查是否超出屏幕右侧
-			if (left + 200 > window.innerWidth) {
-				left = parentRect.left - 200; // 显示在左侧
+			if (left + submenuWidth > window.innerWidth) {
+				left = parentRect.left - submenuWidth; // 显示在左侧，紧贴主菜单
 			}
 			
 			// 检查是否超出屏幕底部
@@ -321,11 +350,10 @@ export class ImageContextMenu extends Component {
 				top = window.innerHeight - submenu.offsetHeight;
 			}
 			
-			submenu.style.position = 'fixed';
+			// 设置最终位置并显示
 			submenu.style.left = `${left}px`;
 			submenu.style.top = `${top}px`;
-			submenu.style.zIndex = '1000';
-			document.body.appendChild(submenu);
+			submenu.style.visibility = 'visible';
 		});
 		
 		menuItem.addEventListener('mouseleave', () => {
@@ -349,7 +377,13 @@ export class ImageContextMenu extends Component {
 			submenu.remove();
 		});
 		
-		container.appendChild(menuItem);
+		// 根据参数决定添加到顶部还是底部
+		const firstChild = container.firstChild;
+		if (firstChild) {
+			container.insertBefore(menuItem, firstChild);
+		} else {
+			container.appendChild(menuItem);
+		}
 	}
 
 	/**
@@ -1076,57 +1110,63 @@ export class ImageContextMenu extends Component {
 		input.focus();
 		input.select();
 
-		let isHandling = false;
-
-		// 处理输入
-		const handleInput = async (save: boolean) => {
-			if (isHandling) return;
-			isHandling = true;
-
-			if (save) {
-				const newCaption = input.value.trim();
-				const newLink = this.updateLinkCaptionOnly(match.fullMatch, newCaption);
-				const line = editor.getLine(match.lineNumber);
-				const newLine = line.replace(match.fullMatch, newLink);
+		// 处理保存
+		const saveCaption = () => {
+			const newCaption = input.value.trim();
+			const newLink = this.updateLinkCaptionOnly(match.fullMatch, newCaption);
+			const line = editor.getLine(match.lineNumber);
+			
+			// 先淡出输入框
+			input.style.opacity = '0';
+			
+			// 精确替换：确保只替换正确的匹配项
+			const startPos = line.indexOf(match.fullMatch);
+			if (startPos !== -1) {
+				const before = line.substring(0, startPos);
+				const after = line.substring(startPos + match.fullMatch.length);
+				const newLine = before + newLink + after;
 				
 				// 保存当前滚动位置
 				const scrollTop = activeView.containerEl.scrollTop;
 				
-				editor.setLine(match.lineNumber, newLine);
-				
-				// 恢复滚动位置
-				activeView.containerEl.scrollTop = scrollTop;
-
-				if (newCaption) {
-					new Notice("标题已更新");
-				} else {
-					new Notice("标题已删除");
-				}
-			}
-			
-			// 恢复标题显示
-			imageEmbed.removeClass("afm-editing-caption");
-			
-			if (input.parentElement) {
-				input.remove();
+				// 等待淡出动画完成后更新内容
+				setTimeout(() => {
+					// 使用 requestAnimationFrame 确保 DOM 更新完成后再编辑
+					requestAnimationFrame(() => {
+						// 先更新编辑器内容
+						editor.setLine(match.lineNumber, newLine);
+						
+						// 恢复滚动位置
+						activeView.containerEl.scrollTop = scrollTop;
+						
+						// 然后移除输入框和恢复标题显示，避免闪动
+						if (input.parentElement) {
+							input.remove();
+						}
+						imageEmbed.removeClass("afm-editing-caption");
+					});
+				}, 150); // 等待淡出动画完成
+			} else {
+				// 如果找不到匹配项，等待淡出动画完成后移除输入框
+				setTimeout(() => {
+					if (input.parentElement) {
+						input.remove();
+					}
+					imageEmbed.removeClass("afm-editing-caption");
+				}, 150);
 			}
 		};
 
-		input.addEventListener("keydown", async (e) => {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				await handleInput(true);
-			} else if (e.key === "Escape") {
-				e.preventDefault();
-				await handleInput(false);
-			}
-		});
+		
 
+		// 事件监听器 - 只保留 blur 事件
 		input.addEventListener("blur", () => {
-			// 直接同步执行，确保流畅
-			if (!isHandling) {
-				void handleInput(true);
-			}
+			// 延迟执行，确保 blur 事件完成
+			setTimeout(() => {
+				if (document.contains(input)) {
+					saveCaption();
+				}
+			}, 10);
 		});
 	}
 
