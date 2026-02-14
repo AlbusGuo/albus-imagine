@@ -158,4 +158,19 @@ export class FlowchartEditor extends BaseMermaidEditor {
 		});
 		this.containerEl.appendChild(addEdgeBtn);
 	}
+
+	/**
+	 * 更新编辑器数据
+	 */
+	updateData(newData: Partial<MermaidData>): void {
+		// 先更新数据
+		this.data = { ...this.data, ...newData };
+		
+		// 通知父组件数据已更新
+		this.notifyDataUpdate(newData);
+		
+		// 重建编辑器
+		this.containerEl.empty();
+		this.buildEditor();
+	}
 }

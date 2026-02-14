@@ -1,12 +1,9 @@
 import { App } from 'obsidian';
 import { MermaidMode, MermaidData } from '../utils/mermaidUtils';
 import { TimelineEditor } from './editors/TimelineEditor';
-import { QuadrantEditor } from './editors/QuadrantEditor';
 import { FlowchartEditor } from './editors/FlowchartEditor';
 import { GanttEditor } from './editors/GanttEditor';
-import { SequenceEditor } from './editors/SequenceEditor';
 import { PieEditor } from './editors/PieEditor';
-import { MindmapEditor } from './editors/MindmapEditor';
 import { SankeyEditor } from './editors/SankeyEditor';
 import { BaseMermaidEditor } from './editors/BaseMermaidEditor';
 
@@ -55,23 +52,14 @@ export class MermaidEditorPanel {
 			case 'timeline':
 				editor = new TimelineEditor(this.app, this.modeData, this.updateCallback);
 				break;
-			case 'quadrant':
-				editor = new QuadrantEditor(this.app, this.modeData, this.updateCallback);
-				break;
 			case 'flowchart':
 				editor = new FlowchartEditor(this.app, this.modeData, this.updateCallback);
 				break;
 			case 'gantt':
 				editor = new GanttEditor(this.app, this.modeData, this.updateCallback);
 				break;
-			case 'sequence':
-				editor = new SequenceEditor(this.app, this.modeData, this.updateCallback);
-				break;
 			case 'pie':
 				editor = new PieEditor(this.app, this.modeData, this.updateCallback);
-				break;
-			case 'mindmap':
-				editor = new MindmapEditor(this.app, this.modeData, this.updateCallback);
 				break;
 			case 'sankey':
 				editor = new SankeyEditor(this.app, this.modeData, this.updateCallback);
@@ -83,18 +71,24 @@ export class MermaidEditorPanel {
 		this.currentEditor = editor;
 		const editorElement = editor.getElement();
 		
-		// 确保思维导图编辑器能正确显示
-		if (this.activeMode === 'mindmap') {
-			// 强制显示思维导图编辑器
-			editorElement.style.display = 'block';
-			editorElement.style.visibility = 'visible';
-		}
-		
 		this.containerEl.appendChild(editorElement);
 		
 		// 确保容器可见
 		this.containerEl.style.display = 'block';
 		this.containerEl.style.visibility = 'visible';
+	}
+
+	/**
+	 * 更新编辑器数据（不重建整个面板）
+	 */
+	public updateData(newData: Partial<MermaidData>): void {
+		// 更新数据
+		this.modeData = { ...this.modeData, ...newData };
+		
+		// 如果当前编辑器支持数据更新，则直接更新
+		if (this.currentEditor && 'updateData' in this.currentEditor) {
+			(this.currentEditor as any).updateData(newData);
+		}
 	}
 
 	/**

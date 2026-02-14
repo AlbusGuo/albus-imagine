@@ -11,6 +11,7 @@ interface MermaidTypeItem {
  */
 export class MermaidTypePicker extends FuzzySuggestModal<MermaidTypeItem> {
 	private onSelect: (item: MermaidTypeItem) => void;
+	public onCloseCallback: (() => void) | null = null;
 
 	constructor(app: App, onSelect: (item: MermaidTypeItem) => void) {
 		super(app);
@@ -23,11 +24,8 @@ export class MermaidTypePicker extends FuzzySuggestModal<MermaidTypeItem> {
 	getItems(): MermaidTypeItem[] {
 		return [
 			{ id: 'flowchart', name: '流程图 (Flowchart)' },
-			{ id: 'sequence', name: '时序图 (Sequence)' },
 			{ id: 'gantt', name: '甘特图 (Gantt)' },
-			{ id: 'mindmap', name: '思维导图 (Mindmap)' },
 			{ id: 'timeline', name: '时间线图 (Timeline)' },
-			{ id: 'quadrant', name: '四象限图 (Quadrant)' },
 			{ id: 'pie', name: '饼图 (Pie)' },
 			{ id: 'sankey', name: '桑基图 (Sankey)' }
 		];
@@ -44,6 +42,16 @@ export class MermaidTypePicker extends FuzzySuggestModal<MermaidTypeItem> {
 	 * 选择项目时的处理
 	 */
 	onChooseItem(item: MermaidTypeItem): void {
+		console.log('MermaidTypePicker: onChooseItem called with', item); // 调试信息
 		this.onSelect(item);
+		// 选择后手动关闭模态框
+		this.close();
+	}
+
+	/**
+	 * 关闭模态框时的处理
+	 */
+	onClose(): void {
+		super.onClose();
 	}
 }

@@ -55,6 +55,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 
 		// 时间段
 		this.addSectionTitle('时间段');
+		
 		items.forEach((it, i) => {
 			const itemContainer = this.containerEl.createDiv('ms-timeline-item');
 			itemContainer.style.cssText = 'margin-bottom: 12px; padding: 8px; border: 1px solid var(--background-modifier-border); border-radius: 4px;';
@@ -166,5 +167,20 @@ export class TimelineEditor extends BaseMermaidEditor {
 			this.updateData({ items: [...items, { period: newPeriod, events: [newEvent] }] as TimelineItem[] });
 		});
 		this.containerEl.appendChild(addBtn);
+	}
+
+	/**
+	 * 优化的数据更新方法，避免重建整个编辑器
+	 */
+	updateData(newData: Partial<MermaidData>): void {
+		// 先更新数据
+		this.data = { ...this.data, ...newData };
+		
+		// 通知父组件数据已更新
+		this.notifyDataUpdate(newData);
+		
+		// 重建编辑器
+		this.containerEl.empty();
+		this.buildEditor();
 	}
 }

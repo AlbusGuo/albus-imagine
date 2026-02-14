@@ -36,9 +36,9 @@ export abstract class BaseMermaidEditor {
 	protected abstract buildEditor(): void;
 
 	/**
-	 * 更新数据
+	 * 更新数据（调用回调）
 	 */
-	protected updateData(newData: Partial<MermaidData>): void {
+	protected notifyDataUpdate(newData: Partial<MermaidData>): void {
 		this.updateCallback(newData);
 	}
 
@@ -192,5 +192,19 @@ export abstract class BaseMermaidEditor {
 		toggle.setValue(value);
 		toggle.onChange(onChange);
 		return toggle;
+	}
+
+	/**
+	 * 更新编辑器数据（可被子类重写）
+	 */
+	updateData(newData: Partial<MermaidData>): void {
+		// 先更新数据
+		this.data = { ...this.data, ...newData };
+		
+		// 通知父组件数据已更新
+		this.notifyDataUpdate(newData);
+		
+		// 子类可以重写此方法来实现具体的DOM更新
+		// 这里不重建编辑器，避免循环调用和性能问题
 	}
 }

@@ -15,14 +15,14 @@ export class MermaidEditorModal extends Modal {
 	private modeData: MermaidData;
 	private previewCanvas: HTMLElement;
 	private zoomPercent: HTMLButtonElement;
-	private isInitialized: boolean = false;
+	private currentEditorPanel: MermaidEditorPanel | null = null;
+	private renderTimeout: number | null = null;
 
 	constructor(app: App, editor: Editor, initialMode?: MermaidMode) {
 		super(app);
 		this.editor = editor;
 		this.activeMode = initialMode || 'flowchart';
 		this.modeData = this.getDefaultData(this.activeMode);
-		this.isInitialized = !!initialMode;
 	}
 
 	/**
@@ -38,13 +38,7 @@ export class MermaidEditorModal extends Modal {
 				config: { title: '' },
 				theme: 'default'
 			},
-			quadrant: {
-				points: [
-					{ name: '点1', x: 0.3, y: 0.8 },
-					{ name: '点2', x: 0.7, y: 0.2 }
-				],
-				config: { title: '四象限分析', xLeft: '低', xRight: '高', yDown: '不足', yUp: '充足' }
-			},
+			
 			flowchart: {
 				nodes: [
 					{ id: 'start', label: '节点1', shape: 'rect', group: '' }
@@ -53,15 +47,16 @@ export class MermaidEditorModal extends Modal {
 				config: { direction: 'TD' }
 			},
 			gantt: {
-				tasks: [],
-				config: { title: '', timeFormat: 'date' }
-			},
-			sequence: {
-				participants: [
-					{ name: '角色1', type: 'participant' },
-					{ name: '角色2', type: 'participant' }
+				tasks: [
+					{ 
+						name: '示例任务', 
+						startDate: '2024-01-01', 
+						endDate: '2024-01-03',
+						status: 'active',
+						section: ''
+					}
 				],
-				messages: [{ from: '角色1', to: '角色2', text: '消息1', arrow: '实线带箭头' }]
+				config: { title: '甘特图', timeFormat: 'date' }
 			},
 			pie: {
 				items: [
@@ -71,13 +66,7 @@ export class MermaidEditorModal extends Modal {
 				] as any,
 				config: { title: '', showData: false }
 			},
-			mindmap: {
-				tree: [
-					{ id: 'root', text: '根节点', level: 0 },
-					{ id: 'n1', text: '节点1', level: 1 },
-					{ id: 'n2', text: '节点2', level: 2 }
-				]
-			},
+			
 			sankey: {
 				map: {
 					'Source1': [
@@ -137,80 +126,44 @@ export class MermaidEditorModal extends Modal {
 	}
 
 	/**
-	 * 更新模式数据
+	 * 更新模式数据（优化版本，避免闪烁）
 	 */
 	private updateModeData(newData: Partial<MermaidData>): void {
+		// 合并数据
 		this.modeData = { ...this.modeData, ...newData };
-		this.renderPreview();
-		// 重新构建编辑面板（按照源码的方式）
-		this.rebuildEditorPanel();
+		
+		// 使用防抖渲染预览，避免频繁更新
+		this.debouncedRenderPreview();
+		
+		// 注意：不要调用编辑器面板的updateData，会造成循环调用
+		// 编辑器已经通过notifyDataUpdate通知了我们，我们只需要更新预览即可
 	}
 
 	/**
-	 * 重新构建编辑面板
+	 * 防抖渲染预览
 	 */
-	private rebuildEditorPanel(): void {
-		const editorPanelEl = this.contentEl.querySelector('.ms-editor-panel') as HTMLElement;
-		if (editorPanelEl) {
-			// 创建新的编辑器面板
-			const newEditorPanel = new MermaidEditorPanel(
-				this.app,
-				this.activeMode,
-				this.modeData,
-				(newData) => this.updateModeData(newData)
-			);
-			
-			// 替换旧的编辑器面板
-			const oldPanel = editorPanelEl;
-			const newPanel = newEditorPanel.getElement();
-			oldPanel.parentNode?.replaceChild(newPanel, oldPanel);
-		}
+	private debouncedRenderPreview = this.debounce(() => {
+		this.renderPreview();
+	}, 100);
+
+	/**
+	 * 简单的防抖函数
+	 */
+	private debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
+		let timeout: number;
+		return ((...args: Parameters<T>) => {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => func(...args), wait);
+		}) as T;
 	}
 
 	/**
 	 * 打开模态框
 	 */
 	onOpen(): void {
-		if (!this.isInitialized) {
-			// 完全隐藏模态框，防止空模态框显示
-			this.modalEl.style.display = 'none';
-			
-			// 显示类型选择器
-			const typePicker = new MermaidTypePicker(this.app, (item) => {
-				this.activeMode = item.id;
-				this.modeData = this.getDefaultData(this.activeMode);
-				this.isInitialized = true;
-				
-				// 延迟构建编辑器，确保类型选择器关闭后再构建
-				setTimeout(() => {
-					// 先构建编辑器，确保内容已准备好
-					this.buildEditor();
-					
-					// 构建完成后再显示模态框
-					this.modalEl.style.display = '';
-					
-					// 多次渲染确保图形正常显示
-					this.renderPreview();
-					setTimeout(() => {
-						this.renderPreview();
-					}, 100);
-					setTimeout(() => {
-						this.renderPreview();
-					}, 300);
-				}, 100);
-			});
-			typePicker.open();
-		} else {
-			this.buildEditor();
-			// 多次渲染确保图形正常显示
-			this.renderPreview();
-			setTimeout(() => {
-				this.renderPreview();
-			}, 100);
-			setTimeout(() => {
-				this.renderPreview();
-			}, 300);
-		}
+		// 直接构建编辑器，不需要选择逻辑
+		this.buildEditor();
+		this.renderPreview();
 	}
 
 	/**
@@ -249,13 +202,13 @@ export class MermaidEditorModal extends Modal {
 		const body = root.createDiv('ms-body');
 
 		// 左侧编辑区
-		const editorPanel = new MermaidEditorPanel(
+		this.currentEditorPanel = new MermaidEditorPanel(
 			this.app,
 			this.activeMode,
 			this.modeData,
 			(newData) => this.updateModeData(newData)
 		);
-		body.appendChild(editorPanel.getElement());
+		body.appendChild(this.currentEditorPanel.getElement());
 
 		// 右侧预览区
 		const previewPanel = body.createDiv('ms-preview-panel');

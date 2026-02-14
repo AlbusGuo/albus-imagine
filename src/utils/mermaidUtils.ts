@@ -2,7 +2,7 @@
  * Mermaid 工具函数
  */
 
-export type MermaidMode = 'timeline' | 'quadrant' | 'flowchart' | 'gantt' | 'sequence' | 'pie' | 'mindmap' | 'sankey';
+export type MermaidMode = 'timeline' | 'flowchart' | 'gantt' | 'pie' | 'sankey';
 
 export interface TimelineItem {
 	period: string;
@@ -10,11 +10,7 @@ export interface TimelineItem {
 	section?: string;
 }
 
-export interface QuadrantPoint {
-	name: string;
-	x: number;
-	y: number;
-}
+
 
 export interface FlowchartNode {
 	id: string;
@@ -39,28 +35,14 @@ export interface GanttTask {
 	isMilestone?: boolean;
 }
 
-export interface SequenceParticipant {
-	name: string;
-	type: string;
-}
 
-export interface SequenceMessage {
-	from: string;
-	to: string;
-	text: string;
-	arrow: string;
-}
 
 export interface PieItem {
 	label: string;
 	value: number;
 }
 
-export interface MindmapNode {
-	id: string;
-	text: string;
-	level: number;
-}
+
 
 export interface SankeyLink {
 	source: string;
@@ -77,13 +59,9 @@ export interface SankeyMap {
 
 export interface MermaidData {
 	items?: TimelineItem[] | PieItem[];
-	points?: QuadrantPoint[];
 	nodes?: FlowchartNode[];
 	edges?: FlowchartEdge[];
 	tasks?: GanttTask[];
-	participants?: SequenceParticipant[];
-	messages?: SequenceMessage[];
-	tree?: MindmapNode[];
 	links?: SankeyLink[];
 	map?: SankeyMap;
 	config?: Record<string, any>;
@@ -171,17 +149,7 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 			});
 			break;
 		}
-		case 'quadrant': {
-			const points = data.points || [];
-			const config = data.config || {};
-			code = `quadrantChart\n  title ${escapeMermaid(config.title || '四象限')}\n`;
-			code += `  x-axis "${escapeMermaid(config.xLeft || '低')}" --> "${escapeMermaid(config.xRight || '高')}"\n`;
-			code += `  y-axis "${escapeMermaid(config.yDown || '不足')}" --> "${escapeMermaid(config.yUp || '充足')}"\n`;
-			points.forEach(p => {
-				code += `  "${escapeMermaid(p.name || '点')}": [${p.x || 0.5}, ${p.y || 0.5}]\n`;
-			});
-			break;
-		}
+		
 		case 'flowchart': {
 			const nodes = data.nodes || [];
 			const edges = data.edges || [];
@@ -320,6 +288,18 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 			const axisFormat = config.axisFormat || '%Y-%m-%d';
 			const tickInterval = config.tickInterval || '1day';
 			
+			// 确保有任务数据
+			if (tasks.length === 0) {
+				// 如果没有任务，添加一个默认任务
+				tasks.push({
+					name: '默认任务',
+					startDate: '2024-01-01',
+					endDate: '2024-01-03',
+					status: 'active',
+					section: ''
+				});
+			}
+			
 			code = `gantt\n`;
 			
 			// 添加标题（如果有）
@@ -366,39 +346,6 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 			});
 			break;
 		}
-		case 'sequence': {
-			const participants = data.participants || [];
-			const messages = data.messages || [];
-			code = `sequenceDiagram\n`;
-			
-			participants.forEach(p => {
-				if (p.type === 'actor') {
-					code += `  actor ${escapeMermaid(p.name)}\n`;
-				} else {
-					code += `  participant ${escapeMermaid(p.name)}\n`;
-				}
-			});
-			
-			// 箭头类型映射
-			const arrowMap: Record<string, string> = {
-				'实线带箭头': '->>',
-				'实线无箭头': '->',
-				'虚线无箭头': '-->',
-				'虚线带箭头': '-->>',
-				'实线叉号': '-x',
-				'虚线叉号': '--x',
-				'实线异步': '-)',
-				'虚线异步': '--)'
-			};
-			
-			messages.forEach(m => {
-				if (m.from && m.to) {
-					const arrow = arrowMap[m.arrow] || '->>';
-					code += `  ${m.from}${arrow}${m.to}: ${escapeMermaid(m.text)}\n`;
-				}
-			});
-			break;
-		}
 		case 'pie': {
 			const items = data.items || [];
 			const config = data.config || {};
@@ -422,19 +369,7 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 			items.forEach(i => code += `  "${escapeMermaid((i as any).label)}" : ${(i as any).value || 0}\n`);
 			break;
 		}
-		case 'mindmap': {
-			const tree = data.tree || [];
-			code = `mindmap\n`;
-			const valid = tree.filter(n => n.text);
-			if (valid.length === 0) code += `  根节点\n`;
-			else {
-				valid.forEach(n => {
-					const indent = '  '.repeat((n.level || 0) + 1);
-					code += `${indent}${escapeMermaid(n.text)}\n`;
-				});
-			}
-			break;
-		}
+		
 		case 'sankey': {
 			// 优先使用映射结构，如果没有则使用链接数组
 			const map = data.map;
