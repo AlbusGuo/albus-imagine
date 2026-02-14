@@ -32,9 +32,11 @@ export interface FlowchartEdge {
 
 export interface GanttTask {
 	name: string;
-	duration: string;
+	startDate: string;
+	endDate: string;
 	status?: string;
-	dep?: string;
+	section?: string;
+	isMilestone?: boolean;
 }
 
 export interface SequenceParticipant {
@@ -199,9 +201,10 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 				parallelogram: ['[/', '/]'], 
 				'inverse-parallelogram': ['[\\', '\\]'], 
 				trapezoid: ['[/', '\\]'], 
+				'inverse-trapezoid': ['[\\', '/]'], 
 				'double-circle': ['(((', ')))'], 
 				asymmetric: ['[>', ']'],
-				document: ['[-', ']'],
+				document: ['[', ']'],
 				delay: ['[\\', '/]'],
 				database: ['[(', ')]'],
 				input: ['[/]', '[/]'],
@@ -210,24 +213,54 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 			
 			// 新版本的扩展形状语法映射（v11.3.0+）
 			const shapeMap: Record<string, string> = {
-				'rect': 'rect',
-				'rounded': 'rounded',
-				'circle': 'circle',
-				'diamond': 'diamond',
-				'hex': 'hex',
-				'cylinder': 'cyl',
-				'stadium': 'stadium',
-				'subroutine': 'subproc',
-				'parallelogram': 'lean-r',
-				'inverse-parallelogram': 'lean-l',
-				'trapezoid': 'trap-b',
-				'double-circle': 'dbl-circ',
-				'asymmetric': 'odd',
+				// 基本形状的扩展版本
+				'rect-ext': 'rect',
+				'rounded-ext': 'rounded',
+				'circle-ext': 'circle',
+				'diamond-ext': 'diamond',
+				'hex-ext': 'hex',
+				'cyl-ext': 'cyl',
+				'stadium-ext': 'stadium',
+				'subproc-ext': 'subproc',
+				'lean-r-ext': 'lean-r',
+				'lean-l-ext': 'lean-l',
+				'trap-b-ext': 'trap-b',
+				'trap-t-ext': 'trap-t',
+				'dbl-circ-ext': 'dbl-circ',
+				'doc-ext': 'doc',
 				'document': 'doc',
-				'delay': 'delay',
-				'database': 'cyl',
-				'input': 'lean-r',
-				'output': 'lean-l'
+				'delay-ext': 'delay',
+				
+				// 新增的扩展形状
+				'text': 'text',
+				'notch-rect': 'notch-rect',
+				'lin-rect': 'lin-rect',
+				'sm-circ': 'sm-circ',
+				'framed-circle': 'framed-circle',
+				'fork': 'fork',
+				'hourglass': 'hourglass',
+				'comment': 'comment',
+				'brace-r': 'brace-r',
+				'braces': 'braces',
+				'bolt': 'bolt',
+				'das': 'das',
+				'lin-cyl': 'lin-cyl',
+				'curv-trap': 'curv-trap',
+				'div-rect': 'div-rect',
+				'tri': 'tri',
+				'win-pane': 'win-pane',
+				'f-circ': 'f-circ',
+				'lin-doc': 'lin-doc',
+				'notch-pent': 'notch-pent',
+				'flip-tri': 'flip-tri',
+				'sl-rect': 'sl-rect',
+				'docs': 'docs',
+				'processes': 'processes',
+				'flag': 'flag',
+				'bow-rect': 'bow-rect',
+				'cross-circ': 'cross-circ',
+				'tag-doc': 'tag-doc',
+				'tag-rect': 'tag-rect'
 			};
 			
 			// 分组处理
@@ -283,12 +316,53 @@ export function generateMermaidCode(mode: MermaidMode, data: MermaidData): strin
 		case 'gantt': {
 			const tasks = data.tasks || [];
 			const config = data.config || {};
-			const start = config.start || new Date().toISOString().split('T')[0];
-			code = `gantt\n  title ${escapeMermaid(config.title || '甘特图')}\n  dateFormat YYYY-MM-DD\n  axisFormat %m-%d\n`;
+			const dateFormat = config.dateFormat || 'YYYY-MM-DD';
+			const axisFormat = config.axisFormat || '%Y-%m-%d';
+			const tickInterval = config.tickInterval || '1day';
+			
+			code = `gantt\n`;
+			
+			// 添加标题（如果有）
+			if (config.title) {
+				code += `  title ${escapeMermaid(config.title)}\n`;
+			}
+			
+			code += `  dateFormat ${dateFormat}\n  axisFormat ${axisFormat}\n  tickInterval ${tickInterval}\n`;
+			
+			// 按分组组织任务
+			const sections: { [key: string]: GanttTask[] } = {};
+			let hasSections = false;
+			
 			tasks.forEach(t => {
-				const status = t.status ? `${t.status},` : '';
-				const dep = t.dep ? `after ${escapeMermaid(t.dep)},` : `${start},`;
-				code += `  ${escapeMermaid(t.name)} :${status} ${dep} ${t.duration || '1d'}\n`;
+				if (t.section) {
+					hasSections = true;
+					if (!sections[t.section]) {
+						sections[t.section] = [];
+					}
+					sections[t.section].push(t);
+				} else {
+					if (!sections['默认']) {
+						sections['默认'] = [];
+					}
+					sections['默认'].push(t);
+				}
+			});
+			
+			// 生成分组和任务代码
+			Object.entries(sections).forEach(([sectionName, sectionTasks]) => {
+				if (hasSections) {
+					code += `  section ${escapeMermaid(sectionName)}\n`;
+				}
+				sectionTasks.forEach(t => {
+					if (t.isMilestone) {
+						// 里程碑任务
+						code += `  ${escapeMermaid(t.name)} :milestone, ${t.startDate}, 0d\n`;
+					} else {
+						// 普通任务
+						const status = t.status ? `${t.status}, ` : '';
+						code += `  ${escapeMermaid(t.name)} :${status}${t.startDate}, ${t.endDate}\n`;
+					}
+				});
 			});
 			break;
 		}

@@ -1,6 +1,7 @@
 import { App } from 'obsidian';
 import { MermaidData, FlowchartNode, FlowchartEdge, generateUniqueName } from '../../utils/mermaidUtils';
 import { BaseMermaidEditor } from './BaseMermaidEditor';
+import { ShapeSelector } from '../ShapeSelector';
 
 /**
  * 流程图编辑器
@@ -54,17 +55,20 @@ export class FlowchartEditor extends BaseMermaidEditor {
 				this.updateData({ nodes: next });
 			});
 			
-			const shapeSelect = this.createSelect(
-				['方形', '圆角', '圆形', '菱形', '六边形', '圆柱', '体育场', '子程序', '平行四边形', '反平行四边形', '梯形', '双圈', '不对称', '文档', '延迟', '数据库', '输入', '输出'],
-				['rect', 'rounded', 'circle', 'diamond', 'hex', 'cylinder', 'stadium', 'subroutine', 'parallelogram', 'inverse-parallelogram', 'trapezoid', 'double-circle', 'asymmetric', 'document', 'delay', 'database', 'input', 'output'],
+			// 创建形状选择器容器
+			const shapeContainer = row.createDiv('shape-selector-container');
+			shapeContainer.style.flex = '0 0 160px';
+			
+			// 创建形状选择器
+			const shapeSelector = new ShapeSelector(
+				shapeContainer,
 				n.shape || 'rect',
-				'flex:0 0 120px'
+				(value) => {
+					const next = [...nodes];
+					next[i].shape = value;
+					this.updateData({ nodes: next });
+				}
 			);
-			shapeSelect.addEventListener('change', (e) => {
-				const next = [...nodes];
-				next[i].shape = (e.target as HTMLSelectElement).value;
-				this.updateData({ nodes: next });
-			});
 			
 			const colorInput = this.createColorPicker(n.color || '#ffffff');
 			colorInput.addEventListener('change', (e) => {
@@ -79,7 +83,7 @@ export class FlowchartEditor extends BaseMermaidEditor {
 			
 			row.appendChild(labelInput);
 			row.appendChild(groupInput);
-			row.appendChild(shapeSelect);
+			row.appendChild(shapeContainer);
 			row.appendChild(colorInput);
 			row.appendChild(delBtn);
 		});

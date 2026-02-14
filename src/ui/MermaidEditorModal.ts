@@ -32,8 +32,8 @@ export class MermaidEditorModal extends Modal {
 		const defaults: Record<MermaidMode, MermaidData> = {
 			timeline: {
 				items: [
-					{ period: '2023', events: ['事件1'] },
-					{ period: '2024', events: ['事件2'] }
+					{ period: '时期1', events: ['事件1'] },
+					{ period: '时期2', events: ['事件1'] }
 				],
 				config: { title: '' },
 				theme: 'default'
@@ -53,10 +53,8 @@ export class MermaidEditorModal extends Modal {
 				config: { direction: 'TD' }
 			},
 			gantt: {
-				tasks: [
-					{ name: '任务1', duration: '3d', status: 'active', dep: '' }
-				],
-				config: { title: '甘特图', start: '' }
+				tasks: [],
+				config: { title: '', timeFormat: 'date' }
 			},
 			sequence: {
 				participants: [

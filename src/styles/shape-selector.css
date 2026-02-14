@@ -1,0 +1,178 @@
+/* 形状选择器样式 */
+.shape-selector {
+	position: relative;
+	min-width: 120px;
+}
+
+/* 当前选择显示 */
+.shape-current {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: all 0.2s;
+	height: 30px;
+}
+
+.shape-current:hover {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-hover);
+}
+
+
+
+.shape-name {
+	flex: 1;
+	font-size: 13px;
+}
+
+.dropdown-icon {
+	font-size: 12px;
+	color: var(--text-muted);
+	transition: transform 0.2s;
+}
+
+.shape-current:hover .dropdown-icon {
+	transform: translateY(1px);
+}
+
+/* 形状面板 */
+.shape-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	max-height: 400px;
+	overflow: hidden;
+	margin-top: 4px;
+}
+
+/* 分组标签 */
+.shape-tabs {
+	display: flex;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-primary-alt);
+}
+
+.shape-tab {
+	flex: 1;
+	padding: 8px 12px;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 12px;
+	cursor: pointer;
+	transition: all 0.2s;
+	border-bottom: 2px solid transparent;
+}
+
+.shape-tab:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+}
+
+.shape-tab.active {
+	color: var(--interactive-accent);
+	background: var(--background-primary);
+	border-bottom-color: var(--interactive-accent);
+}
+
+/* 形状内容区域 */
+.shape-content {
+	max-height: 350px;
+	overflow-y: auto;
+}
+
+.shape-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+	gap: 4px;
+	padding: 8px;
+}
+
+/* 形状按钮 - 紧凑型布局 */
+.shape-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: all 0.2s;
+	height: 28px;
+	font-size: 12px;
+}
+
+.shape-btn:hover {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-hover);
+}
+
+.shape-btn.active {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.shape-btn-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+/* 滚动条样式 */
+.shape-content::-webkit-scrollbar {
+	width: 6px;
+}
+
+.shape-content::-webkit-scrollbar-track {
+	background: var(--background-primary-alt);
+}
+
+.shape-content::-webkit-scrollbar-thumb {
+	background: var(--background-modifier-border);
+	border-radius: 3px;
+}
+
+.shape-content::-webkit-scrollbar-thumb:hover {
+	background: var(--interactive-accent);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+	.shape-group {
+		grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+		gap: 3px;
+		padding: 6px;
+	}
+	
+	.shape-btn {
+		height: 26px;
+		padding: 3px 6px;
+		font-size: 11px;
+	}
+	
+	.shape-tab {
+		padding: 6px 8px;
+		font-size: 11px;
+	}
+}
+
+/* 暗色主题适配 */
+.theme-dark .shape-panel {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

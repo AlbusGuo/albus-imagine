@@ -1,5 +1,8 @@
 /* Mermaid 超级编辑器样式 */
 
+/* 导入形状选择器样式 */
+@import url('./shape-selector.css');
+
 /* --- 专门为 Mermaid 编辑器模态框设计的样式 --- */
 /* 只影响带有 mermaid-editor-modal 类的模态框 */
 body > .modal-container > .modal.mermaid-editor-modal {

@@ -121,9 +121,14 @@ export class TimelineEditor extends BaseMermaidEditor {
 			const addEventBtn = this.createAddBtn('+ 添加事件', () => {
 				const next = [...items];
 				const nextEvents = [...(next[i].events || [])];
-				// 生成预设名称，考虑当前时间段内的事件
-				const existingEventNames = nextEvents.filter(e => e.trim());
-				const newEventName = generateUniqueName(existingEventNames, '事件');
+				// 生成预设名称，考虑所有时间段内的事件名称，避免全局重复
+				const allEventNames: string[] = [];
+				next.forEach(item => {
+					if (item.events) {
+						allEventNames.push(...item.events.filter(e => e.trim()));
+					}
+				});
+				const newEventName = generateUniqueName(allEventNames, '事件');
 				nextEvents.push(newEventName);
 				next[i].events = nextEvents;
 				this.updateData({ items: next as TimelineItem[] });
@@ -145,9 +150,19 @@ export class TimelineEditor extends BaseMermaidEditor {
 
 		// 添加时间段按钮
 		const addBtn = this.createAddBtn('+ 添加时间段', () => {
-			const newPeriod = generateUniqueName(items.map(it => it.period), '时期');
-			// 为新时间段生成预设的事件名称
-			const newEvent = generateUniqueName([], '事件');
+			// 获取所有已存在的时期名称
+			const existingPeriods = items.map(it => it.period).filter(p => p.trim());
+			const newPeriod = generateUniqueName(existingPeriods, '时期');
+			
+			// 获取所有已存在的事件名称，避免全局重复
+			const allEventNames: string[] = [];
+			items.forEach(item => {
+				if (item.events) {
+					allEventNames.push(...item.events.filter(e => e.trim()));
+				}
+			});
+			const newEvent = generateUniqueName(allEventNames, '事件');
+			
 			this.updateData({ items: [...items, { period: newPeriod, events: [newEvent] }] as TimelineItem[] });
 		});
 		this.containerEl.appendChild(addBtn);
