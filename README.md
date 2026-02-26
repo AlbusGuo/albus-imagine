@@ -1,4 +1,4 @@
-# Imagine - 强大的 Obsidian 图片管理插件
+![](https://socialify.git.ci/AlbusGuo/albus-imagine/image?description=1&font=Raleway&forks=1&issues=1&language=1&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Light)
 
 一个功能全面的 Obsidian 图片管理插件，提供图片管理、快速插入、拖拽调整、查看预览等多种功能。
 
