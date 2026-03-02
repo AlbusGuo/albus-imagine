@@ -31,8 +31,7 @@ export class PieEditor extends BaseMermaidEditor {
 		
 		// 标题输入
 		const titleRow = this.createRow();
-		const titleLabel = this.createSpan('标题:');
-		titleLabel.style.cssText = 'flex:0 0 80px';
+		const titleLabel = this.createSpan('标题:', 'ms-fixed-80');
 		titleRow.appendChild(titleLabel);
 		
 		const titleInput = this.createInput('标题', config.title || '');
@@ -48,8 +47,7 @@ export class PieEditor extends BaseMermaidEditor {
 		
 		// 显示数据选项
 		const showDataRow = this.createRow();
-		const showDataLabel = this.createSpan('显示数据:');
-		showDataLabel.style.cssText = 'flex:0 0 80px';
+		const showDataLabel = this.createSpan('显示数据:', 'ms-fixed-80');
 		showDataRow.appendChild(showDataLabel);
 		
 		const toggleContainer = showDataRow.createDiv('ms-toggle-container');
@@ -76,7 +74,7 @@ export class PieEditor extends BaseMermaidEditor {
 				this.updateData({ items: next as PieItem[] });
 			});
 			
-			const valueInput = this.createInput('数值', String(it.value ?? 0), 'flex:0 0 80px', 'number', '1');
+			const valueInput = this.createInput('数值', String(it.value ?? 0), 'ms-fixed-80', 'number', '1');
 			valueInput.addEventListener('blur', (e) => {
 				const next = [...items];
 				next[i].value = Number((e.target as HTMLInputElement).value);

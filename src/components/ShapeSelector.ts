@@ -1,5 +1,3 @@
-import { App } from 'obsidian';
-
 /**
  * 形状选择器组件
  * 使用分组按钮和形状预览替代过长的下拉列表
@@ -86,7 +84,6 @@ export class ShapeSelector {
 		
 		// 创建形状面板
 		const panel = this.containerEl.createDiv('shape-panel');
-		panel.style.display = 'none';
 		
 		// 创建分组标签
 		const tabs = panel.createDiv('shape-tabs');
@@ -104,7 +101,7 @@ export class ShapeSelector {
 			// 创建内容
 			const groupContent = content.createDiv('shape-group');
 			groupContent.dataset.group = group.id;
-			groupContent.style.display = groupIndex === 0 ? 'grid' : 'none';
+			if (groupIndex === 0) groupContent.addClass('is-active');
 			
 			// 创建形状按钮
 			group.shapes.forEach(shape => {
@@ -127,7 +124,7 @@ export class ShapeSelector {
 		// 点击外部关闭面板
 		document.addEventListener('click', (e) => {
 			if (!this.containerEl.contains(e.target as Node)) {
-				panel.style.display = 'none';
+				panel.removeClass('is-active');
 			}
 		});
 	}
@@ -148,11 +145,7 @@ export class ShapeSelector {
 	 */
 	private togglePanel(): void {
 		const panel = this.containerEl.querySelector('.shape-panel') as HTMLElement;
-		if (panel.style.display === 'none') {
-			panel.style.display = 'block';
-		} else {
-			panel.style.display = 'none';
-		}
+		panel.toggleClass('is-active', !panel.hasClass('is-active'));
 	}
 	
 	/**
@@ -172,7 +165,7 @@ export class ShapeSelector {
 		// 更新内容显示
 		const groups = this.containerEl.querySelectorAll('.shape-group');
 		groups.forEach((group, index) => {
-			(group as HTMLElement).style.display = index === groupIndex ? 'grid' : 'none';
+			(group as HTMLElement).toggleClass('is-active', index === groupIndex);
 		});
 	}
 	
@@ -202,7 +195,7 @@ export class ShapeSelector {
 		
 		// 关闭面板
 		const panel = this.containerEl.querySelector('.shape-panel') as HTMLElement;
-		panel.style.display = 'none';
+		panel.removeClass('is-active');
 	}
 	
 	/**

@@ -11,9 +11,8 @@ import {
 	SettingGroup,
 	debounce,
 	Notice,
-	setIcon
 } from "obsidian";
-import { CustomFileTypeConfig } from "@src/types/image-manager.types";
+import { SortField, SortOrder } from "../types/image-manager.types";
 
 type SettingsTab = "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER";
 
@@ -163,7 +162,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 							if (!this.plugin.settings.imageManager) {
 								this.plugin.settings.imageManager = {};
 							}
-							this.plugin.settings.imageManager.defaultSortField = value as any;
+							this.plugin.settings.imageManager.defaultSortField = value as SortField;
 							await this.plugin.saveSettings();
 						});
 				});
@@ -183,7 +182,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 							if (!this.plugin.settings.imageManager) {
 								this.plugin.settings.imageManager = {};
 							}
-							this.plugin.settings.imageManager.defaultSortOrder = value as any;
+							this.plugin.settings.imageManager.defaultSortOrder = value as SortOrder;
 							await this.plugin.saveSettings();
 						});
 				});
@@ -211,7 +210,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 							await this.plugin.saveSettings();
 						}, 500));
 					text.inputEl.rows = 6;
-					text.inputEl.style.width = '100%';
+					text.inputEl.addClass('afm-textarea-full-width');
 				});
 		});
 
@@ -236,8 +235,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		// SVG图片反色处理
 		group.addSetting((setting) => {
 			setting
-				.setName('深色模式下SVG图片反色')
-				.setDesc('在深色主题下对SVG图片进行反色处理，使其更适配深色背景')
+				.setName('深色模式下 SVG 图片反色')
+				.setDesc('在深色主题下对 SVG 图片进行反色处理，使其更适配深色背景')
 				.addToggle((toggle) => {
 					toggle
 						.setValue(this.plugin.settings.imageManager?.invertSvgInDarkMode !== false)

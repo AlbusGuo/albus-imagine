@@ -27,8 +27,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 		
 		// 标题输入
 		const titleRow = this.createRow();
-		const titleLabel = this.createSpan('标题:');
-		titleLabel.style.cssText = 'flex:0 0 80px';
+		const titleLabel = this.createSpan('标题:', 'ms-fixed-80');
 		titleRow.appendChild(titleLabel);
 		
 		const titleInput = this.createInput('标题', config.title || '');
@@ -39,8 +38,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 		
 		// 主题选择
 		const themeRow = this.createRow();
-		const themeLabel = this.createSpan('主题:');
-		themeLabel.style.cssText = 'flex:0 0 80px';
+		const themeLabel = this.createSpan('主题:', 'ms-fixed-80');
 		themeRow.appendChild(themeLabel);
 		
 		const themeSelect = this.createSelect(
@@ -58,14 +56,13 @@ export class TimelineEditor extends BaseMermaidEditor {
 		
 		items.forEach((it, i) => {
 			const itemContainer = this.containerEl.createDiv('ms-timeline-item');
-			itemContainer.style.cssText = 'margin-bottom: 12px; padding: 8px; border: 1px solid var(--background-modifier-border); border-radius: 4px;';
 			
 			// 时期和分组行
 			const headerRow = this.createRow();
-			headerRow.style.marginBottom = '8px';
+			headerRow.addClass('ms-row-spaced');
 			
 			// 时期输入
-			const periodInput = this.createInput('时期', it.period || '', 'flex:0 0 120px');
+			const periodInput = this.createInput('时期', it.period || '', 'ms-fixed-120');
 			periodInput.addEventListener('blur', (e) => {
 				const next = [...items];
 				next[i].period = (e.target as HTMLInputElement).value;
@@ -74,7 +71,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 			headerRow.appendChild(periodInput);
 			
 			// 分组输入
-			const sectionInput = this.createInput('分组(可选)', it.section || '', 'flex:0 0 120px');
+			const sectionInput = this.createInput('分组(可选)', it.section || '', 'ms-fixed-120');
 			sectionInput.addEventListener('blur', (e) => {
 				const next = [...items];
 				// 确保分组只应用于当前时间段
@@ -92,7 +89,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 			events.forEach((event, eventIndex) => {
 				const eventRow = this.createRow();
 				
-				const eventInput = this.createInput('事件', event, 'flex:1');
+				const eventInput = this.createInput('事件', event, 'ms-flex-1');
 				eventInput.addEventListener('blur', (e) => {
 					const next = [...items];
 					const nextEvents = [...(next[i].events || [])];
@@ -115,8 +112,7 @@ export class TimelineEditor extends BaseMermaidEditor {
 			});
 			
 			// 添加事件和删除时间段按钮容器
-			const buttonContainer = eventsContainer.createDiv('ms-button-container');
-			buttonContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 4px;';
+			const buttonContainer = eventsContainer.createDiv('ms-button-group');
 			
 			// 添加事件按钮
 			const addEventBtn = this.createAddBtn('+ 添加事件', () => {
@@ -134,16 +130,15 @@ export class TimelineEditor extends BaseMermaidEditor {
 				next[i].events = nextEvents;
 				this.updateData({ items: next as TimelineItem[] });
 			});
-			addEventBtn.style.flex = '1';
+			addEventBtn.addClass('ms-flex-1');
 			buttonContainer.appendChild(addEventBtn);
 			
 			// 删除时间段按钮
 			const delBtn = this.createAddBtn('× 删除时间段', () => {
 				this.updateData({ items: items.filter((_, idx) => idx !== i) as TimelineItem[] });
 			});
-			delBtn.style.flex = '1';
-			delBtn.style.backgroundColor = '#ff4444';
-			delBtn.style.color = 'white';
+			delBtn.addClass('ms-flex-1');
+			delBtn.addClass('ms-delete-action');
 			buttonContainer.appendChild(delBtn);
 			
 			this.containerEl.appendChild(itemContainer);

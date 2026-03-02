@@ -39,7 +39,6 @@ export class MermaidViewport {
 			if (!layer) return;
 			
 			const rect = layer.getBoundingClientRect();
-			const vpRect = this.viewportEl.getBoundingClientRect();
 			const layerX = (mouseX - rect.left) / prev;
 			const layerY = (mouseY - rect.top) / prev;
 			

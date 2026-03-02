@@ -1,5 +1,5 @@
 import { App } from 'obsidian';
-import { MermaidData, GanttTask, generateUniqueName } from '../../utils/mermaidUtils';
+import { MermaidData, generateUniqueName } from '../../utils/mermaidUtils';
 import { BaseMermaidEditor } from './BaseMermaidEditor';
 
 /**
@@ -26,8 +26,7 @@ export class GanttEditor extends BaseMermaidEditor {
 		
 		// 标题输入
 		const titleRow = this.createRow();
-		const titleLabel = this.createSpan('标题:');
-		titleLabel.style.cssText = 'flex:0 0 80px';
+		const titleLabel = this.createSpan('标题:', 'ms-fixed-80');
 		titleRow.appendChild(titleLabel);
 		
 		const titleInput = this.createInput('标题', config.title || '');
@@ -38,8 +37,7 @@ export class GanttEditor extends BaseMermaidEditor {
 		
 		// 时间格式选择
 		const formatRow = this.createRow();
-		const formatLabel = this.createSpan('时间格式:');
-		formatLabel.style.cssText = 'flex:0 0 80px';
+		const formatLabel = this.createSpan('时间格式:', 'ms-fixed-80');
 		formatRow.appendChild(formatLabel);
 		
 		const formatSelect = this.createSelect(
@@ -89,14 +87,13 @@ export class GanttEditor extends BaseMermaidEditor {
 		this.addSectionTitle('任务');
 		tasks.forEach((task, i) => {
 			const taskContainer = this.containerEl.createDiv('ms-gantt-task');
-			taskContainer.style.cssText = 'margin-bottom: 12px; padding: 8px; border: 1px solid var(--background-modifier-border); border-radius: 4px;';
 			
 			// 任务名称和分组行
 			const headerRow = this.createRow();
-			headerRow.style.marginBottom = '8px';
+			headerRow.addClass('ms-row-spaced');
 			
 			// 任务名称输入
-			const nameInput = this.createInput('任务名称', task.name || '', 'flex:0 0 150px');
+			const nameInput = this.createInput('任务名称', task.name || '', 'ms-fixed-150');
 			nameInput.addEventListener('blur', (e) => {
 				const next = [...tasks];
 				next[i].name = (e.target as HTMLInputElement).value;
@@ -105,7 +102,7 @@ export class GanttEditor extends BaseMermaidEditor {
 			headerRow.appendChild(nameInput);
 			
 			// 分组输入
-			const sectionInput = this.createInput('分组(可选)', task.section || '', 'flex:0 0 120px');
+			const sectionInput = this.createInput('分组(可选)', task.section || '', 'ms-fixed-120');
 			sectionInput.addEventListener('blur', (e) => {
 				const next = [...tasks];
 				next[i].section = (e.target as HTMLInputElement).value || undefined;
@@ -121,7 +118,7 @@ export class GanttEditor extends BaseMermaidEditor {
 				statusOptions,
 				statusValues,
 				currentStatus,
-				'flex:0 0 80px'
+				'ms-fixed-80'
 			);
 			statusSelect.addEventListener('change', (e) => {
 				const next = [...tasks];
@@ -144,11 +141,10 @@ export class GanttEditor extends BaseMermaidEditor {
 			const dateRow = this.createRow();
 			
 			// 开始日期
-			const startDateLabel = this.createSpan('开始日期:');
-			startDateLabel.style.cssText = 'flex:0 0 80px';
+			const startDateLabel = this.createSpan('开始日期:', 'ms-fixed-80');
 			dateRow.appendChild(startDateLabel);
 			
-			const startDateInput = this.createInput('', task.startDate || '', 'flex:1', config.timeFormat === 'time' ? 'time' : 'date');
+			const startDateInput = this.createInput('', task.startDate || '', 'ms-flex-1', config.timeFormat === 'time' ? 'time' : 'date');
 			startDateInput.addEventListener('blur', (e) => {
 				const next = [...tasks];
 				next[i].startDate = (e.target as HTMLInputElement).value;
@@ -157,11 +153,10 @@ export class GanttEditor extends BaseMermaidEditor {
 			dateRow.appendChild(startDateInput);
 			
 			// 结束日期
-			const endDateLabel = this.createSpan('结束日期:');
-			endDateLabel.style.cssText = 'flex:0 0 80px';
+			const endDateLabel = this.createSpan('结束日期:', 'ms-fixed-80');
 			dateRow.appendChild(endDateLabel);
 			
-			const endDateInput = this.createInput('', task.endDate || '', 'flex:1', config.timeFormat === 'time' ? 'time' : 'date');
+			const endDateInput = this.createInput('', task.endDate || '', 'ms-flex-1', config.timeFormat === 'time' ? 'time' : 'date');
 			// 里程碑任务的结束日期禁用且与开始日期相同
 			endDateInput.disabled = task.isMilestone || false;
 			endDateInput.addEventListener('blur', (e) => {
@@ -179,9 +174,7 @@ export class GanttEditor extends BaseMermaidEditor {
 			const delBtn = this.createAddBtn('× 删除任务', () => {
 				this.updateData({ tasks: tasks.filter((_, idx) => idx !== i) });
 			});
-			delBtn.style.backgroundColor = '#ff4444';
-			delBtn.style.color = 'white';
-			delBtn.style.marginTop = '8px';
+			delBtn.addClass('ms-delete-action');
 			taskContainer.appendChild(delBtn);
 			
 			this.containerEl.appendChild(taskContainer);

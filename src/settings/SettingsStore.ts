@@ -1,8 +1,8 @@
-import AceCodeEditorPlugin from "@src/main";
+import AlbusFigureManagerPlugin from "@src/main";
 import { DEFAULT_SETTINGS, IPluginSettings } from "@src/types/types";
 
 export default class SettingsStore {
-	#plugin: AceCodeEditorPlugin;
+	#plugin: AlbusFigureManagerPlugin;
 	#subscribers = new Set<() => void>();
 
 	#store = {
@@ -13,7 +13,7 @@ export default class SettingsStore {
 		getSnapshot: (): IPluginSettings => this.#plugin.settings,
 	};
 
-	constructor(plugin: AceCodeEditorPlugin) {
+	constructor(plugin: AlbusFigureManagerPlugin) {
 		this.#plugin = plugin;
 	}
 

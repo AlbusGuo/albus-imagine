@@ -762,3 +762,7 @@
 }
 
 /* ==================== 预览模态框 ==================== */
+
+.image-manager-cover-hidden {
+	display: none;
+}

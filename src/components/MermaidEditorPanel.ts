@@ -44,7 +44,7 @@ export class MermaidEditorPanel {
 	 * 构建编辑器面板
 	 */
 	private buildEditorPanel(): void {
-		this.containerEl.innerHTML = '';
+		this.containerEl.empty();
 		
 		// 根据当前模式创建对应的编辑器
 		let editor;
@@ -74,8 +74,7 @@ export class MermaidEditorPanel {
 		this.containerEl.appendChild(editorElement);
 		
 		// 确保容器可见
-		this.containerEl.style.display = 'block';
-		this.containerEl.style.visibility = 'visible';
+		this.containerEl.show();
 	}
 
 	/**
@@ -86,8 +85,8 @@ export class MermaidEditorPanel {
 		this.modeData = { ...this.modeData, ...newData };
 		
 		// 如果当前编辑器支持数据更新，则直接更新
-		if (this.currentEditor && 'updateData' in this.currentEditor) {
-			(this.currentEditor as any).updateData(newData);
+		if (this.currentEditor) {
+			this.currentEditor.updateData(newData);
 		}
 	}
 
@@ -95,9 +94,6 @@ export class MermaidEditorPanel {
 	 * 清理编辑器
 	 */
 	public cleanup(): void {
-		if (this.currentEditor && 'cleanup' in this.currentEditor) {
-			(this.currentEditor as any).cleanup();
-		}
 		this.currentEditor = null;
 	}
 }

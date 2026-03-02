@@ -181,12 +181,12 @@ export class ImageContextMenu extends Component {
 			}
 		});
 
-		this.createMenuItem(container, "编辑标题", "type", () => this.editCaption(img));
-		this.createMenuItem(container, "深色反色", "moon", () => this.toggleDarkMode(img));
+		this.createMenuItem(container, "编辑标题", "type", () => void this.editCaption(img));
+		this.createMenuItem(container, "深色反色", "moon", () => void this.toggleDarkMode(img));
 		this.createMenuItemWithSubmenu(container, "图片对齐", "align-center", img, [
-			{ title: "居中", icon: "align-center", callback: () => this.updateAlignment(img, "center") },
-			{ title: "左侧环绕", icon: "align-left", callback: () => this.updateAlignment(img, "left") },
-			{ title: "右侧环绕", icon: "align-right", callback: () => this.updateAlignment(img, "right") }
+			{ title: "居中", icon: "align-center", callback: () => void this.updateAlignment(img, "center") },
+			{ title: "左侧环绕", icon: "align-left", callback: () => void this.updateAlignment(img, "left") },
+			{ title: "右侧环绕", icon: "align-right", callback: () => void this.updateAlignment(img, "right") }
 		]);
 	}
 
@@ -327,9 +327,7 @@ export class ImageContextMenu extends Component {
 			menuItem.addClass('selected');
 			
 			// 先将子菜单添加到DOM中，但设为不可见，以便获取正确的尺寸
-			submenu.style.position = 'fixed';
-			submenu.style.visibility = 'hidden';
-			submenu.style.zIndex = '1000';
+			submenu.addClass('afm-context-submenu', 'is-measuring');
 			document.body.appendChild(submenu);
 			
 			const rect = menuItem.getBoundingClientRect();
@@ -351,9 +349,9 @@ export class ImageContextMenu extends Component {
 			}
 			
 			// 设置最终位置并显示
-			submenu.style.left = `${left}px`;
-			submenu.style.top = `${top}px`;
-			submenu.style.visibility = 'visible';
+			submenu.style.setProperty('left', `${left}px`);
+			submenu.style.setProperty('top', `${top}px`);
+			submenu.removeClass('is-measuring');
 		});
 		
 		menuItem.addEventListener('mouseleave', () => {
@@ -423,21 +421,21 @@ export class ImageContextMenu extends Component {
 	private addAlignmentSubmenu(menu: Menu, img: HTMLImageElement): void {
 		menu.addItem((item) => {
 			item.setTitle("图片对齐").setIcon("align-left");
-			const submenu = (item as any).setSubmenu() as Menu;
+			const submenu = (item as unknown as { setSubmenu: () => Menu }).setSubmenu();
 
 			submenu.addItem((subItem) => {
 				subItem.setTitle("居中").setIcon("align-center");
-				subItem.onClick(() => this.updateAlignment(img, "center"));
+				subItem.onClick(() => void this.updateAlignment(img, "center"));
 			});
 
 			submenu.addItem((subItem) => {
 				subItem.setTitle("左侧环绕").setIcon("align-left");
-				subItem.onClick(() => this.updateAlignment(img, "left"));
+				subItem.onClick(() => void this.updateAlignment(img, "left"));
 			});
 
 			submenu.addItem((subItem) => {
 				subItem.setTitle("右侧环绕").setIcon("align-right");
-				subItem.onClick(() => this.updateAlignment(img, "right"));
+				subItem.onClick(() => void this.updateAlignment(img, "right"));
 			});
 		});
 	}
@@ -446,7 +444,7 @@ export class ImageContextMenu extends Component {
 		menu.addItem((item) => {
 			item.setTitle("深色反色")
 				.setIcon("moon")
-				.onClick(() => this.toggleDarkMode(img));
+				.onClick(() => void this.toggleDarkMode(img));
 		});
 	}
 
@@ -454,7 +452,7 @@ export class ImageContextMenu extends Component {
 		menu.addItem((item) => {
 			item.setTitle("编辑标题")
 				.setIcon("text")
-				.onClick(() => this.editCaption(img));
+				.onClick(() => void this.editCaption(img));
 		});
 	}
 
@@ -1117,7 +1115,7 @@ export class ImageContextMenu extends Component {
 			const line = editor.getLine(match.lineNumber);
 			
 			// 先淡出输入框
-			input.style.opacity = '0';
+			input.addClass('afm-fade-out');
 			
 			// 精确替换：确保只替换正确的匹配项
 			const startPos = line.indexOf(match.fullMatch);

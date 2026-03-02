@@ -42,7 +42,6 @@ export class MermaidTypePicker extends FuzzySuggestModal<MermaidTypeItem> {
 	 * 选择项目时的处理
 	 */
 	onChooseItem(item: MermaidTypeItem): void {
-		console.log('MermaidTypePicker: onChooseItem called with', item); // 调试信息
 		this.onSelect(item);
 		// 选择后手动关闭模态框
 		this.close();

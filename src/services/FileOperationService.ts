@@ -55,14 +55,14 @@ export class FileOperationService {
 	 */
 	async deleteFile(image: ImageItem, silent: boolean = false): Promise<void> {
 		try {
-			await this.app.vault.trash(image.originalFile, false);
+			await this.app.fileManager.trashFile(image.originalFile);
 
 			// 如果是自定义文件类型，同时删除封面文件
 			if (image.isCustomType && image.customTypeConfig) {
 				const coverPath = this.getCoverPath(image.path, image.customTypeConfig);
 				const coverFile = this.app.vault.getAbstractFileByPath(coverPath);
 				if (coverFile instanceof TFile) {
-					await this.app.vault.trash(coverFile, false);
+					await this.app.fileManager.trashFile(coverFile);
 				}
 			}
 

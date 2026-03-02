@@ -327,3 +327,7 @@
 .image-manager-backlinks-list::-webkit-scrollbar-thumb:hover {
 	background: var(--interactive-accent);
 }
+
+.image-preview-zoom {
+	transform: scale(var(--image-scale, 1));
+}

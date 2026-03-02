@@ -108,7 +108,7 @@ export class ImagePreviewModal extends Modal {
 		});
 
 		const img = imageContainer.createEl("img", {
-			cls: "image-manager-preview-image",
+			cls: "image-manager-preview-image image-preview-zoom",
 			attr: {
 				src: this.getImagePath(this.image),
 				alt: this.image.name,
@@ -131,7 +131,7 @@ export class ImagePreviewModal extends Modal {
 			console.warn(`预览图片加载失败: ${this.image.path}`);
 			// 清空 src 防止持续尝试加载
 			img.src = "";
-			img.style.display = "none";
+			img.addClass("image-manager-cover-hidden");
 			// 显示错误提示
 			const errorDiv = imageContainer.createDiv({
 				cls: "image-manager-preview-error",
@@ -173,7 +173,7 @@ export class ImagePreviewModal extends Modal {
 			
 			// 应用缩放
 			if (this.imageElement) {
-				this.imageElement.style.transform = `scale(${this.imageScale})`;
+				this.imageElement.style.setProperty('--image-scale', String(this.imageScale));
 				this.imageElement.removeClass("cursor-zoom-in", "cursor-zoom-out");
 				this.imageElement.addClass(this.imageScale > 1 ? "cursor-zoom-out" : "cursor-zoom-in");
 			}
@@ -183,7 +183,7 @@ export class ImagePreviewModal extends Modal {
 		img.addEventListener("click", () => {
 			if (this.imageScale !== 1) {
 				this.imageScale = 1;
-				img.style.transform = "scale(1)";
+				img.style.setProperty('--image-scale', '1');
 				img.removeClass("cursor-zoom-in", "cursor-zoom-out");
 				img.addClass("cursor-zoom-in");
 			}

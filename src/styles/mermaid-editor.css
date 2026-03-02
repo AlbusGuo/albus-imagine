@@ -299,6 +299,14 @@ body > .modal-container > .modal.mermaid-editor-modal .modal-header {
 }
 
 .ms-color-picker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--background-modifier-border);
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  flex-shrink: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -331,9 +339,58 @@ body > .modal-container > .modal.mermaid-editor-modal .modal-header {
   margin-bottom: 6px;
 }
 
+/* --- Editor utility classes --- */
+.ms-fixed-80 { flex: 0 0 80px; }
+.ms-fixed-120 { flex: 0 0 120px; }
+.ms-fixed-150 { flex: 0 0 150px; }
+.ms-fixed-160 { flex: 0 0 160px; }
+.ms-flex-1 { flex: 1; }
+.ms-flex-min { flex: 1; min-width: 80px; }
+.ms-row-spaced { margin-bottom: 8px; }
+
+.ms-gantt-task,
+.ms-timeline-item {
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.ms-flex-row {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+}
+
+.ms-delete-action {
+  background-color: #ff4444;
+  color: white;
+  margin-top: 8px;
+}
+
+.ms-button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ms-error-code {
+  padding: 10px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  color: var(--text-normal);
+  font-family: monospace;
+  overflow: auto;
+  max-height: 90%;
+  white-space: pre-wrap;
+}
+
 .ms-arrow {
   color: var(--text-muted);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .ms-level {

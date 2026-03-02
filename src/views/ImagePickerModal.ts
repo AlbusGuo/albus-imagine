@@ -261,11 +261,11 @@ export class ImagePickerModal extends Modal {
 
 		// 多选模式下隐藏所有选项
 		if (this.isMultiSelectMode) {
-			this.optionsContainer.style.display = "none";
+			this.optionsContainer.addClass("is-hidden");
 			return;
 		}
 		
-		this.optionsContainer.style.display = "flex";
+		this.optionsContainer.removeClass("is-hidden");
 
 		// 位置选择
 		const positionGroup = this.optionsContainer.createDiv("option-group");

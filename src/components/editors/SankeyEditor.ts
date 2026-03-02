@@ -1,5 +1,5 @@
 import { App, ToggleComponent } from 'obsidian';
-import { MermaidData, SankeyLink, SankeyMap, generateUniqueName } from '../../utils/mermaidUtils';
+import { MermaidData, generateUniqueName } from '../../utils/mermaidUtils';
 import { BaseMermaidEditor } from './BaseMermaidEditor';
 
 /**
@@ -24,8 +24,7 @@ export class SankeyEditor extends BaseMermaidEditor {
 		// 配置选项
 		this.addSectionTitle('配置');
 		const configRow = this.createRow();
-		const showValuesLabel = this.createSpan('显示数值:');
-		showValuesLabel.style.cssText = 'flex:0 0 80px';
+		const showValuesLabel = this.createSpan('显示数值:', 'ms-fixed-80');
 		configRow.appendChild(showValuesLabel);
 		
 		const toggleContainer = configRow.createDiv('ms-toggle-container');
@@ -49,14 +48,10 @@ export class SankeyEditor extends BaseMermaidEditor {
 				
 				// 创建左侧容器（源节点和箭头）
 				const leftContainer = document.createElement('div');
-				leftContainer.style.display = 'flex';
-				leftContainer.style.alignItems = 'center';
-				leftContainer.style.flex = '1';
-				leftContainer.style.minWidth = '0';
-				leftContainer.style.gap = '8px';
+				leftContainer.className = 'ms-flex-row';
 				
 				// 源节点输入
-				const sourceInput = this.createInput('Source', source, 'flex:1;min-width:80px');
+				const sourceInput = this.createInput('Source', source, 'ms-flex-min');
 				sourceInput.addEventListener('blur', (e) => {
 					const newSource = (e.target as HTMLInputElement).value;
 					if (newSource !== source) {
@@ -71,20 +66,15 @@ export class SankeyEditor extends BaseMermaidEditor {
 				leftContainer.appendChild(sourceInput);
 				
 				// 箭头图标
-				const arrow = this.createSpan('→');
-				arrow.style.cssText = 'color:var(--text-muted);flex-shrink:0';
+				const arrow = this.createSpan('→', 'ms-arrow');
 				leftContainer.appendChild(arrow);
 				
 				// 创建右侧容器（目标节点、值和删除按钮）
 				const rightContainer = document.createElement('div');
-				rightContainer.style.display = 'flex';
-				rightContainer.style.alignItems = 'center';
-				rightContainer.style.flex = '1';
-				rightContainer.style.minWidth = '0';
-				rightContainer.style.gap = '8px';
+				rightContainer.className = 'ms-flex-row';
 				
 				// 目标节点输入
-				const targetInput = this.createInput('Target', targetObj.target, 'flex:1;min-width:80px');
+				const targetInput = this.createInput('Target', targetObj.target, 'ms-flex-min');
 				targetInput.addEventListener('blur', (e) => {
 					const newMap = { ...map };
 					newMap[source][targetIndex].target = (e.target as HTMLInputElement).value;
@@ -93,7 +83,7 @@ export class SankeyEditor extends BaseMermaidEditor {
 				rightContainer.appendChild(targetInput);
 				
 				// 值输入
-				const valueInput = this.createInput('Value', String(targetObj.value || 0), 'flex:0 0 70px', 'number', '1');
+				const valueInput = this.createInput('Value', String(targetObj.value || 0), 'ms-fixed-80', 'number', '1');
 				valueInput.addEventListener('blur', (e) => {
 					const newMap = { ...map };
 					newMap[source][targetIndex].value = Number((e.target as HTMLInputElement).value);

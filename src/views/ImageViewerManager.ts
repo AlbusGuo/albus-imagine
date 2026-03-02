@@ -1,6 +1,5 @@
 import { App } from 'obsidian';
 import { ImageViewerView } from './ImageViewerView';
-import { VIEW_IMG_SELECTOR } from './ImageViewerConstants';
 import { ImageViewerSettings } from '../types/types';
 
 /**

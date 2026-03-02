@@ -1,6 +1,5 @@
-import { App, Editor, MarkdownView, Modal, Notice, Component, MarkdownRenderer } from 'obsidian';
+import { App, Editor, Modal, Notice, Component, MarkdownRenderer } from 'obsidian';
 import { MermaidViewport } from '../components/MermaidViewport';
-import { MermaidTypePicker } from '../components/MermaidTypePicker';
 import { MermaidEditorPanel } from '../components/MermaidEditorPanel';
 import { MermaidData, MermaidMode, generateMermaidCode } from '../utils/mermaidUtils';
 
@@ -17,6 +16,7 @@ export class MermaidEditorModal extends Modal {
 	private zoomPercent: HTMLButtonElement;
 	private currentEditorPanel: MermaidEditorPanel | null = null;
 	private renderTimeout: number | null = null;
+	private renderComponent: Component | null = null;
 
 	constructor(app: App, editor: Editor, initialMode?: MermaidMode) {
 		super(app);
@@ -111,17 +111,23 @@ export class MermaidEditorModal extends Modal {
 		
 		try {
 			// 清理容器
-			container.innerHTML = '';
+			container.empty();
 			
-			MarkdownRenderer.render(this.app, wrapped, container, '', new Component());
+			// 清理之前的渲染组件
+			if (this.renderComponent) {
+				this.renderComponent.unload();
+			}
+			this.renderComponent = new Component();
+			this.renderComponent.load();
+			
+			MarkdownRenderer.render(this.app, wrapped, container, '', this.renderComponent);
 			
 		} catch (error) {
 			console.error('Obsidian Mermaid 渲染错误:', error);
 			// 降级到代码显示
-			container.innerHTML = '';
-			const codeEl = container.createEl('pre');
+			container.empty();
+			const codeEl = container.createEl('pre', { cls: 'ms-error-code' });
 			codeEl.textContent = wrapped;
-			codeEl.style.cssText = 'padding: 10px; background: var(--background-secondary); border-radius: 4px; color: var(--text-normal); font-family: monospace; overflow: auto; max-height: 90%; white-space: pre-wrap;';
 		}
 	}
 
@@ -179,23 +185,6 @@ export class MermaidEditorModal extends Modal {
 		
 		// 为模态框添加专用类名，确保样式不影响其他模态框
 		this.modalEl.addClass('mermaid-editor-modal');
-		
-		// 强制设置模态框样式，使用更合理的大小
-		this.modalEl.style.setProperty('width', '85vw', 'important');
-		this.modalEl.style.setProperty('height', '85vh', 'important');
-		this.modalEl.style.setProperty('max-width', '85vw', 'important');
-		this.modalEl.style.setProperty('max-height', '85vh', 'important');
-		
-		// 确保内容容器填充整个模态框
-		contentEl.style.setProperty('width', '100%', 'important');
-		contentEl.style.setProperty('height', '100%', 'important');
-		contentEl.style.setProperty('padding', '0', 'important');
-		contentEl.style.setProperty('margin', '0', 'important');
-		
-		if (contentEl.parentElement) {
-			(contentEl.parentElement as HTMLElement).style.setProperty('padding', '0', 'important');
-			(contentEl.parentElement as HTMLElement).style.setProperty('margin', '0', 'important');
-		}
 
 		// 创建主布局
 		const root = contentEl.createDiv('ms-root');
@@ -243,7 +232,6 @@ export class MermaidEditorModal extends Modal {
 		setTimeout(() => {
 			if (viewport) {
 				const layer = viewport.createDiv('ms-zoom-layer');
-				layer.style.transform = 'translate(-50%, -50%) scale(1)';
 				layer.appendChild(this.previewCanvas);
 				viewport.appendChild(layer);
 				
@@ -288,11 +276,15 @@ export class MermaidEditorModal extends Modal {
 			this.viewport.destroy();
 			this.viewport = null;
 		}
+		if (this.renderComponent) {
+			this.renderComponent.unload();
+			this.renderComponent = null;
+		}
 		
 		// 清理编辑器面板
-		const editorPanel = this.contentEl.querySelector('.ms-editor-panel') as any;
-		if (editorPanel && editorPanel.cleanup) {
-			editorPanel.cleanup();
+		if (this.currentEditorPanel) {
+			this.currentEditorPanel.cleanup();
+			this.currentEditorPanel = null;
 		}
 	}
 

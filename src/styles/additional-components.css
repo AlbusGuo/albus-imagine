@@ -384,3 +384,21 @@
 		min-width: 100%;
 	}
 }
+
+/* --- Utility classes --- */
+.afm-textarea-full-width {
+	width: 100%;
+}
+
+.afm-context-submenu {
+	position: fixed;
+	z-index: 1000;
+}
+
+.afm-context-submenu.is-measuring {
+	visibility: hidden;
+}
+
+.afm-fade-out {
+	opacity: 0;
+}

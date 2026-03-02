@@ -34,10 +34,10 @@ export class ImageLoaderService {
 	/**
 	 * 加载指定文件夹下的图片
 	 */
-	async loadImages(
+	loadImages(
 		folderPath: string,
 		sortOrder: SortOrder = "desc"
-	): Promise<ImageItem[]> {
+	): ImageItem[] {
 		const allFiles = this.app.vault.getFiles();
 
 		// 找出所有自定义文件类型及其对应的封面文件
@@ -89,9 +89,7 @@ export class ImageLoaderService {
 		});
 
 		// 处理AGX文件和自定义文件类型的封面
-		const processedImages = await Promise.all(
-			imageFiles.map((file) => this.processImageFile(file))
-		);
+		const processedImages = imageFiles.map((file) => this.processImageFile(file));
 
 		// 按创建时间排序
 		const sortedImages = processedImages.sort((a, b) => {

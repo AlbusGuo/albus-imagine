@@ -288,7 +288,7 @@ export class LinkUpdateService {
 		intable: boolean
 	): LinkMatch[] {
 		const regWikiLink = /!\[\[[^\[\]]*?\]\]/g;
-		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
+		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]{}']*\s*\)/g;
 		const target_name_mdlink = target_name.replace(/ /g, '%20');
 
 		if (!line_text.includes(target_name) && !line_text.includes(target_name_mdlink)) {
@@ -379,7 +379,7 @@ export class LinkUpdateService {
 		intable: boolean
 	): LinkMatch[] {
 		const result: LinkMatch[] = [];
-		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]\{\}']*\s*\)/g;
+		const regMdLink = /!\[[^\[\]]*?\]\(\s*[^\[\]{}']*\s*\)/g;
 
 		if (!line_text.includes(link)) {
 			return [];

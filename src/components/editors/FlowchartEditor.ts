@@ -1,5 +1,5 @@
 import { App } from 'obsidian';
-import { MermaidData, FlowchartNode, FlowchartEdge, generateUniqueName } from '../../utils/mermaidUtils';
+import { MermaidData, generateUniqueName } from '../../utils/mermaidUtils';
 import { BaseMermaidEditor } from './BaseMermaidEditor';
 import { ShapeSelector } from '../ShapeSelector';
 
@@ -48,7 +48,7 @@ export class FlowchartEditor extends BaseMermaidEditor {
 				this.updateData({ nodes: next });
 			});
 			
-			const groupInput = this.createInput('分组', n.group || '', 'flex:0 0 80px');
+			const groupInput = this.createInput('分组', n.group || '', 'ms-fixed-80');
 			groupInput.addEventListener('blur', (e) => {
 				const next = [...nodes];
 				next[i].group = (e.target as HTMLInputElement).value;
@@ -57,10 +57,10 @@ export class FlowchartEditor extends BaseMermaidEditor {
 			
 			// 创建形状选择器容器
 			const shapeContainer = row.createDiv('shape-selector-container');
-			shapeContainer.style.flex = '0 0 160px';
+			shapeContainer.addClass('ms-fixed-160');
 			
 			// 创建形状选择器
-			const shapeSelector = new ShapeSelector(
+			new ShapeSelector(
 				shapeContainer,
 				n.shape || 'rect',
 				(value) => {

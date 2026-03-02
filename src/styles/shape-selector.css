@@ -43,6 +43,7 @@
 
 /* 形状面板 */
 .shape-panel {
+	display: none;
 	position: absolute;
 	top: 100%;
 	left: 0;
@@ -55,6 +56,10 @@
 	max-height: 400px;
 	overflow: hidden;
 	margin-top: 4px;
+}
+
+.shape-panel.is-active {
+	display: block;
 }
 
 /* 分组标签 */
@@ -94,10 +99,14 @@
 }
 
 .shape-group {
-	display: grid;
+	display: none;
 	grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
 	gap: 4px;
 	padding: 8px;
+}
+
+.shape-group.is-active {
+	display: grid;
 }
 
 /* 形状按钮 - 紧凑型布局 */

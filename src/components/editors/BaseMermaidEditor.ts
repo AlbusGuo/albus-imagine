@@ -68,17 +68,17 @@ export abstract class BaseMermaidEditor {
 	protected createInput(
 		placeholder: string,
 		value: string = '',
-		style: string = '',
+		extraClass: string = '',
 		type: string = 'text',
 		step: string | null = null
 	): HTMLInputElement {
 		const input = document.createElement('input');
 		input.className = 'ms-input';
+		if (extraClass) input.addClass(extraClass);
 		input.type = type;
 		if (step) input.step = step;
 		input.placeholder = placeholder;
 		input.value = value;
-		if (style) input.style.cssText = style;
 		return input;
 	}
 
@@ -89,11 +89,11 @@ export abstract class BaseMermaidEditor {
 		optionLabels: string[],
 		optionValues: string[],
 		selectedValue: string = '',
-		style: string = ''
+		extraClass: string = ''
 	): HTMLSelectElement {
 		const select = document.createElement('select');
 		select.className = 'ms-select';
-		if (style) select.style.cssText = style;
+		if (extraClass) select.addClass(extraClass);
 		
 		optionLabels.forEach((label, idx) => {
 			const opt = document.createElement('option');
@@ -113,7 +113,6 @@ export abstract class BaseMermaidEditor {
 		const picker = document.createElement('input');
 		picker.type = 'color';
 		picker.className = 'ms-color-picker';
-		picker.style.cssText = 'width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--background-modifier-border); cursor: pointer; padding: 0; background: none; flex-shrink: 0;';
 		picker.value = value;
 		return picker;
 	}
@@ -124,7 +123,7 @@ export abstract class BaseMermaidEditor {
 	protected createIconBtn(text: string, onClick: () => void): HTMLButtonElement {
 		const btn = document.createElement('button');
 		btn.className = 'ms-icon-btn';
-		btn.innerHTML = text;
+		btn.textContent = text;
 		btn.onclick = onClick;
 		return btn;
 	}
@@ -177,7 +176,7 @@ export abstract class BaseMermaidEditor {
 	protected createDragHandle(): HTMLSpanElement {
 		const handle = document.createElement('span');
 		handle.className = 'ms-drag-handle';
-		handle.innerHTML = '☰';
+		handle.textContent = '☰';
 		handle.setAttribute('draggable', 'true');
 		return handle;
 	}

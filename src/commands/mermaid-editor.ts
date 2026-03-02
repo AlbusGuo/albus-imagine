@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Notice } from 'obsidian';
+import { App, MarkdownView, Notice } from 'obsidian';
 import { MermaidTypePicker } from '../components/MermaidTypePicker';
 import { MermaidEditorModal } from '../ui/MermaidEditorModal';
 import { MermaidMode } from '../utils/mermaidUtils';

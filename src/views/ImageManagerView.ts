@@ -522,7 +522,7 @@ export class ImageManagerView extends ItemView {
 					console.warn(`图片加载失败: ${image.path}`);
 					// 清空 src 防止持续尝试加载
 					img.src = "";
-					img.style.display = "none";
+					img.addClass("image-manager-cover-hidden");
 					// 显示错误占位符
 					const errorDiv = thumbnailEl.createDiv("image-manager-cover-missing");
 					const contentWrapper = errorDiv.createDiv("image-manager-cover-missing-content");
@@ -629,7 +629,7 @@ export class ImageManagerView extends ItemView {
 			};
 
 			// 文件名
-			const nameEl = infoEl.createDiv({
+			infoEl.createDiv({
 				text: image.name,
 				cls: "image-manager-image-name",
 				attr: { title: image.path },
