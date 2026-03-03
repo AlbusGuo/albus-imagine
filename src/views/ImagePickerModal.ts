@@ -183,9 +183,9 @@ export class ImagePickerModal extends Modal {
 			this.selectedFolder = folderInput.value;
 		});
 
-		folderInput.addEventListener("keydown", async (e) => {
+		folderInput.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
-				await this.refresh();
+				void this.refresh();
 				inputContainer.remove();
 				buttonEl.removeClass("is-hidden");
 			} else if (e.key === "Escape") {
@@ -458,14 +458,14 @@ export class ImagePickerModal extends Modal {
 		}
 	}
 
-	private async loadImages(): Promise<void> {
+	private loadImages(): void {
 		if (this.isLoading) return;
 
 		this.isLoading = true;
 		this.renderGrid();
 
 		try {
-			this.images = await this.imageLoader.loadImages(this.selectedFolder);
+			this.images = this.imageLoader.loadImages(this.selectedFolder);
 			this.applyFilters();
 			this.renderHeader();
 		} catch (error) {
@@ -562,8 +562,8 @@ export class ImagePickerModal extends Modal {
 		this.close();
 	}
 
-	private async refresh(): Promise<void> {
-		await this.loadImages();
+	private refresh(): void {
+		this.loadImages();
 	}
 
 	private formatFileSize(bytes: number): string {

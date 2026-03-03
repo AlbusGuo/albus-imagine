@@ -173,7 +173,7 @@ export class ImagePreviewModal extends Modal {
 			
 			// 应用缩放
 			if (this.imageElement) {
-				this.imageElement.style.setProperty('--image-scale', String(this.imageScale));
+				this.imageElement.setCssProps({'--image-scale': String(this.imageScale)});
 				this.imageElement.removeClass("cursor-zoom-in", "cursor-zoom-out");
 				this.imageElement.addClass(this.imageScale > 1 ? "cursor-zoom-out" : "cursor-zoom-in");
 			}
@@ -183,7 +183,7 @@ export class ImagePreviewModal extends Modal {
 		img.addEventListener("click", () => {
 			if (this.imageScale !== 1) {
 				this.imageScale = 1;
-				img.style.setProperty('--image-scale', '1');
+				img.setCssProps({'--image-scale': '1'});
 				img.removeClass("cursor-zoom-in", "cursor-zoom-out");
 				img.addClass("cursor-zoom-in");
 			}

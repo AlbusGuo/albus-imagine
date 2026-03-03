@@ -1,1 +1,0 @@
-export { openMermaidEditor } from './mermaid-editor';

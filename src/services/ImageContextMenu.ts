@@ -213,15 +213,17 @@ export class ImageContextMenu extends Component {
 		menuItem.appendChild(menuItemTitle);
 		
 		// 添加点击事件
-		menuItem.addEventListener('click', async (e) => {
+		menuItem.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			await callback(menuItem);
-			// 关闭整个菜单
-			const menu = container.closest('.menu') as HTMLElement;
-			if (menu) {
-				menu.remove();
-			}
+			void (async () => {
+				await callback(menuItem);
+				// 关闭整个菜单
+				const menu = container.closest('.menu') as HTMLElement;
+				if (menu) {
+					menu.remove();
+				}
+			})();
 		});
 		
 		// 添加悬停事件
@@ -752,7 +754,7 @@ export class ImageContextMenu extends Component {
 
 	private addShowInSystemExplorerMenuItem(menu: Menu, img: HTMLImageElement): void {
 		menu.addItem((item) => {
-			item.setTitle("在系统资源管理器中显示").setIcon("folder").onClick(async () => {
+			item.setTitle("在系统资源管理器中显示").setIcon("folder").onClick(() => {
 				const imagePath = this.getImagePath(img);
 				if (!imagePath) {
 					new Notice("无法获取图片路径");
@@ -905,7 +907,7 @@ export class ImageContextMenu extends Component {
 		return matches[0];
 	}
 
-	private async findImageMatches(editor: Editor, imagePath: string): Promise<ImageMatch[]> {
+	private findImageMatches(editor: Editor, imagePath: string): ImageMatch[] {
 		const matches: ImageMatch[] = [];
 		const lineCount = editor.lineCount();
 		

@@ -369,8 +369,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		// 启用一般图片拖拽调整
 		group.addSetting((setting) => {
 			setting
-				.setName('启用 Callout 外图片拖拽调整大小')
-				.setDesc('是否允许通过拖拽 Callout 外图片边缘来调整图片大小')
+				.setName('启用 callout 外图片拖拽调整大小')
+				.setDesc('是否允许通过拖拽 callout 外图片边缘来调整图片大小')
 				.addToggle((toggle) => {
 					toggle
 						.setValue(this.plugin.settings.imageResize?.dragResizeGeneral !== false)
@@ -392,8 +392,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		// 启用 Callout 内图片拖拽调整
 		group.addSetting((setting) => {
 			setting
-				.setName('启用 Callout 内图片拖拽调整大小')
-				.setDesc('是否允许通过拖拽 Callout 内图片边缘来调整图片大小')
+				.setName('启用 callout 内图片拖拽调整大小')
+				.setDesc('是否允许通过拖拽 callout 内图片边缘来调整图片大小')
 				.addToggle((toggle) => {
 					toggle
 						.setValue(this.plugin.settings.imageResize?.dragResizeCallout !== false)

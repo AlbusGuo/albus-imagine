@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, MarkdownView } from "obsidian";
+import { Plugin, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -7,7 +7,6 @@ import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
-import { openMermaidEditor } from "./commands";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -68,22 +67,6 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			callback: () => {
 				this.openImagePicker();
 			},
-		});
-
-		// 添加命令 - 打开 Mermaid 编辑器
-		this.addCommand({
-			id: "open-mermaid-editor",
-			name: "Mermaid 可视化编辑器",
-			checkCallback: (checking: boolean) => {
-				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (view) {
-					if (!checking) {
-						openMermaidEditor(this.app);
-					}
-					return true;
-				}
-				return false;
-			}
 		});
 
 		// 添加设置选项卡
@@ -158,7 +141,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		if (leaves.length > 0) {
 			// 如果已存在，激活它
 			leaf = leaves[0];
-			workspace.revealLeaf(leaf);
+			await workspace.revealLeaf(leaf);
 		} else {
 			// 在中间窗口创建新的视图（而非侧边栏）
 			leaf = workspace.getLeaf('tab');
@@ -167,7 +150,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 					type: IMAGE_MANAGER_VIEW_TYPE,
 					active: true,
 				});
-				workspace.revealLeaf(leaf);
+				await workspace.revealLeaf(leaf);
 			}
 		}
 	}

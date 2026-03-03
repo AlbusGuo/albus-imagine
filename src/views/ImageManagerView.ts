@@ -89,12 +89,13 @@ export class ImageManagerView extends ItemView {
 		contentEl.addClass("image-manager-container");
 
 		this.setupLayout();
-		await this.loadImages();
+		this.loadImages();
 	}
 
-	async onClose(): Promise<void> {
+	onClose(): Promise<void> {
 		// 清理工作
 		this.contentEl.empty();
+		return Promise.resolve();
 	}
 
 	/**
@@ -261,9 +262,9 @@ export class ImageManagerView extends ItemView {
 		});
 
 		// 回车键确认
-		folderInput.addEventListener("keydown", async (e) => {
+		folderInput.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
-				await this.refresh();
+				void this.refresh();
 				inputContainer.remove();
 				buttonEl.removeClass("is-hidden");
 			} else if (e.key === "Escape") {
@@ -713,14 +714,14 @@ export class ImageManagerView extends ItemView {
 	/**
 	 * 加载图片
 	 */
-	private async loadImages(): Promise<void> {
+	private loadImages(): void {
 		if (this.isLoading) return;
 
 		this.isLoading = true;
 		this.renderGrid(); // 显示加载状态
 
 		try {
-			this.images = await this.imageLoader.loadImages(this.selectedFolder);
+			this.images = this.imageLoader.loadImages(this.selectedFolder);
 			
 			// 不自动检查引用，等用户需要时再检查
 			// 这样可以大幅提升初始化速度
@@ -917,22 +918,24 @@ export class ImageManagerView extends ItemView {
 	 * 处理重命名
 	 */
 	private handleRename(image: ImageItem): void {
-		new RenameModal(this.app, image, async (newName) => {
-			try {
-				const oldPath = image.path;
-				const newPath = image.path.replace(/[^/]+$/, newName);
-				
-				await this.fileOperations.renameFile(image, newName);
-				
-				// 更新内存中的图片数据，而不是完全刷新
-				this.updateImageAfterRename(oldPath, newPath, newName);
-				
-				// 重新渲染（不重新加载）
-				this.renderHeader();
-				this.renderGrid();
-			} catch {
-				// 错误已在 service 中处理
-			}
+		new RenameModal(this.app, image, (newName) => {
+			return (async () => {
+				try {
+					const oldPath = image.path;
+					const newPath = image.path.replace(/[^/]+$/, newName);
+					
+					await this.fileOperations.renameFile(image, newName);
+					
+					// 更新内存中的图片数据，而不是完全刷新
+					this.updateImageAfterRename(oldPath, newPath, newName);
+					
+					// 重新渲染（不重新加载）
+					this.renderHeader();
+					this.renderGrid();
+				} catch {
+					// 错误已在 service 中处理
+				}
+			})();
 		}).open();
 	}
 
@@ -1027,7 +1030,7 @@ export class ImageManagerView extends ItemView {
 	/**
 	 * 批量删除未引用图片
 	 */
-	private async handleBatchDelete(): Promise<void> {
+	private handleBatchDelete(): void {
 		if (this.filteredImages.length === 0) {
 			new Notice("没有要删除的图片");
 			return;
@@ -1099,7 +1102,7 @@ export class ImageManagerView extends ItemView {
 	/**
 	 * 批量删除选中的图片
 	 */
-	private async handleBatchDeleteSelected(): Promise<void> {
+	private handleBatchDeleteSelected(): void {
 		if (this.selectedImages.size === 0) {
 			new Notice("没有选中的图片");
 			return;
@@ -1192,7 +1195,7 @@ export class ImageManagerView extends ItemView {
 	async refresh(): Promise<void> {
 		// 清除引用缓存以确保重新检查
 		this.referenceChecker.clearCache();
-		await this.loadImages();
+		this.loadImages();
 		
 		// 保存当前选择的文件夹
 		await this.saveLastSelectedFolder();
