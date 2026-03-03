@@ -6,11 +6,11 @@
 
 import CPlugin from "@src/main";
 import { 
+	debounce,
+	Notice,
 	PluginSettingTab, 
 	Setting, 
 	SettingGroup,
-	debounce,
-	Notice,
 } from "obsidian";
 import { SortField, SortOrder } from "../types/image-manager.types";
 
@@ -484,7 +484,8 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		group.addSetting((setting) => {
 			setting
 				.setName('启用图片查看器')
-				.setDesc('在所有位置启用 Ctrl+点击图片查看功能')
+				// eslint-disable-next-line obsidianmd/ui/sentence-case -- Chinese text with Ctrl abbreviation
+				.setDesc('在所有位置启用 Ctrl + 点击图片查看功能')
 				.addToggle((toggle) => {
 					toggle
 						.setValue(this.plugin.settings.imageViewer?.enabled !== false)

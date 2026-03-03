@@ -54,17 +54,17 @@ export class ImageViewerView {
 		}
 
 		// <div class="afm-img-viewer-container">
-		this.containerEl = createDiv();
+		this.containerEl = document.createElement('div');
 		this.containerEl.addClass(IMAGE_VIEWER_CLASS.CONTAINER);
 		parentEl.appendChild(this.containerEl);
 
 		// <div class="afm-img-container">
-		this.imgContainerEl = createDiv();
+		this.imgContainerEl = document.createElement('div');
 		this.imgContainerEl.addClass(IMAGE_VIEWER_CLASS.IMG_CONTAINER);
 		this.containerEl.appendChild(this.imgContainerEl);
 
 		// <img class="afm-img-view">
-		this.imgViewEl = createEl('img');
+		this.imgViewEl = document.createElement('img');
 		this.imgViewEl.addClass(IMAGE_VIEWER_CLASS.IMG_VIEW);
 		this.imgContainerEl.appendChild(this.imgViewEl);
 

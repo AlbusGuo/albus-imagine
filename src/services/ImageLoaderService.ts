@@ -4,11 +4,11 @@
 
 import { App, TFile } from "obsidian";
 import {
-	ImageItem,
-	SUPPORTED_IMAGE_EXTENSIONS,
-	SortOrder,
 	CustomFileTypeConfig,
 	ImageExtension,
+	ImageItem,
+	SortOrder,
+	SUPPORTED_IMAGE_EXTENSIONS,
 } from "../types/image-manager.types";
 
 export class ImageLoaderService {

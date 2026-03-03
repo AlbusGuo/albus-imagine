@@ -115,7 +115,7 @@ export default [
 			// ====== UI 文本规范 ======
 			'obsidianmd/ui/sentence-case': ['warn', { // 强制 UI 字符串使用句子大小写
 				brands: [], // 品牌名称例外列表
-				acronyms: ['API', 'UI', 'URL', 'HTML', 'CSS', 'JS', 'TS'], // 首字母缩写词例外列表
+				acronyms: ['API', 'UI', 'URL', 'HTML', 'CSS', 'JS', 'TS', 'SVG', 'Ctrl'], // 首字母缩写词例外列表
 				enforceCamelCaseLower: true // 强制 CamelCase 转换为小写
 			}]
 		}

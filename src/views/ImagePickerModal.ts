@@ -4,8 +4,8 @@
  * 基于 ImageManagerView 的简化版本
  */
 
-import { App, Modal, MarkdownView, setIcon, Notice, ToggleComponent } from "obsidian";
-import { ImageItem, ImageManagerSettings, SortOrder, SortField } from "../types/image-manager.types";
+import { App, MarkdownView, Modal, Notice, setIcon, ToggleComponent } from "obsidian";
+import { ImageItem, ImageManagerSettings, SortField, SortOrder } from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { FolderSuggest } from "../components/FolderSuggest";
 
@@ -345,8 +345,9 @@ export class ImagePickerModal extends Modal {
 		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
+		const resolvedGridEl = gridEl;
 		requestAnimationFrame(() => {
-			this.renderImageBatch(gridEl!, imagesToRender);
+			this.renderImageBatch(resolvedGridEl, imagesToRender);
 			this.renderedCount = endIndex;
 			this.updateLoadMoreIndicator();
 		});

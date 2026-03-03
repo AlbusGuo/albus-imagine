@@ -2,12 +2,12 @@
  * 图片管理器视图 - 使用经典的 Obsidian ItemView
  */
 
-import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
+import { ItemView, Notice, setIcon, WorkspaceLeaf } from "obsidian";
 import {
 	ImageItem,
 	ImageManagerSettings,
-	SortOrder,
 	SortField,
+	SortOrder,
 } from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { ReferenceCheckService } from "../services/ReferenceCheckService";
@@ -95,6 +95,7 @@ export class ImageManagerView extends ItemView {
 		contentEl.addClass("image-manager-container");
 
 		this.setupLayout();
+		await Promise.resolve();
 		this.loadImages();
 	}
 
@@ -232,7 +233,7 @@ export class ImageManagerView extends ItemView {
 			text: "刷新",
 			cls: "image-manager-button",
 		});
-		refreshBtn.onclick = () => this.refresh();
+		refreshBtn.onclick = () => { void this.refresh(); };
 	}
 
 	/**
@@ -263,7 +264,7 @@ export class ImageManagerView extends ItemView {
 		}
 		this.folderSuggest = new FolderSuggest(this.app, folderInput, (value) => {
 			this.selectedFolder = value;
-			this.refresh();
+			void this.refresh();
 		});
 
 		// 输入事件
@@ -443,9 +444,10 @@ export class ImageManagerView extends ItemView {
 		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
+		const resolvedGridEl = gridEl;
 		// 使用 requestAnimationFrame 批量渲染，避免阻塞
 		requestAnimationFrame(() => {
-			const itemElements = this.renderImageBatch(gridEl!, imagesToRender);
+			const itemElements = this.renderImageBatch(resolvedGridEl, imagesToRender);
 			this.renderedCount = endIndex;
 			this.updateLoadMoreIndicator();
 			
@@ -562,7 +564,7 @@ export class ImageManagerView extends ItemView {
 			setIcon(openBtn, "folder-open");
 			openBtn.onclick = (e) => {
 				e.stopPropagation();
-				this.fileOperations.openFile(image);
+				void this.fileOperations.openFile(image);
 			};
 
 			// 重命名按钮
@@ -584,7 +586,7 @@ export class ImageManagerView extends ItemView {
 			setIcon(deleteBtn, "trash-2");
 			deleteBtn.onclick = (e) => {
 				e.stopPropagation();
-				this.handleDelete(image);
+				void this.handleDelete(image);
 			};
 
 			// 格式标签 - 右上角显示文件类型
@@ -1003,7 +1005,7 @@ export class ImageManagerView extends ItemView {
 			currentImage,
 			currentImage.references || [],
 			(img) => this.app.vault.getResourcePath(img.displayFile),
-			(filePath) => this.fileOperations.openReferenceFile(filePath)
+			(filePath) => { void this.fileOperations.openReferenceFile(filePath); }
 		).open();
 	}
 

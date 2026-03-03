@@ -3,7 +3,7 @@
  */
 
 import { App, Notice, TFile } from "obsidian";
-import { ImageItem, CustomFileTypeConfig } from "../types/image-manager.types";
+import { CustomFileTypeConfig, ImageItem } from "../types/image-manager.types";
 
 export class FileOperationService {
 	constructor(private app: App) {}

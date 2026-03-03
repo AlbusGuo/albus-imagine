@@ -474,7 +474,7 @@ export class ImageContextMenu extends Component {
 			const hashParts = src.split("#");
 			for (const part of hashParts) {
 				if (part === "center" || part === "left" || part === "right") {
-					return part as "center" | "left" | "right";
+					return part;
 				}
 			}
 		}
@@ -486,7 +486,7 @@ export class ImageContextMenu extends Component {
 			for (const part of parts) {
 				const trimmed = part.trim();
 				if (trimmed === "center" || trimmed === "left" || trimmed === "right") {
-					return trimmed as "center" | "left" | "right";
+					return trimmed;
 				}
 			}
 		}
@@ -867,7 +867,7 @@ export class ImageContextMenu extends Component {
 		imagePath: string,
 		img?: HTMLImageElement
 	): Promise<ImageMatch | null> {
-		const matches = await this.findImageMatches(editor, imagePath);
+		const matches = this.findImageMatches(editor, imagePath);
 		if (matches.length === 0) return null;
 		if (matches.length === 1) return matches[0];
 
@@ -1080,8 +1080,8 @@ export class ImageContextMenu extends Component {
 
 		// 自动调节高度
 		const autoResize = () => {
-			textarea.style.height = 'auto';
-			textarea.style.height = textarea.scrollHeight + 'px';
+			textarea.setCssProps({ '--caption-height': 'auto' });
+			textarea.setCssProps({ '--caption-height': textarea.scrollHeight + 'px' });
 		};
 		textarea.addEventListener('input', autoResize);
 
