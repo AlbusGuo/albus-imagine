@@ -190,8 +190,12 @@
 }
 
 .image-manager-preview-error-icon {
-	font-size: 48px;
 	opacity: 0.5;
+}
+
+.image-manager-preview-error-icon svg {
+	width: 48px;
+	height: 48px;
 }
 
 .image-manager-preview-error-text {
@@ -393,10 +397,26 @@
 .afm-context-submenu {
 	position: fixed;
 	z-index: 1000;
+	left: var(--submenu-left, 0);
+	top: var(--submenu-top, 0);
 }
 
 .afm-context-submenu.is-measuring {
 	visibility: hidden;
+}
+
+/* 子菜单箭头 */
+.afm-submenu-arrow {
+	margin-left: auto;
+}
+
+/* 自定义菜单项与原生对齐 */
+.menu-item[data-albus-imagine] {
+	padding: 4px 8px;
+}
+
+.menu-item[data-albus-imagine] .menu-item-icon {
+	padding: 0 4px;
 }
 
 .afm-fade-out {

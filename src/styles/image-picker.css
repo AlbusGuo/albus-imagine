@@ -110,9 +110,11 @@
 	color: var(--text-normal);
 }
 
-.option-button.is-active {
-	background: var(--background-modifier-hover);
-	color: var(--interactive-accent);
+.option-button.is-active,
+.option-button.is-active:hover {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent) !important;
+	border-color: var(--interactive-accent) !important;
 }
 
 .option-input {

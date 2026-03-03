@@ -70,6 +70,10 @@ export class ImageContextMenu extends Component {
 			// 检查是否在编辑器容器中
 			if (!img.closest(".markdown-source-view")) return;
 
+			// 仅对 Wiki 链接图片（![[]]）显示菜单，跳过 Markdown 链接图片（![]()）
+			// Wiki 链接使用 .internal-embed 包裹，而 Markdown 链接虽也可能在 .image-embed 中，但不会在 .internal-embed 中
+			if (!img.closest(".internal-embed")) return;
+
 			// 不阻止默认事件，让 Obsidian 的原生菜单先显示
 			// 延迟显示我们的菜单项，添加到原生菜单中
 			setTimeout(() => {
@@ -99,22 +103,7 @@ export class ImageContextMenu extends Component {
 		if (!targetMenu) return;
 
 		// 检查是否已经有我们的项目，避免重复添加
-		if (targetMenu.querySelector('.albus-imagine-separator')) return;
-
-		// 获取菜单的第一个子元素（如果有）
-		const firstChild = targetMenu.firstChild;
-
-		// 添加分隔符到顶部
-		const separator = document.createElement('div');
-		separator.addClass('menu-separator', 'albus-imagine-separator');
-		
-		if (firstChild) {
-			// 如果有子元素，在第一个元素前插入
-			targetMenu.insertBefore(separator, firstChild);
-		} else {
-			// 如果没有子元素，直接添加
-			targetMenu.appendChild(separator);
-		}
+		if (targetMenu.querySelector('[data-albus-imagine]')) return;
 
 		// 直接将我们的菜单项添加到现有菜单的顶部
 		this.addCustomMenuItems(targetMenu, img, true);
@@ -195,13 +184,12 @@ export class ImageContextMenu extends Component {
 	 */
 	private createMenuItem(container: HTMLElement, title: string, icon: string, callback: (menuItem?: HTMLElement) => void | Promise<void>): void {
 		const menuItem = document.createElement('div');
-		menuItem.addClass('menu-item', 'albus-imagine-menu-item');
+		menuItem.addClass('menu-item', 'tappable');
+		menuItem.setAttribute('data-albus-imagine', '');
 		
 		// 创建图标
 		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
-		
-		// 添加 lucide 图标
 		setIcon(menuItemIcon, icon);
 		
 		// 创建标题
@@ -218,24 +206,23 @@ export class ImageContextMenu extends Component {
 			e.stopPropagation();
 			void (async () => {
 				await callback(menuItem);
-				// 关闭整个菜单
-				const menu = container.closest('.menu') as HTMLElement;
-				if (menu) {
-					menu.remove();
-				}
+				this.closeAllMenus(container);
 			})();
 		});
 		
 		// 添加悬停事件
 		menuItem.addEventListener('mouseenter', () => {
+			container.querySelectorAll('.menu-item.selected').forEach(el => {
+				el.removeClass('selected');
+			});
 			menuItem.addClass('selected');
+			document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
 		});
 		
 		menuItem.addEventListener('mouseleave', () => {
 			menuItem.removeClass('selected');
 		});
 		
-		// 根据参数决定添加到顶部还是底部
 		const firstChild = container.firstChild;
 		if (firstChild) {
 			container.insertBefore(menuItem, firstChild);
@@ -249,13 +236,12 @@ export class ImageContextMenu extends Component {
 	 */
 	private createMenuItemWithSubmenu(container: HTMLElement, title: string, icon: string, img: HTMLImageElement, submenuItems: Array<{title: string, icon: string, callback: () => void}>): void {
 		const menuItem = document.createElement('div');
-		menuItem.addClass('menu-item', 'albus-imagine-menu-item', 'has-submenu');
+		menuItem.addClass('menu-item', 'tappable');
+		menuItem.setAttribute('data-albus-imagine', '');
 		
 		// 创建图标
 		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
-		
-		// 添加 lucide 图标
 		setIcon(menuItemIcon, icon);
 		
 		// 创建标题
@@ -265,7 +251,7 @@ export class ImageContextMenu extends Component {
 		
 		// 创建子菜单箭头
 		const submenuArrow = document.createElement('div');
-		submenuArrow.addClass('menu-item-icon', 'submenu-arrow');
+		submenuArrow.addClass('menu-item-icon', 'afm-submenu-arrow');
 		setIcon(submenuArrow, 'chevron-right');
 		
 		menuItem.appendChild(menuItemIcon);
@@ -279,7 +265,7 @@ export class ImageContextMenu extends Component {
 		// 添加子菜单项
 		submenuItems.forEach(item => {
 			const submenuItem = document.createElement('div');
-			submenuItem.addClass('menu-item');
+			submenuItem.addClass('menu-item', 'tappable');
 			
 			const submenuItemIcon = document.createElement('div');
 			submenuItemIcon.addClass('menu-item-icon');
@@ -292,20 +278,20 @@ export class ImageContextMenu extends Component {
 			submenuItem.appendChild(submenuItemIcon);
 			submenuItem.appendChild(submenuItemTitle);
 			
-			// 添加点击事件
+			// 添加点击事件 — 同时关闭子菜单和主菜单
 			submenuItem.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 				item.callback();
-				// 关闭整个菜单
-				const menu = container.closest('.menu') as HTMLElement;
-				if (menu) {
-					menu.remove();
-				}
+				// 先移除子菜单，再关闭主菜单
+				submenu.remove();
+				this.closeAllMenus(container);
 			});
 			
-			// 添加悬停事件
 			submenuItem.addEventListener('mouseenter', () => {
+				submenu.querySelectorAll('.menu-item.selected').forEach(el => {
+					el.removeClass('selected');
+				});
 				submenuItem.addClass('selected');
 			});
 			
@@ -319,16 +305,22 @@ export class ImageContextMenu extends Component {
 		// 添加悬停事件显示子菜单
 		let submenuTimeout: number | null = null;
 		
-		menuItem.addEventListener('mouseenter', () => {
+		const showSubmenu = () => {
 			if (submenuTimeout) {
 				clearTimeout(submenuTimeout);
 				submenuTimeout = null;
 			}
 			
-			// 添加选中样式
+			// 移除同级已打开的子菜单
+			document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
+			
+			// 取消同级菜单中所有项的选中状态
+			container.querySelectorAll('.menu-item.selected').forEach(el => {
+				el.removeClass('selected');
+			});
 			menuItem.addClass('selected');
 			
-			// 先将子菜单添加到DOM中，但设为不可见，以便获取正确的尺寸
+			// 添加子菜单到 DOM 并定位
 			submenu.addClass('afm-context-submenu', 'is-measuring');
 			document.body.appendChild(submenu);
 			
@@ -336,34 +328,36 @@ export class ImageContextMenu extends Component {
 			const parentRect = container.getBoundingClientRect();
 			const submenuWidth = submenu.offsetWidth;
 			
-			// 计算子菜单位置
 			let left = parentRect.right;
 			let top = rect.top;
 			
-			// 检查是否超出屏幕右侧
 			if (left + submenuWidth > window.innerWidth) {
-				left = parentRect.left - submenuWidth; // 显示在左侧，紧贴主菜单
+				left = parentRect.left - submenuWidth;
 			}
-			
-			// 检查是否超出屏幕底部
 			if (top + submenu.offsetHeight > window.innerHeight) {
 				top = window.innerHeight - submenu.offsetHeight;
 			}
 			
-			// 设置最终位置并显示
-			submenu.style.setProperty('left', `${left}px`);
-			submenu.style.setProperty('top', `${top}px`);
+			submenu.setCssProps({
+				'--submenu-left': `${left}px`,
+				'--submenu-top': `${top}px`,
+			});
 			submenu.removeClass('is-measuring');
-		});
+		};
 		
-		menuItem.addEventListener('mouseleave', () => {
-			menuItem.removeClass('selected');
-			
+		const hideSubmenu = () => {
 			submenuTimeout = window.setTimeout(() => {
 				if (!submenu.matches(':hover')) {
 					submenu.remove();
 				}
 			}, 100);
+		};
+		
+		menuItem.addEventListener('mouseenter', showSubmenu);
+		
+		menuItem.addEventListener('mouseleave', () => {
+			menuItem.removeClass('selected');
+			hideSubmenu();
 		});
 		
 		submenu.addEventListener('mouseenter', () => {
@@ -377,7 +371,7 @@ export class ImageContextMenu extends Component {
 			submenu.remove();
 		});
 		
-		// 根据参数决定添加到顶部还是底部
+		// 添加到顶部
 		const firstChild = container.firstChild;
 		if (firstChild) {
 			container.insertBefore(menuItem, firstChild);
@@ -387,11 +381,25 @@ export class ImageContextMenu extends Component {
 	}
 
 	/**
+	 * 关闭所有菜单（主菜单和子菜单）
+	 */
+	private closeAllMenus(container: HTMLElement): void {
+		// 移除所有自定义子菜单
+		document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
+		// 移除主菜单
+		const menu = container.closest('.menu') as HTMLElement;
+		if (menu) {
+			menu.remove();
+		}
+	}
+
+	/**
 	 * 创建分隔符元素
 	 */
 	private createSeparator(): HTMLDivElement {
 		const separator = document.createElement('div');
-		separator.addClass('menu-separator', 'albus-imagine-separator');
+		separator.addClass('menu-separator');
+		separator.setAttribute('data-albus-imagine', '');
 		return separator;
 	}
 
@@ -918,8 +926,8 @@ export class ImageContextMenu extends Component {
 		for (let i = 0; i < lineCount; i++) {
 			const line = editor.getLine(i);
 			
-			// 跳过不包含图片语法的行
-			if (!line.includes('![[') && !line.includes('![')) continue;
+			// 跳过不包含 Wiki 链接语法的行
+			if (!line.includes('![[')) continue;
 
 			// 匹配 Wiki 链接: ![[image.png]] 或 ![[image.png|100]] 或 ![[folder/image.png]]
 			const wikiRegex = /!\[\[([^\]|]+)(?:\|[^\]]+?)?\]\]/g;
@@ -927,22 +935,6 @@ export class ImageContextMenu extends Component {
 			while ((match = wikiRegex.exec(line)) !== null) {
 				const fullMatch = match[0];
 				const linkPath = match[1].trim();
-				const linkFileName = linkPath.split('/').pop()?.toLowerCase() || '';
-				const linkBaseName = linkFileName.replace(/\.[^.]+$/, '');
-
-				// 精确文件名匹配或路径匹配
-				if (linkFileName === fileName || 
-					linkBaseName === baseName ||
-					linkPath.toLowerCase() === imagePath.toLowerCase()) {
-					matches.push({ lineNumber: i, line, fullMatch });
-				}
-			}
-
-			// 匹配 Markdown 链接: ![alt](image.png) 或 ![](image.png)
-			const mdRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-			while ((match = mdRegex.exec(line)) !== null) {
-				const fullMatch = match[0];
-				const linkPath = decodeURIComponent(match[2].trim());
 				const linkFileName = linkPath.split('/').pop()?.toLowerCase() || '';
 				const linkBaseName = linkFileName.replace(/\.[^.]+$/, '');
 
@@ -1079,91 +1071,79 @@ export class ImageContextMenu extends Component {
 			return;
 		}
 
-		// 创建输入框
-		const input = document.createElement("input");
-		input.type = "text";
-		input.value = currentCaption;
-		input.placeholder = "输入图片标题（留空删除）";
-		input.className = "afm-caption-input";
+		// 创建多行文本输入框（自动调节高度）
+		const textarea = document.createElement("textarea");
+		textarea.value = currentCaption;
+		textarea.placeholder = "输入图片标题（留空删除）";
+		textarea.className = "afm-caption-input";
+		textarea.rows = 1;
 
-		// 设置样式
-		input.style.cssText = `
-			display: block;
-			width: 100%;
-			margin: 0.5rem 0;
-			padding: 0;
-			font-size: 0.85rem;
-			text-align: center;
-			background: transparent;
-			border: none;
-			outline: none;
-			box-shadow: none !important;
-			box-sizing: border-box;
-		`;
+		// 自动调节高度
+		const autoResize = () => {
+			textarea.style.height = 'auto';
+			textarea.style.height = textarea.scrollHeight + 'px';
+		};
+		textarea.addEventListener('input', autoResize);
+
+		// 阻止 Enter 换行，Enter 保存
+		textarea.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				textarea.blur();
+			}
+		});
 
 		// 将输入框插入到图片容器内部的最后
-		imageEmbed.appendChild(input);
+		imageEmbed.appendChild(textarea);
 		
 		// 隐藏标题的 ::after 伪元素，实现无缝编辑
 		imageEmbed.addClass("afm-editing-caption");
 		
-		input.focus();
-		input.select();
+		// 初始化高度并聚焦
+		setTimeout(autoResize, 0);
+		textarea.focus();
+		textarea.select();
 
 		// 处理保存
 		const saveCaption = () => {
-			const newCaption = input.value.trim();
+			const newCaption = textarea.value.replace(/\n/g, ' ').trim();
 			const newLink = this.updateLinkCaptionOnly(match.fullMatch, newCaption);
 			const line = editor.getLine(match.lineNumber);
 			
-			// 先淡出输入框
-			input.addClass('afm-fade-out');
+			textarea.addClass('afm-fade-out');
 			
-			// 精确替换：确保只替换正确的匹配项
 			const startPos = line.indexOf(match.fullMatch);
 			if (startPos !== -1) {
 				const before = line.substring(0, startPos);
 				const after = line.substring(startPos + match.fullMatch.length);
 				const newLine = before + newLink + after;
 				
-				// 保存当前滚动位置
 				const scrollTop = activeView.containerEl.scrollTop;
 				
-				// 等待淡出动画完成后更新内容
 				setTimeout(() => {
-					// 使用 requestAnimationFrame 确保 DOM 更新完成后再编辑
 					requestAnimationFrame(() => {
-						// 先更新编辑器内容
 						editor.setLine(match.lineNumber, newLine);
-						
-						// 恢复滚动位置
 						activeView.containerEl.scrollTop = scrollTop;
 						
-						// 然后移除输入框和恢复标题显示，避免闪动
-						if (input.parentElement) {
-							input.remove();
+						if (textarea.parentElement) {
+							textarea.remove();
 						}
 						imageEmbed.removeClass("afm-editing-caption");
 					});
-				}, 150); // 等待淡出动画完成
+				}, 150);
 			} else {
-				// 如果找不到匹配项，等待淡出动画完成后移除输入框
 				setTimeout(() => {
-					if (input.parentElement) {
-						input.remove();
+					if (textarea.parentElement) {
+						textarea.remove();
 					}
 					imageEmbed.removeClass("afm-editing-caption");
 				}, 150);
 			}
 		};
 
-		
-
-		// 事件监听器 - 只保留 blur 事件
-		input.addEventListener("blur", () => {
-			// 延迟执行，确保 blur 事件完成
+		textarea.addEventListener("blur", () => {
 			setTimeout(() => {
-				if (document.contains(input)) {
+				if (document.contains(textarea)) {
 					saveCaption();
 				}
 			}, 10);

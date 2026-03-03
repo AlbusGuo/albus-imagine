@@ -84,25 +84,47 @@ img[alt$="right"] {
 }
 
 /* ========================================
-图片标题
+图片标题 — 带标题图片使用 # 语法：![[image#position|caption|size]]
+容器 .image-embed 的 src 属性含 #position，alt 属性为 caption
+使用 display:table + table-caption 使标题不影响容器宽度
 ======================================== */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"] {
+
+/* --- 居中 --- */
+/* 编辑模式（实时预览） */
+.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="center"] {
   clear: both;
   margin: 0 auto !important;
-  width: fit-content;
-  display: block;
+  display: table;
+}
+
+/* 阅读模式 */
+:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="center"] {
+  clear: both;
+  margin: 0 auto !important;
+  display: table;
 }
 
 :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"]::after {
   content: attr(alt);
+  padding: 0 0.5rem;
   margin: 0.5rem 0;
-  display: block;
+  display: table-caption;
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
-/* 编辑模式下有标题的左对齐图片 - 使用 margin 便于右键定位 */
+/* --- 确保 table 布局内的图片不超出容器 --- */
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"] img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* --- 左对齐 --- */
+/* 编辑模式 - 使用 margin 便于右键定位 */
 .markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="left"] {
   position: relative;
   margin: 0.5rem auto 0.5rem 0 !important;
@@ -111,7 +133,7 @@ img[alt$="right"] {
   float: none;
 }
 
-/* 阅读模式下有标题的左对齐图片 - 使用 float */
+/* 阅读模式 - 使用 float */
 :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="left"] {
   position: relative;
   float: left;
@@ -128,9 +150,11 @@ img[alt$="right"] {
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
-/* 编辑模式下有标题的右对齐图片 - 使用 margin 便于右键定位 */
+/* --- 右对齐 --- */
+/* 编辑模式 - 使用 margin 便于右键定位 */
 .markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="right"] {
   position: relative;
   margin: 0.5rem 0 0.5rem auto !important;
@@ -139,7 +163,7 @@ img[alt$="right"] {
   float: none;
 }
 
-/* 阅读模式下有标题的右对齐图片 - 使用 float */
+/* 阅读模式 - 使用 float */
 :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="right"] {
   position: relative;
   float: right;
@@ -156,8 +180,10 @@ img[alt$="right"] {
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
+/* --- 行内 --- */
 :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="inline"] {
   clear: both;
   margin: 0 auto !important;
@@ -173,16 +199,38 @@ img[alt$="right"] {
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
+/* --- 标题编辑 --- */
 /* 编辑标题时隐藏 ::after 伪元素 */
 .image-embed.afm-editing-caption::after {
   display: none !important;
 }
 
-/* 标题输入框样式 */
+/* 标题输入框 — 与渲染后的 ::after 标题外观一致 */
 .afm-caption-input {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none !important;
+  box-sizing: border-box;
   transition: opacity 0.15s ease-in-out;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.afm-caption-input::placeholder {
+  color: var(--text-faint);
 }
 
 /* 编辑状态平滑过渡 */

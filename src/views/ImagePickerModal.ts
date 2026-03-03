@@ -128,7 +128,7 @@ export class ImagePickerModal extends Modal {
 		if (this.isMultiSelectMode) {
 			const confirmBtn = rightSection.createEl("button", {
 				text: `确认 (${this.selectedImages.size})`,
-				cls: "image-manager-check-refs-button",
+				cls: "image-manager-button",
 			});
 			// 没有选中图片时禁用
 			if (this.selectedImages.size === 0) {
@@ -141,8 +141,8 @@ export class ImagePickerModal extends Modal {
 		const multiSelectBtn = rightSection.createEl("button", {
 			text: this.isMultiSelectMode ? "取消" : "多选",
 			cls: this.isMultiSelectMode 
-				? "image-manager-check-refs-button multi-select-active"
-				: "image-manager-check-refs-button",
+				? "image-manager-button active"
+				: "image-manager-button",
 		});
 		multiSelectBtn.onclick = () => {
 			this.isMultiSelectMode = !this.isMultiSelectMode;
@@ -224,7 +224,7 @@ export class ImagePickerModal extends Modal {
 		const sortControlsEl = this.searchContainer.createDiv("image-manager-sort-controls");
 		sortControlsEl.createSpan({ text: "排序依据:", cls: "image-manager-sort-label" });
 		
-		const sortFieldSelect = sortControlsEl.createEl("select", { cls: "image-manager-sort-select" });
+		const sortFieldSelect = sortControlsEl.createEl("select", { cls: "dropdown" });
 		const sortFieldOptions = [
 			{ value: "mtime", text: "修改时间" },
 			{ value: "ctime", text: "创建时间" },
@@ -241,7 +241,7 @@ export class ImagePickerModal extends Modal {
 			this.renderGrid();
 		};
 
-		const sortOrderBtn = sortControlsEl.createEl("button", { cls: "image-manager-sort-order-button" });
+		const sortOrderBtn = sortControlsEl.createEl("button", { cls: "image-manager-button" });
 		this.updateSortOrderButton(sortOrderBtn);
 		sortOrderBtn.onclick = () => {
 			this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";

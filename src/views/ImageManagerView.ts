@@ -48,6 +48,12 @@ export class ImageManagerView extends ItemView {
 	private referenceChecker: ReferenceCheckService;
 	private fileOperations: FileOperationService;
 
+	// Lazy loading
+	private intersectionObserver: IntersectionObserver | null = null;
+	private activeImageLoads = 0;
+	private readonly maxConcurrentLoads = 6;
+	private imageLoadQueue: Array<() => void> = [];
+
 	// Container elements
 	private headerContainer: HTMLElement;
 	private searchContainer: HTMLElement;
@@ -94,6 +100,10 @@ export class ImageManagerView extends ItemView {
 
 	onClose(): Promise<void> {
 		// 清理工作
+		this.intersectionObserver?.disconnect();
+		this.intersectionObserver = null;
+		this.imageLoadQueue = [];
+		this.activeImageLoads = 0;
 		this.contentEl.empty();
 		return Promise.resolve();
 	}
@@ -163,7 +173,7 @@ export class ImageManagerView extends ItemView {
 		// 清空路径按钮（只在有路径时显示）
 		if (this.selectedFolder) {
 			const clearBtn = leftSection.createEl("button", {
-				cls: "image-manager-clear-folder-button clickable-icon",
+				cls: "image-manager-clear-folder-button",
 				attr: { "aria-label": "清空筛选" },
 			});
 			setIcon(clearBtn, "x");
@@ -337,7 +347,7 @@ export class ImageManagerView extends ItemView {
 		// 排序
 		sortControlsEl.createSpan({ text: "排序:", cls: "image-manager-sort-label" });
 		const sortFieldSelect = sortControlsEl.createEl("select", {
-			cls: "image-manager-sort-select",
+			cls: "dropdown",
 		});
 		const sortFieldOptions = [
 			{ value: "mtime", text: "修改时间" },
@@ -393,6 +403,11 @@ export class ImageManagerView extends ItemView {
 		if (!append) {
 			this.gridContainer.empty();
 			this.renderedCount = 0;
+			// 重置懒加载状态
+			this.intersectionObserver?.disconnect();
+			this.intersectionObserver = null;
+			this.imageLoadQueue = [];
+			this.activeImageLoads = 0;
 		}
 
 		if (this.isLoading && !append) {
@@ -510,21 +525,18 @@ export class ImageManagerView extends ItemView {
 					cls: image.displayFile.extension.toLowerCase() === "svg" ? "image-manager-svg-image" : "image-manager-thumbnail-image",
 				});
 				
-				// 本地图片立即加载，不使用懒加载
+				// 存储资源路径，由 IntersectionObserver 触发加载
 				const resourcePath = this.app.vault.getResourcePath(image.displayFile);
-				img.src = resourcePath;
+				img.setAttribute("data-src", resourcePath);
 				img.alt = image.name;
 				
 				// 添加加载错误处理，防止循环加载
 				let loadFailed = false;
 				img.onerror = () => {
-					if (loadFailed) return; // 防止重复处理
+					if (loadFailed) return;
 					loadFailed = true;
-					console.warn(`图片加载失败: ${image.path}`);
-					// 清空 src 防止持续尝试加载
 					img.src = "";
 					img.addClass("image-manager-cover-hidden");
-					// 显示错误占位符
 					const errorDiv = thumbnailEl.createDiv("image-manager-cover-missing");
 					const contentWrapper = errorDiv.createDiv("image-manager-cover-missing-content");
 					const iconDiv = contentWrapper.createEl("span", { cls: "image-manager-cover-missing-icon" });
@@ -535,18 +547,8 @@ export class ImageManagerView extends ItemView {
 					});
 				};
 
-				// 添加加载超时处理（10秒）
-				const loadTimeout = setTimeout(() => {
-					if (!img.complete && !loadFailed) {
-						console.warn(`图片加载超时: ${image.path}`);
-						img.onerror?.(new Event("error"));
-					}
-				}, 10000);
-
-				// 加载成功时清除超时
-				img.onload = () => {
-					clearTimeout(loadTimeout);
-				};
+				// 观察缩略图容器，进入视口时加载图片
+				this.observeThumbnail(thumbnailEl, img);
 			}
 
 			// 操作按钮 - hover 显示的图标按钮（在缩略图内左下角）
@@ -659,6 +661,96 @@ export class ImageManagerView extends ItemView {
 	}
 
 	/**
+	 * 初始化 IntersectionObserver 实现懒加载
+	 */
+	private setupIntersectionObserver(): void {
+		if (this.intersectionObserver) return;
+
+		this.intersectionObserver = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						const thumbnail = entry.target as HTMLElement;
+						const img = thumbnail.querySelector("img[data-src]") as HTMLImageElement | null;
+						if (img) {
+							this.enqueueImageLoad(img);
+							this.intersectionObserver?.unobserve(thumbnail);
+						}
+					}
+				});
+			},
+			{
+				root: this.gridContainer,
+				rootMargin: "200px 0px", // 提前 200px 开始加载
+			}
+		);
+	}
+
+	/**
+	 * 观察缩略图容器，进入视口时加载图片
+	 */
+	private observeThumbnail(thumbnailEl: HTMLElement, img: HTMLImageElement): void {
+		this.setupIntersectionObserver();
+		this.intersectionObserver?.observe(thumbnailEl);
+	}
+
+	/**
+	 * 将图片加入加载队列，限制并发数
+	 */
+	private enqueueImageLoad(img: HTMLImageElement): void {
+		const loadFn = () => {
+			const src = img.getAttribute("data-src");
+			if (!src) return;
+			
+			this.activeImageLoads++;
+			img.removeAttribute("data-src");
+
+			const loadTimeout = setTimeout(() => {
+				if (!img.complete) {
+					img.onerror?.(new Event("error"));
+				}
+			}, 15000);
+
+			img.onload = () => {
+				clearTimeout(loadTimeout);
+				this.activeImageLoads--;
+				this.processImageLoadQueue();
+			};
+
+			const originalOnerror = img.onerror;
+			img.onerror = (e) => {
+				clearTimeout(loadTimeout);
+				this.activeImageLoads--;
+				if (typeof originalOnerror === "function") {
+					originalOnerror.call(img, e);
+				}
+				this.processImageLoadQueue();
+			};
+
+			img.src = src;
+		};
+
+		if (this.activeImageLoads < this.maxConcurrentLoads) {
+			loadFn();
+		} else {
+			this.imageLoadQueue.push(loadFn);
+		}
+	}
+
+	/**
+	 * 处理图片加载队列中的下一个
+	 */
+	private processImageLoadQueue(): void {
+		while (
+			this.imageLoadQueue.length > 0 &&
+			this.activeImageLoads < this.maxConcurrentLoads
+		) {
+			const nextLoad = this.imageLoadQueue.shift();
+			nextLoad?.();
+		}
+	}
+
+	/**
 	 * 处理滚动事件
 	 */
 	private handleScroll(): void {
@@ -761,6 +853,7 @@ export class ImageManagerView extends ItemView {
 			
 			progressNotice.hide();
 			this.applyFilters(); // 重新应用过滤
+			this.renderHeader(); // 更新过滤数量显示
 			this.renderGrid();
 			new Notice(`引用检查完成：已检查 ${this.images.length} 张图片`);
 		} catch (error) {
@@ -1195,7 +1288,16 @@ export class ImageManagerView extends ItemView {
 	async refresh(): Promise<void> {
 		// 清除引用缓存以确保重新检查
 		this.referenceChecker.clearCache();
+		
+		// 记住当前的筛选状态
+		const wasFilteringUnreferenced = this.showUnreferencedOnly;
+		
 		this.loadImages();
+		
+		// 如果之前在筛选未引用图片，需要重新检查引用
+		if (wasFilteringUnreferenced && this.images.length > 0) {
+			await this.checkReferences();
+		}
 		
 		// 保存当前选择的文件夹
 		await this.saveLastSelectedFolder();
@@ -1241,5 +1343,9 @@ export class ImageManagerView extends ItemView {
 			this.folderSuggest.destroy();
 			this.folderSuggest = null;
 		}
+		// 清理IntersectionObserver
+		this.intersectionObserver?.disconnect();
+		this.intersectionObserver = null;
+		this.imageLoadQueue = [];
 	}
 }

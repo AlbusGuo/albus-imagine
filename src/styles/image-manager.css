@@ -105,8 +105,8 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
-	height: 32px;
+	width: 28px;
+	height: 28px;
 	padding: 4px;
 	background: var(--background-secondary);
 	color: var(--text-muted);
@@ -202,9 +202,11 @@
 	color: var(--text-normal);
 }
 
-.image-manager-button.active {
-	background: var(--background-modifier-hover);
-	color: var(--interactive-accent);
+.image-manager-button.active,
+.image-manager-button.active:hover {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent) !important;
+	border-color: var(--interactive-accent) !important;
 }
 
 .image-manager-button.batch-delete {
@@ -217,64 +219,6 @@
 }
 
 .image-manager-button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-/* 保留旧的按钮样式以保证向后兼容 */
-.image-manager-filter-button,
-.image-manager-check-refs-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	padding: 4px 12px;
-	min-width: 60px;
-	height: 28px;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
-	font-size: 12px;
-	transition: all 0.15s ease;
-	white-space: nowrap;
-	flex-shrink: 0;
-	box-shadow: none !important;
-}
-
-.image-manager-filter-button:hover,
-.image-manager-check-refs-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-	border-color: var(--background-modifier-border-hover);
-}
-
-.image-manager-filter-button-active {
-	background: var(--background-modifier-hover) !important;
-	color: var(--interactive-accent) !important;
-	border-color: var(--interactive-accent) !important;
-}
-
-.image-manager-check-refs-button.multi-select-active {
-	background: var(--background-modifier-hover);
-	color: var(--interactive-accent);
-	border-color: var(--interactive-accent);
-}
-
-.image-manager-check-refs-button.batch-delete {
-	color: var(--text-error);
-	border-color: var(--text-error);
-}
-
-.image-manager-check-refs-button.batch-delete:hover {
-	background: var(--text-error);
-	color: var(--text-on-accent);
-	opacity: 0.9;
-}
-
-.image-manager-filter-button:disabled,
-.image-manager-check-refs-button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
@@ -347,62 +291,7 @@
 	flex-shrink: 0;
 }
 
-.image-manager-sort-select {
-	padding: 4px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	font-size: 12px;
-	cursor: pointer;
-	transition: all 0.15s ease;
-	box-shadow: none !important;
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-}
 
-.image-manager-sort-select:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
-	box-shadow: none !important;
-}
-
-.image-manager-sort-select:hover {
-	background-color: var(--background-modifier-hover);
-	border-color: var(--background-modifier-border-hover);
-}
-
-.image-manager-sort-select option {
-	background: var(--background-primary);
-	color: var(--text-normal);
-	padding: 4px 8px;
-}
-
-.image-manager-sort-order-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	padding: 4px 12px;
-	min-width: 60px;
-	height: 28px;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
-	font-size: 12px;
-	transition: all 0.15s ease;
-	white-space: nowrap;
-	flex-shrink: 0;
-	box-shadow: none !important;
-}
-
-.image-manager-sort-order-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-}
 
 /* ==================== 网格面板 ==================== */
 .image-manager-grid-panel {
@@ -600,8 +489,12 @@
 }
 
 .image-manager-preview-error-icon {
-	font-size: 48px;
 	opacity: 0.5;
+}
+
+.image-manager-preview-error-icon svg {
+	width: 48px;
+	height: 48px;
 }
 
 .image-manager-preview-error-text {
