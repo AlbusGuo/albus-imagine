@@ -32,3 +32,4 @@ Thumbs.db
 *.zip
 .env
 dist
+mermaid-editor.js
