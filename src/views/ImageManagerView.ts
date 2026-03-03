@@ -673,7 +673,7 @@ export class ImageManagerView extends ItemView {
 				entries.forEach((entry) => {
 					if (entry.isIntersecting) {
 						const thumbnail = entry.target as HTMLElement;
-						const img = thumbnail.querySelector("img[data-src]") as HTMLImageElement | null;
+						const img = thumbnail.querySelector<HTMLImageElement>("img[data-src]");
 						if (img) {
 							this.enqueueImageLoad(img);
 							this.intersectionObserver?.unobserve(thumbnail);

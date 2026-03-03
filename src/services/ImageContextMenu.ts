@@ -136,7 +136,7 @@ export class ImageContextMenu extends Component {
 			if (!activeView) return;
 
 			const editor = activeView.editor;
-			const match = await this.findSingleImageMatch(editor, imagePath, img);
+			const match = this.findSingleImageMatch(editor, imagePath, img);
 			if (!match) {
 				new Notice("未找到图片链接");
 				return;
@@ -522,7 +522,7 @@ export class ImageContextMenu extends Component {
 		}
 
 		const editor = activeView.editor;
-		const match = await this.findSingleImageMatch(editor, imagePath, img);
+		const match = this.findSingleImageMatch(editor, imagePath, img);
 		if (!match) {
 			new Notice("未找到图片链接");
 			return;
@@ -550,7 +550,7 @@ export class ImageContextMenu extends Component {
 		}
 
 		const editor = activeView.editor;
-		const match = await this.findSingleImageMatch(editor, imagePath, img);
+		const match = this.findSingleImageMatch(editor, imagePath, img);
 		if (!match) {
 			new Notice("未找到图片链接");
 			return;
@@ -704,7 +704,7 @@ export class ImageContextMenu extends Component {
 				if (!activeView) return;
 
 				const editor = activeView.editor;
-				const match = await this.findSingleImageMatch(editor, imagePath, img);
+				const match = this.findSingleImageMatch(editor, imagePath, img);
 				if (!match) {
 					new Notice("未找到图片链接");
 					return;
@@ -862,11 +862,11 @@ export class ImageContextMenu extends Component {
 		}
 	}
 
-	private async findSingleImageMatch(
+	private findSingleImageMatch(
 		editor: Editor,
 		imagePath: string,
 		img?: HTMLImageElement
-	): Promise<ImageMatch | null> {
+	): ImageMatch | null {
 		const matches = this.findImageMatches(editor, imagePath);
 		if (matches.length === 0) return null;
 		if (matches.length === 1) return matches[0];
@@ -1055,7 +1055,7 @@ export class ImageContextMenu extends Component {
 		}
 
 		const editor = activeView.editor;
-		const match = await this.findSingleImageMatch(editor, imagePath, img);
+		const match = this.findSingleImageMatch(editor, imagePath, img);
 		if (!match) {
 			new Notice("未找到图片链接");
 			return;

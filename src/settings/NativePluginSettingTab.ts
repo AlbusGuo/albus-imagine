@@ -285,7 +285,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 						.setName('类型')
 						.addText((text) => {
 							text
-								.setPlaceholder('文件扩展名 (如: pdf)')
+								.setPlaceholder('文件扩展名（如 PDF）')
 								.setValue(type.fileExtension)
 								.onChange(debounce(async (value) => {
 									type.fileExtension = value;
@@ -298,7 +298,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 						})
 						.addText((text) => {
 							text
-								.setPlaceholder('封面扩展名 (如: jpg)')
+								.setPlaceholder('封面扩展名（如 JPG）')
 								.setValue(type.coverExtension)
 								.onChange(debounce(async (value) => {
 									type.coverExtension = value;
@@ -484,8 +484,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		group.addSetting((setting) => {
 			setting
 				.setName('启用图片查看器')
-				// eslint-disable-next-line obsidianmd/ui/sentence-case -- Chinese text with Ctrl abbreviation
-				.setDesc('在所有位置启用 Ctrl + 点击图片查看功能')
+				.setDesc('在所有位置启用 Ctrl+Click 查看图片功能')
 				.addToggle((toggle) => {
 					toggle
 						.setValue(this.plugin.settings.imageViewer?.enabled !== false)
