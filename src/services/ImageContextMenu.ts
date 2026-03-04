@@ -125,7 +125,7 @@ export class ImageContextMenu extends Component {
 		}
 
 		// 反转顺序创建菜单项
-		this.createMenuItem(container, "删除链接", "trash-2", async () => {
+		this.createMenuItem(container, "删除链接", "trash-2", () => {
 			const imagePath = this.getImagePath(img);
 			if (!imagePath) {
 				new Notice("无法获取图片路径");
@@ -508,7 +508,7 @@ export class ImageContextMenu extends Component {
 		return false;
 	}
 
-	private async updateAlignment(img: HTMLImageElement, alignment: "center" | "left" | "right"): Promise<void> {
+	private updateAlignment(img: HTMLImageElement, alignment: "center" | "left" | "right"): void {
 		const imagePath = this.getImagePath(img);
 		if (!imagePath) {
 			new Notice("无法获取图片路径");
@@ -536,7 +536,7 @@ export class ImageContextMenu extends Component {
 		new Notice(`对齐: ${alignment}`);
 	}
 
-	private async toggleDarkMode(img: HTMLImageElement): Promise<void> {
+	private toggleDarkMode(img: HTMLImageElement): void {
 		const imagePath = this.getImagePath(img);
 		if (!imagePath) {
 			new Notice("无法获取图片路径");
@@ -693,7 +693,7 @@ export class ImageContextMenu extends Component {
 
 	private addDeleteLinkMenuItem(menu: Menu, img: HTMLImageElement): void {
 		menu.addItem((item) => {
-			item.setTitle("删除链接").setIcon("trash").onClick(async () => {
+			item.setTitle("删除链接").setIcon("trash").onClick(() => {
 				const imagePath = this.getImagePath(img);
 				if (!imagePath) {
 					new Notice("无法获取图片路径");
@@ -1041,7 +1041,7 @@ export class ImageContextMenu extends Component {
 	/**
 	 * 编辑图片标题
 	 */
-	private async editCaption(img: HTMLImageElement): Promise<void> {
+	private editCaption(img: HTMLImageElement): void {
 		const imagePath = this.getImagePath(img);
 		if (!imagePath) {
 			new Notice("无法获取图片路径");
