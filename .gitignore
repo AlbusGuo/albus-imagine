@@ -33,3 +33,4 @@ Thumbs.db
 .env
 dist
 mermaid-editor.js
+Plugin guidelines.md
