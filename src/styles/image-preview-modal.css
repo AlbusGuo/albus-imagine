@@ -149,6 +149,12 @@
 	-webkit-user-drag: none;
 }
 
+/* 预览画布中的 SVG 图片：覆盖网格缩略图的 100% 尺寸，使 JS 缩放/拖拽生效 */
+.image-manager-canvas .image-manager-svg-image {
+	width: auto;
+	height: auto;
+}
+
 /* 右侧信息区域 */
 .image-manager-preview-info-section {
 	flex: 2;

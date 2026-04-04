@@ -163,23 +163,23 @@ export class ImagePreviewModal extends Modal {
 
 		img.onload = () => {
 			clearTimeout(loadTimeout);
+			img.addClass("is-loaded");
 			this.initImageStatus(img, imageContainer);
 		};
 
-		// 滚轮缩放（参照 ImageViewerView）
-		imageContainer.addEventListener("wheel", (e: WheelEvent) => {
+		// 滚轮缩放（参照 ImageViewerView —— 绑在 img 元素上）
+		img.addEventListener("wheel", (e: WheelEvent) => {
+			e.stopPropagation();
 			e.preventDefault();
 			if (!this.imgStatus || !this.imageElement) return;
 			const ratio = e.deltaY < 0 ? 0.1 : -0.1;
-			const imgRect = this.imageElement.getBoundingClientRect();
-			const offsetX = e.clientX - imgRect.left;
-			const offsetY = e.clientY - imgRect.top;
-			this.zoomImage(ratio, offsetX, offsetY);
+			this.zoomImage(ratio, e.offsetX, e.offsetY);
 		}, { passive: false });
 
-		// 鼠标拖拽（参照 ImageViewerView）
-		imageContainer.addEventListener("mousedown", (e: MouseEvent) => {
+		// 鼠标拖拽（参照 ImageViewerView —— 绑在 img 元素上）
+		img.addEventListener("mousedown", (e: MouseEvent) => {
 			if (e.button !== 0 || !this.imgStatus) return;
+			e.stopPropagation();
 			e.preventDefault();
 			this.isDragging = true;
 			this.imgStatus.moveX = this.imgStatus.left - e.clientX;
@@ -286,7 +286,8 @@ export class ImagePreviewModal extends Modal {
 	 */
 	private applyTransform(): void {
 		if (!this.imgStatus || !this.imageElement) return;
-		this.imageElement.setAttribute('width', this.imgStatus.curWidth + 'px');
+		this.imageElement.style.setProperty('width', this.imgStatus.curWidth + 'px', 'important');
+		this.imageElement.style.setProperty('height', 'auto', 'important');
 		this.imageElement.style.setProperty('margin-left', this.imgStatus.left + 'px', 'important');
 		this.imageElement.style.setProperty('margin-top', this.imgStatus.top + 'px', 'important');
 	}
