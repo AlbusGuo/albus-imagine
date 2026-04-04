@@ -4,7 +4,6 @@
  */
 
 .callout.callout[data-callout*=grid] {
-  box-shadow: none;
   max-width: unset !important;
   white-space: nowrap;
   overflow: hidden;

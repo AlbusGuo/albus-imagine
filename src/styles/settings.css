@@ -99,37 +99,59 @@
 	max-width: 100%;
 }
 
-/* 空消息 */
-.afm-empty-message {
-	text-align: center;
-	padding: 2em 1.25em;
-	color: var(--text-muted);
+/* 自定义文件类型 - 卡片容器 */
+.afm-custom-type-group {
+	background-color: var(--setting-items-background);
+	border-radius: var(--radius-m);
+	margin: 0 0 1em 0;
+	padding: 1em;
+	border-top: none;
+}
+
+.afm-custom-type-list-container {
+	padding-top: 0;
+}
+
+/* 内部 SettingGroup 去除多余间距，由外层卡片统一管理 */
+.afm-custom-type-group .setting-group {
+	margin-bottom: 0;
+}
+
+.afm-custom-type-group .setting-group .setting-items {
 	background: transparent;
-	border: none !important;
+	padding: 0;
+	border-radius: 0;
 }
 
-.afm-empty-message p {
-	margin: 8px 0;
-	font-size: 14px;
+
+
+/* 添加按钮容器 - 精确复刻 Custom About Blank */
+.afm-add-container {
+	display: flex;
+	gap: 0.75em;
+	margin: 0.75em 0.25em 0.25em;
+	padding-top: 0.75em;
+	border-top: var(--border-width) solid var(--background-modifier-border);
 }
 
-.afm-empty-hint {
-	font-size: 12px;
-	opacity: 0.7;
+.afm-add-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.375em;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: var(--radius-s);
+	padding: 0.5em 0.75em;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	font-weight: 500;
+	transition: background 0.2s ease;
+	flex: 1;
 }
 
-/* 自定义文件类型 - 横向布局 */
-.afm-add-button {
-	border: none !important;
-	padding: 0.75em 0 !important;
-}
-
-.afm-add-button .setting-item-info {
-	display: none !important;
-}
-
-.afm-add-button .setting-item-control {
-	justify-content: flex-start;
+.afm-add-btn:hover {
+	background: var(--interactive-accent-hover);
 }
 
 /* 移动端优化 */

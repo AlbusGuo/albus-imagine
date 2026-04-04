@@ -332,11 +332,11 @@ export class ImagePickerModal extends Modal {
 
 	private renderGrid(append: boolean = false): void {
 		if (!append) {
-			this.gridContainer.empty();
 			this.renderedCount = 0;
 		}
 
 		if (this.isLoading && !append) {
+			this.gridContainer.empty();
 			const loadingEl = this.gridContainer.createDiv("image-manager-loading-state");
 			loadingEl.createDiv("image-manager-loading-spinner");
 			loadingEl.createSpan({ text: "加载中..." });
@@ -344,23 +344,29 @@ export class ImagePickerModal extends Modal {
 		}
 
 		if (this.filteredImages.length === 0 && !append) {
+			this.gridContainer.empty();
 			const emptyEl = this.gridContainer.createDiv("image-manager-empty-state");
 			emptyEl.createSpan({ text: this.images.length === 0 ? "没有找到图片" : "没有符合条件的图片" });
 			return;
-		}
-
-		let gridEl: HTMLElement | null = append ? this.gridContainer.querySelector(".image-manager-grid") : null;
-		if (!gridEl) {
-			gridEl = this.gridContainer.createDiv("image-manager-grid");
 		}
 
 		const startIndex = this.renderedCount;
 		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
-		const resolvedGridEl = gridEl;
 		requestAnimationFrame(() => {
-			this.renderImageBatch(resolvedGridEl, imagesToRender);
+			// 在同一帧内清空旧内容并插入新内容，避免闪烁
+			let gridEl: HTMLElement | null = null;
+			if (append) {
+				gridEl = this.gridContainer.querySelector(".image-manager-grid");
+			} else {
+				this.gridContainer.empty();
+			}
+			if (!gridEl) {
+				gridEl = this.gridContainer.createDiv("image-manager-grid");
+			}
+
+			this.renderImageBatch(gridEl, imagesToRender);
 			this.renderedCount = endIndex;
 			this.isLoadingMore = false;
 			this.updateLoadMoreIndicator();
@@ -416,6 +422,7 @@ export class ImagePickerModal extends Modal {
 				const resourcePath = this.app.vault.getResourcePath(image.displayFile);
 				img.setAttribute("data-src", resourcePath);
 				img.alt = image.name;
+				img.onload = () => img.addClass("is-loaded");
 
 				if (this.intersectionObserver) {
 					this.intersectionObserver.observe(img);

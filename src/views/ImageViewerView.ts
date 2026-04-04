@@ -249,43 +249,45 @@ export class ImageViewerView {
 			this.isVisible = true;
 		}
 
-		// 加载并显示图片（参照源码 refreshImg）
+		// 加载并显示图片
 		const realImg = new Image();
-		realImg.src = imgEl.src;
 
-		const loadInterval = setInterval(() => {
-			if (realImg.width > 0 || realImg.height > 0) {
-				clearInterval(loadInterval);
+		const showImage = () => {
+			const windowWidth = document.documentElement.clientWidth || document.body.clientWidth;
+			const windowHeight = (document.documentElement.clientHeight || document.body.clientHeight) - 100;
 
-				const windowWidth = document.documentElement.clientWidth || document.body.clientWidth;
-				const windowHeight = (document.documentElement.clientHeight || document.body.clientHeight) - 100;
+			const size = this.calculateImgSize(realImg, windowWidth, windowHeight);
 
-				const size = this.calculateImgSize(realImg, windowWidth, windowHeight);
+			// 初始化图片状态
+			this.imgStatus = {
+				realWidth: realImg.width,
+				realHeight: realImg.height,
+				curWidth: size.width,
+				curHeight: size.height,
+				left: size.left,
+				top: size.top,
+				moveX: 0,
+				moveY: 0,
+				scale: size.width / realImg.width,
+			};
 
-				// 初始化图片状态
-				this.imgStatus = {
-					realWidth: realImg.width,
-					realHeight: realImg.height,
-					curWidth: size.width,
-					curHeight: size.height,
-					left: size.left,
-					top: size.top,
-					moveX: 0,
-					moveY: 0,
-					scale: size.width / realImg.width,
-				};
-
-				if (this.imgViewEl) {
-					this.imgViewEl.src = imgEl.src;
-					this.imgViewEl.alt = imgEl.alt;
-					this.imgViewEl.setAttribute('width', size.width + 'px');
-					this.imgViewEl.style.setProperty('margin-top', size.top + 'px', 'important');
-					this.imgViewEl.style.setProperty('margin-left', size.left + 'px', 'important');
-					// 添加默认棋盘背景（用于透明图片）
-					this.imgViewEl.addClass('img-default-background');
-				}
+			if (this.imgViewEl) {
+				this.imgViewEl.src = imgEl.src;
+				this.imgViewEl.alt = imgEl.alt;
+				this.imgViewEl.setAttribute('width', size.width + 'px');
+				this.imgViewEl.style.setProperty('margin-top', size.top + 'px', 'important');
+				this.imgViewEl.style.setProperty('margin-left', size.left + 'px', 'important');
+				// 添加默认棋盘背景（用于透明图片）
+				this.imgViewEl.addClass('img-default-background');
 			}
-		}, 40);
+		};
+
+		realImg.onload = showImage;
+		realImg.onerror = () => {
+			// 图片加载失败时关闭查看器
+			this.close();
+		};
+		realImg.src = imgEl.src;
 	}
 
 	/**

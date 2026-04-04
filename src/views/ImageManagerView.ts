@@ -385,7 +385,6 @@ export class ImageManagerView extends ItemView {
 				cancelAnimationFrame(this.pendingRenderRAF);
 				this.pendingRenderRAF = null;
 			}
-			this.gridContainer.empty();
 			this.renderedCount = 0;
 			// 重置懒加载状态
 			this.intersectionObserver?.disconnect();
@@ -395,6 +394,7 @@ export class ImageManagerView extends ItemView {
 		}
 
 		if (this.isLoading && !append) {
+			this.gridContainer.empty();
 			const loadingEl = this.gridContainer.createDiv("image-manager-loading-state");
 			loadingEl.createDiv("image-manager-loading-spinner");
 			loadingEl.createSpan({ text: "加载中..." });
@@ -402,6 +402,7 @@ export class ImageManagerView extends ItemView {
 		}
 
 		if (this.filteredImages.length === 0 && !append) {
+			this.gridContainer.empty();
 			const emptyEl = this.gridContainer.createDiv("image-manager-empty-state");
 			emptyEl.createSpan({
 				text: this.images.length === 0 ? "没有找到图片" : "没有符合条件的图片",
@@ -413,25 +414,27 @@ export class ImageManagerView extends ItemView {
 			return;
 		}
 
-		// 查找或创建网格容器
-		let gridEl: HTMLElement | null = null;
-		if (append) {
-			gridEl = this.gridContainer.querySelector(".image-manager-grid");
-		}
-		if (!gridEl) {
-			gridEl = this.gridContainer.createDiv("image-manager-grid");
-		}
-
 		// 计算本次要渲染的图片范围
 		const startIndex = this.renderedCount;
 		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
-		const resolvedGridEl = gridEl;
 		// 使用 requestAnimationFrame 批量渲染，避免阻塞
 		this.pendingRenderRAF = requestAnimationFrame(() => {
 			this.pendingRenderRAF = null;
-			const itemElements = this.renderImageBatch(resolvedGridEl, imagesToRender);
+
+			// 在同一帧内清空旧内容并插入新内容，避免闪烁
+			let gridEl: HTMLElement | null = null;
+			if (append) {
+				gridEl = this.gridContainer.querySelector(".image-manager-grid");
+			} else {
+				this.gridContainer.empty();
+			}
+			if (!gridEl) {
+				gridEl = this.gridContainer.createDiv("image-manager-grid");
+			}
+
+			const itemElements = this.renderImageBatch(gridEl, imagesToRender);
 			this.renderedCount = endIndex;
 			this.isLoadingMore = false;
 			this.updateLoadMoreIndicator();
@@ -721,6 +724,7 @@ export class ImageManagerView extends ItemView {
 
 			img.onload = () => {
 				clearTimeout(loadTimeout);
+				img.addClass("is-loaded");
 				this.activeImageLoads--;
 				this.processImageLoadQueue();
 			};

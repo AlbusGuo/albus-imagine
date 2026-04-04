@@ -11,7 +11,6 @@ export class ImageViewerManager {
 	private viewer: ImageViewerView | null = null;
 	private imgSelector: string = '';
 	private registeredDocs: Set<Document> = new Set();
-	private static readonly IMG_ORIGIN_CURSOR = 'data-afm-origin-cursor';
 
 	constructor(app: App, settings: ImageViewerSettings) {
 		this.app = app;
@@ -130,14 +129,6 @@ export class ImageViewerManager {
 			return;
 		}
 
-		// 保存原始光标样式
-		if (targetEl.getAttribute(ImageViewerManager.IMG_ORIGIN_CURSOR) === null) {
-			const computedStyle = window.getComputedStyle(targetEl);
-			targetEl.setAttribute(
-				ImageViewerManager.IMG_ORIGIN_CURSOR,
-				computedStyle.cursor || ''
-			);
-		}
 		targetEl.addClass('afm-cursor-zoom-in');
 	};
 

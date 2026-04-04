@@ -11,43 +11,11 @@
 }
 
 /* ==================== 头部扩展样式 ==================== */
-.image-manager-header-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-}
-
-.image-manager-header-left {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex: 1;
-	min-width: 0;
-}
-
-.image-manager-header-right {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	flex-shrink: 0;
-}
 
 /* 批量删除按钮容器 - 固定宽度防止布局跳动 */
 .image-manager-batch-delete-container {
 	width: 88px;
 	flex-shrink: 0;
-}
-
-.image-manager-checking-status {
-	font-size: 12px;
-	color: var(--text-muted);
-	animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-	0%, 100% { opacity: 0.6; }
-	50% { opacity: 1; }
 }
 
 /* ==================== 文件夹选择按钮 ==================== */
@@ -145,18 +113,7 @@
 	background: var(--background-modifier-hover);
 }
 
-/* ==================== 搜索栏扩展 ==================== */
-.image-manager-search {
-	padding: 10px 16px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	flex-shrink: 0;
-}
-
-.image-manager-search-input::placeholder {
-	color: var(--text-faint);
-}
-
+/* ==================== 排序按钮 ==================== */
 .image-manager-sort-order-button {
 	padding: 4px 8px;
 	border: 1px solid var(--background-modifier-border);
@@ -176,63 +133,6 @@
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 	border-color: var(--text-muted);
-}
-
-/* ==================== 网格扩展样式 ==================== */
-.image-manager-load-more {
-	padding: 16px;
-	text-align: center;
-	color: var(--text-faint);
-	font-size: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
-.image-manager-preview-error {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 12px;
-	padding: 40px 20px;
-	text-align: center;
-}
-
-.image-manager-preview-error-icon {
-	opacity: 0.5;
-}
-
-.image-manager-preview-error-icon svg {
-	width: 48px;
-	height: 48px;
-}
-
-.image-manager-preview-error-text {
-	font-size: 16px;
-	font-weight: 600;
-	color: var(--text-muted);
-}
-
-.image-manager-preview-error-hint {
-	font-size: 13px;
-	color: var(--text-faint);
-	max-width: 300px;
-	line-height: 1.5;
-}
-
-.image-manager-reference-badge-has-refs {
-	background: rgba(34, 197, 94, 0.9);
-}
-
-.image-manager-meta-item {
-	white-space: nowrap;
-}
-
-.image-manager-meta-size {
-	color: var(--text-faint);
-}
-
-.image-manager-meta-date {
-	color: var(--text-faint);
 }
 
 /* ==================== 预览模态框扩展 ==================== */
@@ -272,103 +172,6 @@
 	background-clip: padding-box;
 }
 
-/* ==================== 文件打开方式配置 ==================== */
-.file-open-mode-config {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.file-open-mode-description {
-	font-size: 12px;
-	color: var(--text-faint);
-	margin-bottom: 8px;
-}
-
-.file-open-mode-groups {
-	display: flex;
-	gap: 16px;
-	flex-wrap: wrap;
-}
-
-.file-open-mode-group {
-	flex: 1;
-	min-width: 280px;
-	border: 2px dashed var(--background-modifier-border);
-	border-radius: var(--radius-m);
-	padding: 16px;
-	background: var(--background-secondary);
-	transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.file-open-mode-group:hover {
-	border-color: var(--interactive-accent);
-	background: var(--background-primary);
-}
-
-.file-open-mode-group-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 12px;
-	padding-bottom: 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.file-open-mode-group-icon {
-	font-size: 18px;
-	line-height: 1;
-}
-
-.file-open-mode-group-title {
-	font-size: 13px;
-	font-weight: 600;
-	color: var(--text-normal);
-}
-
-.file-open-mode-badges {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	min-height: 60px;
-	align-content: flex-start;
-}
-
-.file-open-mode-badge {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 4px 10px;
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-radius: var(--radius-s);
-	font-size: 11px;
-	font-weight: 600;
-	cursor: grab;
-	transition: transform 0.15s ease, box-shadow 0.15s ease;
-	user-select: none;
-	letter-spacing: 0.3px;
-}
-
-.file-open-mode-badge:hover {
-	transform: translateY(-2px);
-	box-shadow: var(--shadow-s);
-}
-
-.file-open-mode-badge:active {
-	cursor: grabbing;
-	transform: scale(0.95);
-}
-
-.file-open-mode-empty {
-	width: 100%;
-	padding: 20px;
-	text-align: center;
-	color: var(--text-faint);
-	font-size: 12px;
-	font-style: italic;
-}
-
 /* ==================== 响应式调整 ==================== */
 @media (max-width: 768px) {
 	.image-manager-grid {
@@ -386,14 +189,6 @@
 		border-right: none;
 		border-top: 1px solid var(--background-modifier-border);
 		max-height: 40%;
-	}
-	
-	.file-open-mode-groups {
-		flex-direction: column;
-	}
-	
-	.file-open-mode-group {
-		min-width: 100%;
 	}
 }
 

@@ -26,7 +26,7 @@ export interface IPluginSettings {
 	imageManager?: ImageManagerSettings;
 	imageResize?: ImageResizeSettings;
 	imageViewer?: ImageViewerSettings;
-	settingsTab?: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER";
+	settingsTab?: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER" | "CUSTOM_FILE_TYPES";
 }
 
 export const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {

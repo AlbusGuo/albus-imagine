@@ -25,6 +25,8 @@ export class ImagePreviewModal extends Modal {
 	private isDragging = false;
 	private imageElement: HTMLImageElement | null = null;
 	private imageContainer: HTMLElement | null = null;
+	private boundMouseMove: ((e: MouseEvent) => void) | null = null;
+	private boundMouseUp: (() => void) | null = null;
 
 	constructor(
 		app: App,
@@ -198,6 +200,8 @@ export class ImagePreviewModal extends Modal {
 			imageContainer.removeClass("image-manager-canvas-dragging");
 		};
 
+		this.boundMouseMove = onMouseMove;
+		this.boundMouseUp = onMouseUp;
 		document.addEventListener("mousemove", onMouseMove);
 		document.addEventListener("mouseup", onMouseUp);
 
@@ -482,6 +486,21 @@ export class ImagePreviewModal extends Modal {
 	}
 
 	onClose(): void {
+		// 清理全局事件监听器
+		if (this.boundMouseMove) {
+			document.removeEventListener("mousemove", this.boundMouseMove);
+			this.boundMouseMove = null;
+		}
+		if (this.boundMouseUp) {
+			document.removeEventListener("mouseup", this.boundMouseUp);
+			this.boundMouseUp = null;
+		}
+
+		this.imageElement = null;
+		this.imageContainer = null;
+		this.imgStatus = null;
+		this.isDragging = false;
+
 		const { contentEl } = this;
 		contentEl.empty();
 	}

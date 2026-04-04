@@ -153,7 +153,7 @@ export default class SettingsStore {
 	/**
 	 * 设置当前激活的设置标签页
 	 */
-	async setSettingsTab(tab: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER") {
+	async setSettingsTab(tab: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER" | "CUSTOM_FILE_TYPES") {
 		this.#plugin.settings.settingsTab = tab;
 		await this.#plugin.saveSettings();
 		this.#notifyStoreSubscribers();

@@ -407,48 +407,6 @@ export class ImageContextMenu extends Component {
 		});
 	}
 
-	private getCurrentAlignment(img: HTMLImageElement): "center" | "left" | "right" {
-		const src = img.getAttribute("src") || "";
-		
-		// 从 src 中检查 # 语法：image#center 或 image#center#dark
-		if (src.includes("#")) {
-			const hashParts = src.split("#");
-			for (const part of hashParts) {
-				if (part === "center" || part === "left" || part === "right") {
-					return part;
-				}
-			}
-		}
-
-		// 从 alt 中检查 | 语法
-		const alt = img.getAttribute("alt") || "";
-		if (alt.includes("|")) {
-			const parts = alt.split("|");
-			for (const part of parts) {
-				const trimmed = part.trim();
-				if (trimmed === "center" || trimmed === "left" || trimmed === "right") {
-					return trimmed;
-				}
-			}
-		}
-
-		// 默认居中
-		return "center";
-	}
-
-	private isDarkMode(img: HTMLImageElement): boolean {
-		const src = img.getAttribute("src") || "";
-		const alt = img.getAttribute("alt") || "";
-		
-		// 检查 # 语法中的 dark
-		if (src.includes("#dark")) return true;
-		
-		// 检查 | 语法中的 dark
-		if (alt.includes("|dark|") || alt.includes("|dark]")) return true;
-		
-		return false;
-	}
-
 	private updateAlignment(img: HTMLImageElement, alignment: "center" | "left" | "right"): void {
 		const imagePath = this.getImagePath(img);
 		if (!imagePath) {
