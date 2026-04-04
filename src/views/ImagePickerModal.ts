@@ -4,7 +4,7 @@
  * 基于 ImageManagerView 的简化版本
  */
 
-import { App, MarkdownView, Modal, Notice, setIcon, ToggleComponent } from "obsidian";
+import { App, MarkdownView, Menu, Modal, Notice, setIcon, ToggleComponent } from "obsidian";
 import { ImageItem, ImageManagerSettings, SortField, SortOrder } from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { FolderSuggest } from "../components/FolderSuggest";
@@ -65,6 +65,13 @@ export class ImagePickerModal extends Modal {
 		this.initIntersectionObserver();
 		this.setupLayout();
 		this.loadImages();
+
+		// 阻止 Modal 自动聚焦到搜索框（会弹出联想输入法弹窗影响体验）
+		activeWindow.requestAnimationFrame(() => {
+			if (document.activeElement instanceof HTMLElement) {
+				document.activeElement.blur();
+			}
+		});
 	}
 
 	private initIntersectionObserver(): void {
@@ -109,17 +116,46 @@ export class ImagePickerModal extends Modal {
 		const headerRow = this.headerContainer.createDiv("image-manager-header-row");
 		const leftSection = headerRow.createDiv("image-manager-header-left");
 
-		const folderBtn = leftSection.createEl("button", { cls: "image-manager-folder-button" });
-		const folderIcon = folderBtn.createSpan({ cls: "image-manager-folder-icon" });
-		setIcon(folderIcon, "folder");
-		folderBtn.createSpan({ 
-			text: this.selectedFolder || "所有图片",
-			cls: "image-manager-folder-text"
+		// 文件夹路径输入框（始终可见，附带 AbstractInputSuggest）
+		const folderInputContainer = leftSection.createDiv("image-manager-folder-input-container");
+		const folderInput = folderInputContainer.createEl("input", {
+			type: "text",
+			placeholder: "按文件夹筛选...",
+			value: this.selectedFolder,
+			cls: "image-manager-folder-input",
 		});
-		folderBtn.onclick = () => this.showFolderInput(folderBtn);
+
+		// 清空按钮（只在有路径时显示）
+		if (this.selectedFolder) {
+			const clearBtn = folderInputContainer.createEl("button", {
+				cls: "image-manager-folder-clear clickable-icon",
+				attr: { "aria-label": "清空筛选" },
+			});
+			setIcon(clearBtn, "x");
+			clearBtn.onclick = () => {
+				this.selectedFolder = "";
+				this.refresh();
+			};
+		}
+
+		if (this.folderSuggest) {
+			this.folderSuggest.close();
+		}
+		this.folderSuggest = new FolderSuggest(this.app, folderInput, (value) => {
+			this.selectedFolder = value;
+			this.refresh();
+		});
+
+		folderInput.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				this.selectedFolder = folderInput.value;
+				this.refresh();
+			}
+		});
 
 		const statsEl = leftSection.createDiv("image-manager-stats");
-		statsEl.setText(`共 ${this.images.length} 张`);
+		statsEl.createSpan({ text: `${this.images.length}`, cls: "image-manager-stats-number" });
+		statsEl.createSpan({ text: " 张图片", cls: "image-manager-stats-label" });
 
 		// 右侧：多选和确认按钮
 		const rightSection = headerRow.createDiv("image-manager-header-right");
@@ -127,9 +163,13 @@ export class ImagePickerModal extends Modal {
 		// 多选模式下的确认按钮
 		if (this.isMultiSelectMode) {
 			const confirmBtn = rightSection.createEl("button", {
-				text: `确认 (${this.selectedImages.size})`,
-				cls: "image-manager-button",
+				cls: "clickable-icon",
+				attr: { "aria-label": `确认插入 (${this.selectedImages.size})` },
 			});
+			setIcon(confirmBtn, "check");
+			if (this.selectedImages.size > 0) {
+				confirmBtn.createSpan({ text: `${this.selectedImages.size}`, cls: "image-manager-icon-badge" });
+			}
 			// 没有选中图片时禁用
 			if (this.selectedImages.size === 0) {
 				confirmBtn.disabled = true;
@@ -139,11 +179,13 @@ export class ImagePickerModal extends Modal {
 
 		// 多选按钮
 		const multiSelectBtn = rightSection.createEl("button", {
-			text: this.isMultiSelectMode ? "取消" : "多选",
-			cls: this.isMultiSelectMode 
-				? "image-manager-button active"
-				: "image-manager-button",
+			cls: "clickable-icon",
+			attr: { "aria-label": this.isMultiSelectMode ? "取消多选" : "多选" },
 		});
+		setIcon(multiSelectBtn, this.isMultiSelectMode ? "x-square" : "copy-check");
+		if (this.isMultiSelectMode) {
+			multiSelectBtn.addClass("is-active");
+		}
 		multiSelectBtn.onclick = () => {
 			this.isMultiSelectMode = !this.isMultiSelectMode;
 			if (!this.isMultiSelectMode) {
@@ -154,55 +196,8 @@ export class ImagePickerModal extends Modal {
 			this.renderOptionsPanel();
 			this.renderGrid();
 		};
-		statsEl.setText(`共 ${this.images.length} 张`);
 	}
 
-	private showFolderInput(buttonEl: HTMLElement): void {
-		const leftSection = buttonEl.parentElement!;
-		const inputContainer = leftSection.createDiv("image-manager-folder-input-container");
-		leftSection.insertBefore(inputContainer, buttonEl.nextSibling);
-		
-		const folderInput = inputContainer.createEl("input", {
-			type: "text",
-			placeholder: "输入文件夹路径...",
-			value: this.selectedFolder,
-			cls: "image-manager-folder-input-inline",
-		});
-
-		buttonEl.addClass("is-hidden");
-
-		if (this.folderSuggest) {
-			this.folderSuggest.destroy();
-		}
-		this.folderSuggest = new FolderSuggest(this.app, folderInput, (value) => {
-			this.selectedFolder = value;
-			this.refresh();
-		});
-
-		folderInput.addEventListener("input", () => {
-			this.selectedFolder = folderInput.value;
-		});
-
-		folderInput.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				void this.refresh();
-				inputContainer.remove();
-				buttonEl.removeClass("is-hidden");
-			} else if (e.key === "Escape") {
-				inputContainer.remove();
-				buttonEl.removeClass("is-hidden");
-			}
-		});
-
-		folderInput.addEventListener("blur", () => {
-			setTimeout(() => {
-				inputContainer.remove();
-				buttonEl.removeClass("is-hidden");
-			}, 200);
-		});
-
-		setTimeout(() => folderInput.focus(), 0);
-	}
 
 	private renderSearchBar(): void {
 		this.searchContainer.empty();
@@ -222,26 +217,38 @@ export class ImagePickerModal extends Modal {
 		};
 
 		const sortControlsEl = this.searchContainer.createDiv("image-manager-sort-controls");
-		sortControlsEl.createSpan({ text: "排序依据:", cls: "image-manager-sort-label" });
 		
-		const sortFieldSelect = sortControlsEl.createEl("select", { cls: "dropdown" });
-		const sortFieldOptions = [
-			{ value: "mtime", text: "修改时间" },
-			{ value: "ctime", text: "创建时间" },
-			{ value: "size", text: "文件大小" },
-			{ value: "name", text: "文件名" },
-		];
-		sortFieldOptions.forEach((opt) => {
-			const option = sortFieldSelect.createEl("option", { value: opt.value, text: opt.text });
-			if (opt.value === this.sortField) option.selected = true;
+		const sortFieldBtn = sortControlsEl.createEl("button", {
+			cls: "clickable-icon",
+			attr: { "aria-label": "排序方式" },
 		});
-		sortFieldSelect.onchange = () => {
-			this.sortField = sortFieldSelect.value as SortField;
-			this.applyFilters();
-			this.renderGrid();
+		setIcon(sortFieldBtn, "arrow-up-narrow-wide");
+		sortFieldBtn.onclick = (evt) => {
+			const menu = new Menu();
+			const sortFieldOptions: { value: SortField; text: string }[] = [
+				{ value: "mtime", text: "修改时间" },
+				{ value: "ctime", text: "创建时间" },
+				{ value: "size", text: "文件大小" },
+				{ value: "name", text: "文件名" },
+			];
+			sortFieldOptions.forEach((opt) => {
+				menu.addItem((item) => {
+					item.setTitle(opt.text)
+						.setChecked(this.sortField === opt.value)
+						.onClick(() => {
+							this.sortField = opt.value;
+							this.applyFilters();
+							this.renderGrid();
+						});
+				});
+			});
+			menu.showAtMouseEvent(evt);
 		};
 
-		const sortOrderBtn = sortControlsEl.createEl("button", { cls: "image-manager-button" });
+		const sortOrderBtn = sortControlsEl.createEl("button", {
+			cls: "clickable-icon",
+			attr: { "aria-label": this.sortOrder === "desc" ? "降序" : "升序" },
+		});
 		this.updateSortOrderButton(sortOrderBtn);
 		sortOrderBtn.onclick = () => {
 			this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
@@ -253,7 +260,13 @@ export class ImagePickerModal extends Modal {
 
 	private updateSortOrderButton(button: HTMLElement): void {
 		button.empty();
-		button.createSpan({ text: this.sortOrder === "desc" ? "↓ 降序" : "↑ 升序" });
+		if (this.sortOrder === "desc") {
+			setIcon(button, "arrow-down");
+			button.setAttribute("aria-label", "降序");
+		} else {
+			setIcon(button, "arrow-up");
+			button.setAttribute("aria-label", "升序");
+		}
 	}
 
 	private renderOptionsPanel(): void {
@@ -349,7 +362,18 @@ export class ImagePickerModal extends Modal {
 		requestAnimationFrame(() => {
 			this.renderImageBatch(resolvedGridEl, imagesToRender);
 			this.renderedCount = endIndex;
+			this.isLoadingMore = false;
 			this.updateLoadMoreIndicator();
+
+			// 自动加载：若内容未溢出容器但仍有更多图片，则继续加载
+			requestAnimationFrame(() => {
+				if (
+					this.renderedCount < this.filteredImages.length &&
+					this.gridContainer.scrollHeight <= this.gridContainer.clientHeight
+				) {
+					this.loadMoreImages();
+				}
+			});
 		});
 	}
 
@@ -443,10 +467,7 @@ export class ImagePickerModal extends Modal {
 	private loadMoreImages(): void {
 		if (this.isLoadingMore || this.renderedCount >= this.filteredImages.length) return;
 		this.isLoadingMore = true;
-		requestAnimationFrame(() => {
-			this.renderGrid(true);
-			this.isLoadingMore = false;
-		});
+		this.renderGrid(true); // isLoadingMore 在 renderGrid 的 rAF 回调中重置
 	}
 
 	private updateLoadMoreIndicator(): void {
@@ -492,6 +513,9 @@ export class ImagePickerModal extends Modal {
 				case "ctime": compareValue = a.stat.ctime - b.stat.ctime; break;
 				case "size": compareValue = a.stat.size - b.stat.size; break;
 				case "name": compareValue = a.name.localeCompare(b.name); break;
+			}
+			if (compareValue === 0) {
+				compareValue = a.path.localeCompare(b.path);
 			}
 			return this.sortOrder === "asc" ? compareValue : -compareValue;
 		});
@@ -583,7 +607,7 @@ export class ImagePickerModal extends Modal {
 		}
 
 		if (this.folderSuggest) {
-			this.folderSuggest.destroy();
+			this.folderSuggest.close();
 			this.folderSuggest = null;
 		}
 	}

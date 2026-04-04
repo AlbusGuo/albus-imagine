@@ -70,12 +70,13 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		const tabsContainer = containerEl.createDiv('afm-settings-tabs');
 
 		(Object.keys(TAB_LABELS) as SettingsTab[]).forEach((tab) => {
-			const button = tabsContainer.createEl('button', {
-				cls: `afm-settings-tab${this.activeTab === tab ? ' afm-settings-tab-selected' : ''}`,
+			const tabEl = tabsContainer.createDiv({
+				cls: `afm-settings-tab${this.activeTab === tab ? ' is-active' : ''}`,
 				text: TAB_LABELS[tab]
 			});
 
-			button.addEventListener('click', () => {
+			tabEl.addEventListener('click', () => {
+				if (this.activeTab === tab) return;
 				this.activeTab = tab;
 				this.plugin.settings.settingsTab = tab;
 				void this.plugin.saveSettings();

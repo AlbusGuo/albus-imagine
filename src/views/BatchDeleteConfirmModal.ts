@@ -43,15 +43,11 @@ export class BatchDeleteConfirmModal extends Modal {
 		const detailsEl = this.bodyEl.createDiv("delete-confirm-modal-extra");
 		if (customImages.length > 0) {
 			detailsEl.setText(
-				`普通图片 ${normalImages.length} 张, 特殊图片 ${customImages.length} 张, 共删除 ${normalImages.length} + ${customImages.length}×2 = ${totalFiles} 个文件`
+				`普通图片 ${normalImages.length} 张，特殊图片 ${customImages.length} 张，共删除 ${totalFiles} 个文件`
 			);
 		} else {
 			detailsEl.setText(`共删除 ${totalFiles} 个文件`);
 		}
-
-		// 警告信息
-		const warningEl = this.bodyEl.createDiv("delete-confirm-modal-extra");
-		warningEl.setText("此操作不可撤销！");
 
 		// 按钮区域
 		this.actionsEl = contentEl.createDiv("delete-confirm-modal-actions");

@@ -7,7 +7,6 @@ import {
 	CustomFileTypeConfig,
 	ImageExtension,
 	ImageItem,
-	SortOrder,
 	SUPPORTED_IMAGE_EXTENSIONS,
 } from "../types/image-manager.types";
 
@@ -35,8 +34,7 @@ export class ImageLoaderService {
 	 * 加载指定文件夹下的图片
 	 */
 	loadImages(
-		folderPath: string,
-		sortOrder: SortOrder = "desc"
+		folderPath: string
 	): ImageItem[] {
 		const allFiles = this.app.vault.getFiles();
 
@@ -91,14 +89,7 @@ export class ImageLoaderService {
 		// 处理AGX文件和自定义文件类型的封面
 		const processedImages = imageFiles.map((file) => this.processImageFile(file));
 
-		// 按创建时间排序
-		const sortedImages = processedImages.sort((a, b) => {
-			const timeA = a.stat.ctime;
-			const timeB = b.stat.ctime;
-			return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
-		});
-
-		return sortedImages;
+		return processedImages;
 	}
 
 	/**

@@ -54,7 +54,7 @@
 	cursor: pointer;
 	font-size: 13px;
 	font-weight: 500;
-	transition: all 0.2s ease;
+	transition: background 0.2s ease, color 0.2s ease;
 }
 
 .image-manager-cancel-button {

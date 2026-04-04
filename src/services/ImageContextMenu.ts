@@ -12,6 +12,7 @@ import {
 } from "obsidian";
 import type AlbusImaginePlugin from "../main";
 import type { ImageManagerSettings } from "../types/image-manager.types";
+import { SUPPORTED_IMAGE_EXTENSIONS } from "../types/image-manager.types";
 
 interface ImageMatch {
 	lineNumber: number;
@@ -71,14 +72,13 @@ export class ImageContextMenu extends Component {
 			if (!img.closest(".markdown-source-view")) return;
 
 			// 仅对 Wiki 链接图片（![[]]）显示菜单，跳过 Markdown 链接图片（![]()）
-			// Wiki 链接使用 .internal-embed 包裹，而 Markdown 链接虽也可能在 .image-embed 中，但不会在 .internal-embed 中
 			if (!img.closest(".internal-embed")) return;
 
 			// 不阻止默认事件，让 Obsidian 的原生菜单先显示
 			// 延迟显示我们的菜单项，添加到原生菜单中
 			setTimeout(() => {
 				this.addMenuItemsToExistingMenu(img, event);
-			}, 50); // 增加延迟时间，确保原生菜单已经完全显示
+			}, 50);
 		} catch (error) {
 			console.error('[ImageContextMenu] Error:', error);
 		}
@@ -93,7 +93,7 @@ export class ImageContextMenu extends Component {
 		if (menus.length === 0) {
 			// 如果没找到菜单，创建我们自己的菜单
 			const menu = new Menu();
-			this.createContextMenuItems(menu, img, event);
+			this.createContextMenuItems(menu, img);
 			menu.showAtMouseEvent(event);
 			return;
 		}
@@ -105,26 +105,29 @@ export class ImageContextMenu extends Component {
 		// 检查是否已经有我们的项目，避免重复添加
 		if (targetMenu.querySelector('[data-albus-imagine]')) return;
 
+		// 优先插入到 .menu-scroll 容器内（原生项都在此容器中，有统一 padding）
+		const scrollContainer = targetMenu.querySelector('.menu-scroll') as HTMLElement;
+		const insertTarget = scrollContainer || targetMenu;
+
 		// 直接将我们的菜单项添加到现有菜单的顶部
-		this.addCustomMenuItems(targetMenu, img, true);
+		this.addCustomMenuItems(insertTarget, img);
 	}
 
 	/**
 	 * 添加自定义菜单项到指定容器
 	 */
-	private addCustomMenuItems(container: HTMLElement, img: HTMLImageElement, addToTop: boolean = false): void {
-		// 获取第一个子元素（用于插入到顶部）
+	private addCustomMenuItems(container: HTMLElement, img: HTMLImageElement): void {
 		const firstChild = container.firstChild;
 
 		// 添加分隔符
 		const separator = this.createSeparator();
-		if (addToTop && firstChild) {
+		if (firstChild) {
 			container.insertBefore(separator, firstChild);
 		} else {
 			container.appendChild(separator);
 		}
 
-		// 反转顺序创建菜单项
+		// 反转顺序创建菜单项（因为 insertBefore firstChild 会倒序）
 		this.createMenuItem(container, "删除链接", "trash-2", () => {
 			const imagePath = this.getImagePath(img);
 			if (!imagePath) {
@@ -162,11 +165,12 @@ export class ImageContextMenu extends Component {
 			const sourceFile = this.getSourceFileForCover(file);
 			const fileToOpen = sourceFile || file;
 
-			try {
-				await this.app.workspace.openLinkText(fileToOpen.path, '', true);
-			} catch (error) {
-				console.error("打开文件失败:", error);
-				new Notice("打开文件失败");
+			const ext = fileToOpen.extension.toLowerCase();
+			if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
+				(this.app as any).openWithDefaultApp(fileToOpen.path);
+			} else {
+				const leaf = this.app.workspace.getLeaf(false);
+				void leaf.openFile(fileToOpen);
 			}
 		});
 
@@ -182,47 +186,40 @@ export class ImageContextMenu extends Component {
 	/**
 	 * 创建菜单项
 	 */
-	private createMenuItem(container: HTMLElement, title: string, icon: string, callback: (menuItem?: HTMLElement) => void | Promise<void>): void {
+	private createMenuItem(container: HTMLElement, title: string, icon: string, callback: () => void | Promise<void>): void {
 		const menuItem = document.createElement('div');
 		menuItem.addClass('menu-item', 'tappable');
 		menuItem.setAttribute('data-albus-imagine', '');
-		
-		// 创建图标
+
 		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
 		setIcon(menuItemIcon, icon);
-		
-		// 创建标题
+
 		const menuItemTitle = document.createElement('div');
 		menuItemTitle.addClass('menu-item-title');
 		menuItemTitle.textContent = title;
-		
+
 		menuItem.appendChild(menuItemIcon);
 		menuItem.appendChild(menuItemTitle);
-		
-		// 添加点击事件
+
 		menuItem.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			void (async () => {
-				await callback(menuItem);
+				await callback();
 				this.closeAllMenus(container);
 			})();
 		});
-		
-		// 添加悬停事件
+
 		menuItem.addEventListener('mouseenter', () => {
-			container.querySelectorAll('.menu-item.selected').forEach(el => {
-				el.removeClass('selected');
-			});
+			container.querySelectorAll('.menu-item.selected').forEach(el => el.removeClass('selected'));
 			menuItem.addClass('selected');
-			document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
 		});
-		
+
 		menuItem.addEventListener('mouseleave', () => {
 			menuItem.removeClass('selected');
 		});
-		
+
 		const firstChild = container.firstChild;
 		if (firstChild) {
 			container.insertBefore(menuItem, firstChild);
@@ -232,146 +229,93 @@ export class ImageContextMenu extends Component {
 	}
 
 	/**
-	 * 创建带子菜单的菜单项
+	 * 创建带子菜单的菜单项（使用 Obsidian Menu API 实现原生风格子菜单）
 	 */
-	private createMenuItemWithSubmenu(container: HTMLElement, title: string, icon: string, img: HTMLImageElement, submenuItems: Array<{title: string, icon: string, callback: () => void}>): void {
+	private createMenuItemWithSubmenu(container: HTMLElement, title: string, icon: string, _img: HTMLImageElement, submenuItems: Array<{title: string, icon: string, callback: () => void}>): void {
 		const menuItem = document.createElement('div');
 		menuItem.addClass('menu-item', 'tappable');
 		menuItem.setAttribute('data-albus-imagine', '');
-		
-		// 创建图标
+
 		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
 		setIcon(menuItemIcon, icon);
-		
-		// 创建标题
+
 		const menuItemTitle = document.createElement('div');
 		menuItemTitle.addClass('menu-item-title');
 		menuItemTitle.textContent = title;
-		
-		// 创建子菜单箭头
+
 		const submenuArrow = document.createElement('div');
-		submenuArrow.addClass('menu-item-icon', 'afm-submenu-arrow');
+		submenuArrow.addClass('menu-item-icon', 'afm-submenu-flair');
 		setIcon(submenuArrow, 'chevron-right');
-		
+
 		menuItem.appendChild(menuItemIcon);
 		menuItem.appendChild(menuItemTitle);
 		menuItem.appendChild(submenuArrow);
-		
-		// 创建子菜单
-		const submenu = document.createElement('div');
-		submenu.addClass('menu', 'albus-imagine-submenu');
-		
-		// 添加子菜单项
-		submenuItems.forEach(item => {
-			const submenuItem = document.createElement('div');
-			submenuItem.addClass('menu-item', 'tappable');
-			
-			const submenuItemIcon = document.createElement('div');
-			submenuItemIcon.addClass('menu-item-icon');
-			setIcon(submenuItemIcon, item.icon);
-			
-			const submenuItemTitle = document.createElement('div');
-			submenuItemTitle.addClass('menu-item-title');
-			submenuItemTitle.textContent = item.title;
-			
-			submenuItem.appendChild(submenuItemIcon);
-			submenuItem.appendChild(submenuItemTitle);
-			
-			// 添加点击事件 — 同时关闭子菜单和主菜单
-			submenuItem.addEventListener('click', (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				item.callback();
-				// 先移除子菜单，再关闭主菜单
-				submenu.remove();
-				this.closeAllMenus(container);
-			});
-			
-			submenuItem.addEventListener('mouseenter', () => {
-				submenu.querySelectorAll('.menu-item.selected').forEach(el => {
-					el.removeClass('selected');
-				});
-				submenuItem.addClass('selected');
-			});
-			
-			submenuItem.addEventListener('mouseleave', () => {
-				submenuItem.removeClass('selected');
-			});
-			
-			submenu.appendChild(submenuItem);
-		});
-		
-		// 添加悬停事件显示子菜单
+
+		let submenuInstance: Menu | null = null;
 		let submenuTimeout: number | null = null;
-		
-		const showSubmenu = () => {
+
+		const clearHideTimeout = () => {
 			if (submenuTimeout) {
 				clearTimeout(submenuTimeout);
 				submenuTimeout = null;
 			}
-			
-			// 移除同级已打开的子菜单
-			document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
-			
-			// 取消同级菜单中所有项的选中状态
-			container.querySelectorAll('.menu-item.selected').forEach(el => {
-				el.removeClass('selected');
-			});
-			menuItem.addClass('selected');
-			
-			// 添加子菜单到 DOM 并定位
-			submenu.addClass('afm-context-submenu', 'is-measuring');
-			document.body.appendChild(submenu);
-			
-			const rect = menuItem.getBoundingClientRect();
-			const parentRect = container.getBoundingClientRect();
-			const submenuWidth = submenu.offsetWidth;
-			
-			let left = parentRect.right;
-			let top = rect.top;
-			
-			if (left + submenuWidth > window.innerWidth) {
-				left = parentRect.left - submenuWidth;
-			}
-			if (top + submenu.offsetHeight > window.innerHeight) {
-				top = window.innerHeight - submenu.offsetHeight;
-			}
-			
-			submenu.setCssProps({
-				'--submenu-left': `${left}px`,
-				'--submenu-top': `${top}px`,
-			});
-			submenu.removeClass('is-measuring');
 		};
-		
+
 		const hideSubmenu = () => {
 			submenuTimeout = window.setTimeout(() => {
-				if (!submenu.matches(':hover')) {
-					submenu.remove();
+				if (submenuInstance) {
+					submenuInstance.hide();
+					submenuInstance = null;
 				}
-			}, 100);
+			}, 200);
 		};
-		
-		menuItem.addEventListener('mouseenter', showSubmenu);
-		
-		menuItem.addEventListener('mouseleave', () => {
-			menuItem.removeClass('selected');
-			hideSubmenu();
-		});
-		
-		submenu.addEventListener('mouseenter', () => {
-			if (submenuTimeout) {
-				clearTimeout(submenuTimeout);
-				submenuTimeout = null;
+
+		const showSubmenu = () => {
+			clearHideTimeout();
+
+			// 移除已打开的子菜单
+			if (submenuInstance) {
+				submenuInstance.hide();
+				submenuInstance = null;
 			}
-		});
-		
-		submenu.addEventListener('mouseleave', () => {
-			submenu.remove();
-		});
-		
-		// 添加到顶部
+
+			container.querySelectorAll('.menu-item.selected').forEach(el => el.removeClass('selected'));
+			menuItem.addClass('selected');
+
+			submenuInstance = new Menu();
+			submenuItems.forEach(item => {
+				submenuInstance!.addItem((mi) => {
+					mi.setTitle(item.title)
+						.setIcon(item.icon)
+						.onClick(() => {
+							item.callback();
+							this.closeAllMenus(container);
+						});
+				});
+			});
+
+			// 定位子菜单
+			const rect = menuItem.getBoundingClientRect();
+			const parentMenu = menuItem.closest('.menu') as HTMLElement;
+			const parentRect = parentMenu ? parentMenu.getBoundingClientRect() : rect;
+
+			submenuInstance.showAtPosition({
+				x: parentRect.right,
+				y: rect.top,
+			});
+
+			// 在子菜单 DOM 上监听悬停，防止光标移过去时子菜单被关闭
+			const submenuEl = (submenuInstance as any).dom as HTMLElement | undefined;
+			if (submenuEl) {
+				submenuEl.addEventListener('mouseenter', clearHideTimeout);
+				submenuEl.addEventListener('mouseleave', hideSubmenu);
+			}
+		};
+
+		menuItem.addEventListener('mouseenter', showSubmenu);
+		menuItem.addEventListener('mouseleave', hideSubmenu);
+
 		const firstChild = container.firstChild;
 		if (firstChild) {
 			container.insertBefore(menuItem, firstChild);
@@ -384,9 +328,6 @@ export class ImageContextMenu extends Component {
 	 * 关闭所有菜单（主菜单和子菜单）
 	 */
 	private closeAllMenus(container: HTMLElement): void {
-		// 移除所有自定义子菜单
-		document.querySelectorAll('.albus-imagine-submenu').forEach(el => el.remove());
-		// 移除主菜单
 		const menu = container.closest('.menu') as HTMLElement;
 		if (menu) {
 			menu.remove();
@@ -403,7 +344,7 @@ export class ImageContextMenu extends Component {
 		return separator;
 	}
 
-	private createContextMenuItems(menu: Menu, img: HTMLImageElement, event: MouseEvent): void {
+	private createContextMenuItems(menu: Menu, img: HTMLImageElement): void {
 		this.currentMenu = menu;
 
 		// 图片对齐
@@ -677,15 +618,12 @@ export class ImageContextMenu extends Component {
 				const sourceFile = this.getSourceFileForCover(file);
 				const fileToOpen = sourceFile || file;
 
-				try {
-					await this.app.workspace.openLinkText(
-						fileToOpen.path,
-						'',
-						true
-					);
-				} catch (error) {
-					console.error("打开文件失败:", error);
-					new Notice("打开文件失败");
+				const ext = fileToOpen.extension.toLowerCase();
+				if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
+					(this.app as any).openWithDefaultApp(fileToOpen.path);
+				} else {
+					const leaf = this.app.workspace.getLeaf(false);
+					void leaf.openFile(fileToOpen);
 				}
 			});
 		});
@@ -1085,11 +1023,19 @@ export class ImageContextMenu extends Component {
 		};
 		textarea.addEventListener('input', autoResize);
 
-		// 阻止 Enter 换行，Enter 保存
+		// Escape 取消编辑；阻止 Enter 防止事件冒泡到 Obsidian
 		textarea.addEventListener('keydown', (e) => {
 			if (e.key === 'Enter') {
 				e.preventDefault();
-				textarea.blur();
+				e.stopPropagation();
+			} else if (e.key === 'Escape') {
+				e.preventDefault();
+				e.stopPropagation();
+				// 取消编辑：直接移除输入框，不保存
+				if (textarea.parentElement) {
+					textarea.remove();
+				}
+				imageEmbed.removeClass("afm-editing-caption");
 			}
 		});
 

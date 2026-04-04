@@ -59,168 +59,119 @@
 	50% { opacity: 1; }
 }
 
-/* ==================== 文件夹选择按钮 ==================== */
-.image-manager-folder-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 4px 10px;
-	height: 32px;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
-	font-size: 13px;
-	transition: all 0.15s ease;
-	flex-shrink: 0;
-	max-width: 300px;
-	box-shadow: none !important;
-}
-
-.image-manager-folder-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-}
-
-.image-manager-folder-icon {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.image-manager-folder-icon svg {
-	width: 14px;
-	height: 14px;
-}
-
-.image-manager-folder-text {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* 清空文件夹按钮 */
-.image-manager-clear-folder-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	padding: 4px;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
-	transition: all 0.15s ease;
-	flex-shrink: 0;
-	box-shadow: none !important;
-}
-
-.image-manager-clear-folder-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-}
-
-.image-manager-clear-folder-button svg {
-	width: 14px;
-	height: 14px;
-}
-
-/* 内联文件夹输入 */
+/* ==================== 文件夹筛选输入框 ==================== */
 .image-manager-folder-input-container {
-	display: inline-block;
 	position: relative;
-	min-width: 200px;
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 1;
+	min-width: 140px;
+	max-width: 300px;
 }
 
-.image-manager-folder-input-inline {
+.image-manager-folder-input {
 	width: 100%;
 	padding: 4px 10px;
-	background: transparent;
+	padding-right: 28px;
+	background: var(--background-primary);
 	color: var(--text-normal);
-	border: 1px solid var(--interactive-accent);
-	border-radius: var(--button-radius);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--input-radius);
 	font-size: 13px;
 	outline: none;
-	box-shadow: none !important;
 }
 
-.image-manager-folder-input-inline:focus {
+.image-manager-folder-input:focus {
 	border-color: var(--interactive-accent);
-	box-shadow: none !important;
+	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
 }
 
-/* 文件夹建议列表 */
-.image-manager-suggestion-container {
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-	box-shadow: var(--shadow-s);
+.image-manager-folder-input::placeholder {
+	color: var(--text-faint);
 }
 
-.image-manager-suggestion-item {
-	padding: 6px 12px;
-	cursor: pointer;
-	font-size: 13px;
-	color: var(--text-normal);
+.image-manager-folder-clear {
+	position: absolute;
+	right: 4px;
+	top: 50%;
+	transform: translateY(-50%);
+	padding: 2px;
 }
 
-.image-manager-suggestion-item.is-selected {
-	background: var(--background-modifier-hover);
-}
-
-.image-manager-suggestion-item:hover {
-	background: var(--background-modifier-hover);
+.image-manager-folder-clear svg {
+	width: 14px;
+	height: 14px;
 }
 
 /* ==================== 操作按钮 ==================== */
-/* 统一的按钮样式 */
-.image-manager-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 4px;
-	padding: 4px 12px;
-	min-width: 60px;
-	height: 28px;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
+/* 破坏性操作图标按钮（红色） */
+.image-manager-destructive-icon {
+	color: var(--text-error) !important;
+}
+
+.image-manager-destructive-icon:hover {
+	color: var(--text-on-accent) !important;
+	background: var(--color-red) !important;
+}
+
+/* 图标按钮上的数量角标 */
+.image-manager-header-right .clickable-icon {
+	position: relative;
+}
+
+.image-manager-icon-badge {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+	min-width: 14px;
+	height: 14px;
+	padding: 0 3px;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 14px;
+	text-align: center;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border-radius: 7px;
+}
+
+.image-manager-badge-destructive {
+	background: var(--color-red);
+}
+
+/* 激活态图标按钮（筛选、多选等） */
+.image-manager-header-right .clickable-icon.is-active,
+.image-manager-sort-controls .clickable-icon.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.image-manager-header-right .clickable-icon.is-active:hover,
+.image-manager-sort-controls .clickable-icon.is-active:hover {
+	background: var(--interactive-accent-hover);
+	color: var(--text-on-accent);
+}
+
+/* 统计信息 */
+.image-manager-stats {
 	font-size: 12px;
-	transition: all 0.15s ease;
+	color: var(--text-faint);
 	white-space: nowrap;
 	flex-shrink: 0;
-	box-shadow: none !important;
 }
 
-.image-manager-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+.image-manager-stats-number {
+	color: var(--text-muted);
+	font-weight: 600;
 }
 
-.image-manager-button.active,
-.image-manager-button.active:hover {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent) !important;
-	border-color: var(--interactive-accent) !important;
+.image-manager-stats-label {
+	color: var(--text-faint);
 }
 
-.image-manager-button.batch-delete {
-	color: var(--text-error);
-}
-
-.image-manager-button.batch-delete:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-error);
-}
-
-.image-manager-button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+.image-manager-stats-sep {
+	color: var(--text-faint);
+	margin: 0 2px;
 }
 
 /* ==================== 搜索栏 ==================== */
@@ -368,7 +319,7 @@
 	border-radius: var(--radius-m);
 	background: var(--background-primary);
 	cursor: pointer;
-	transition: all 0.2s ease;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -626,7 +577,7 @@
 	background: transparent;
 	color: var(--text-muted);
 	cursor: pointer;
-	transition: all 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease;
 }
 
 .image-manager-action-button svg {

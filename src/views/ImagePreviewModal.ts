@@ -9,7 +9,7 @@ export class ImagePreviewModal extends Modal {
 	private image: ImageItem;
 	private references: ReferenceInfo[];
 	private getImagePath: (image: ImageItem) => string;
-	private onOpenReference?: (filePath: string) => void;
+	private onOpenReference?: (filePath: string, position?: { start: { line: number; col: number } }) => void;
 
 	// 图片查看器状态（参照 ImageViewerView）
 	private imgStatus: {
@@ -31,7 +31,7 @@ export class ImagePreviewModal extends Modal {
 		image: ImageItem,
 		references: ReferenceInfo[],
 		getImagePath: (image: ImageItem) => string,
-		onOpenReference?: (filePath: string) => void
+		onOpenReference?: (filePath: string, position?: { start: { line: number; col: number } }) => void
 	) {
 		super(app);
 		this.image = image;
@@ -424,7 +424,7 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-backlinks-section",
 		});
 
-		backlinksSection.createEl("h4", { text: "引用文档" });
+		backlinksSection.createEl("h4", { text: "引用笔记" });
 
 		const backlinksList = backlinksSection.createDiv({
 			cls: "image-manager-backlinks-list",
@@ -462,7 +462,7 @@ export class ImagePreviewModal extends Modal {
 		});
 
 		item.addEventListener("click", () => {
-			this.onOpenReference?.(ref.file.path);
+			this.onOpenReference?.(ref.file.path, ref.position);
 			this.close();
 		});
 

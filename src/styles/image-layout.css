@@ -40,15 +40,11 @@ body:not(.image-zoom) .view-content img[alt$="center"] {
 }
 
 .image-resize-container.afm-align-left {
-  float: left;
-  margin: 0.5rem 1rem 0.5rem 0 !important;
-  clear: both;
+  margin: 0.5rem auto 0.5rem 0 !important;
 }
 
 .image-resize-container.afm-align-right {
-  float: right;
-  margin: 0.5rem 0 0.5rem 1rem !important;
-  clear: both;
+  margin: 0.5rem 0 0.5rem auto !important;
 }
 
 img[alt$="inline"] {
@@ -57,31 +53,32 @@ img[alt$="inline"] {
   vertical-align: bottom;
 }
 
-/* 编辑模式下的左右对齐 - 使用 margin 而非 float，便于右键定位 */
-.markdown-source-view.mod-cm6 .image-embed[alt$="left"] {
-  margin: auto !important;
-  margin-left: 0 !important;
-  display: block;
-  padding: 0 !important;
-}
-
-.markdown-source-view.mod-cm6 .image-embed[alt$="right"] {
-  margin: auto !important;
-  margin-right: 0 !important;
-  display: block;
-  padding: 0 !important;
-}
-
-/* 阅读模式下的左右对齐 - 使用 float */
-img[alt$="left"] {
+/* 左右对齐（无标题，| 语法） */
+/* 阅读模式：float 环绕 */
+:is(.markdown-preview-view,.markdown-rendered) img[alt$="left"] {
   float: left !important;
-  padding: 0.5em 0.5em 0.5em 0.5em !important;
+  padding: 0.5em !important;
 }
 
-img[alt$="right"] {
+:is(.markdown-preview-view,.markdown-rendered) img[alt$="right"] {
   float: right !important;
-  padding: 0.5em 0.5em 0.5em 0.5em !important;
+  padding: 0.5em !important;
 }
+
+/* 实时预览：margin 对齐 */
+.markdown-source-view.mod-cm6.is-live-preview img[alt$="left"] {
+  display: block;
+  margin-right: auto !important;
+  padding: 0.5em !important;
+}
+
+.markdown-source-view.mod-cm6.is-live-preview img[alt$="right"] {
+  display: block;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  padding: 0.5em !important;
+}
+
 
 /* ========================================
 图片标题 — 带标题图片使用 # 语法：![[image#position|caption|size]]
@@ -124,21 +121,19 @@ img[alt$="right"] {
 }
 
 /* --- 左对齐 --- */
-/* 编辑模式 - 使用 margin 便于右键定位 */
-.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="left"] {
-  position: relative;
-  margin: 0.5rem auto 0.5rem 0 !important;
-  clear: both;
-  display: table;
-  float: none;
-}
-
-/* 阅读模式 - 使用 float */
+/* 阅读模式：float 环绕 */
 :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="left"] {
   position: relative;
   float: left;
   margin: 0.5rem 1rem 0.5rem 0 !important;
   clear: both;
+  display: table;
+}
+
+/* 实时预览：margin 对齐 */
+.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="left"] {
+  position: relative;
+  margin: 0.5rem auto 0.5rem 0 !important;
   display: table;
 }
 
@@ -154,21 +149,19 @@ img[alt$="right"] {
 }
 
 /* --- 右对齐 --- */
-/* 编辑模式 - 使用 margin 便于右键定位 */
-.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="right"] {
-  position: relative;
-  margin: 0.5rem 0 0.5rem auto !important;
-  clear: both;
-  display: table;
-  float: none;
-}
-
-/* 阅读模式 - 使用 float */
+/* 阅读模式：float 环绕 */
 :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="right"] {
   position: relative;
   float: right;
   margin: 0.5rem 0 0.5rem 1rem !important;
   clear: both;
+  display: table;
+}
+
+/* 实时预览：margin 对齐 */
+.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="right"] {
+  position: relative;
+  margin: 0.5rem 0 0.5rem auto !important;
   display: table;
 }
 

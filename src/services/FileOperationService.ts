@@ -2,22 +2,23 @@
  * 文件操作服务
  */
 
-import { App, Notice, TFile } from "obsidian";
-import { CustomFileTypeConfig, ImageItem } from "../types/image-manager.types";
+import { App, MarkdownView, Notice, TFile } from "obsidian";
+import { CustomFileTypeConfig, ImageItem, SUPPORTED_IMAGE_EXTENSIONS } from "../types/image-manager.types";
 
 export class FileOperationService {
 	constructor(private app: App) {}
 
 	/**
-	 * 打开文件
+	 * 打开文件（图片用系统默认应用，其他用 Obsidian 内部打开）
 	 */
-	async openFile(image: ImageItem): Promise<void> {
-		// 使用 Obsidian 默认方式打开文件
-		await this.app.workspace.openLinkText(
-			image.originalFile.path,
-			'',
-			true
-		);
+	openFile(image: ImageItem): void {
+		const ext = image.originalFile.extension.toLowerCase();
+		if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
+			(this.app as any).openWithDefaultApp(image.originalFile.path);
+		} else {
+			const leaf = this.app.workspace.getLeaf(false);
+			void leaf.openFile(image.originalFile);
+		}
 	}
 
 	/**
@@ -88,12 +89,53 @@ export class FileOperationService {
 	}
 
 	/**
+	 * 移动文件到目标文件夹
+	 */
+	async moveFile(image: ImageItem, targetFolder: string): Promise<void> {
+		try {
+			const newPath = targetFolder ? `${targetFolder}/${image.originalFile.name}` : image.originalFile.name;
+			if (newPath === image.originalFile.path) {
+				new Notice("文件已在该文件夹中");
+				return;
+			}
+			await this.app.fileManager.renameFile(image.originalFile, newPath);
+
+			// 如果是自定义文件类型，同时移动封面文件
+			if (image.isCustomType && image.customTypeConfig) {
+				const coverPath = this.getCoverPath(image.path, image.customTypeConfig);
+				const coverFile = this.app.vault.getAbstractFileByPath(coverPath);
+				if (coverFile instanceof TFile) {
+					const newCoverPath = this.getCoverPath(newPath, image.customTypeConfig);
+					await this.app.fileManager.renameFile(coverFile, newCoverPath);
+				}
+			}
+
+			new Notice("文件移动成功");
+		} catch (error) {
+			new Notice(`移动失败: ${error.message}`);
+			throw error;
+		}
+	}
+
+	/**
 	 * 打开引用文件
 	 */
-	async openReferenceFile(filePath: string): Promise<void> {
+	async openReferenceFile(filePath: string, position?: { start: { line: number; col: number } }): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (file instanceof TFile) {
-			await this.app.workspace.openLinkText(filePath, "");
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file);
+			if (position) {
+				const line = position.start.line;
+				// setEphemeralState 在阅读模式和编辑模式下都能定位到指定行
+				leaf.setEphemeralState({ line });
+				// 编辑模式下额外设置光标
+				const view = leaf.view;
+				if (view instanceof MarkdownView && view.getMode() === "source") {
+					const editor = view.editor;
+					editor.setCursor(line, position.start.col);
+				}
+			}
 		}
 	}
 

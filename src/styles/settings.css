@@ -9,32 +9,44 @@
 	/* 不添加额外 padding，使用原生样式 */
 }
 
-/* 标签页导航 - 参考 Pretty Properties */
+/* 标签页导航 */
 .afm-settings-tabs {
+	display: flex;
+	justify-content: flex-start;
 	border-bottom: 1px solid var(--background-modifier-border);
 	overflow-x: auto;
-	white-space: nowrap;
-	margin-bottom: 1.5em;
+	padding: 0;
+	margin: 0 0 16px;
 }
 
-button.afm-settings-tab {
-	border: none;
-	box-shadow: none;
-	padding: 0.5em 1em;
-	background: transparent;
-	color: var(--text-muted);
+.afm-settings-tabs::-webkit-scrollbar {
+	display: none;
+}
+
+.afm-settings-tab {
+	padding: 4px 8px;
+	margin-bottom: -1px;
+	border: 1px solid transparent;
+	border-radius: 5px 5px 0 0;
 	cursor: pointer;
-	transition: all 0.2s ease;
+	font-size: var(--font-ui-medium);
+	font-weight: 500;
+	color: var(--text-muted);
+	transition: color .1s ease;
+	border-bottom: 2px solid transparent;
+	user-select: none;
 }
 
-button.afm-settings-tab-selected {
-	background-color: var(--interactive-accent);
-	color: var(--text-on-accent);
-}
-
-button.afm-settings-tab:not(.afm-settings-tab-selected):hover {
-	background-color: var(--interactive-hover);
+.afm-settings-tab:hover {
 	color: var(--text-normal);
+	border-radius: 5px 5px 0 0;
+	border-bottom-color: var(--interactive-accent);
+}
+
+.afm-settings-tab.is-active {
+	color: var(--text-normal);
+	font-weight: 600;
+	border-bottom-color: var(--interactive-accent);
 }
 
 /* 内容容器 */
@@ -125,9 +137,9 @@ button.afm-settings-tab:not(.afm-settings-tab-selected):hover {
 	overflow-x: scroll;
 }
 
-.is-mobile button.afm-settings-tab {
+.is-mobile .afm-settings-tab {
 	min-width: auto;
-	padding: 0.5em 0.75em;
+	padding: 4px 6px;
 }
 
 .is-mobile .afm-custom-type-item .setting-item-control {
