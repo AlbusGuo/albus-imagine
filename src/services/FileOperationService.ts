@@ -90,13 +90,14 @@ export class FileOperationService {
 
 	/**
 	 * 移动文件到目标文件夹
+	 * @returns 移动后的新路径；若文件已在目标文件夹中则返回 null
 	 */
-	async moveFile(image: ImageItem, targetFolder: string): Promise<void> {
+	async moveFile(image: ImageItem, targetFolder: string, silent: boolean = false): Promise<string | null> {
 		try {
 			const newPath = targetFolder ? `${targetFolder}/${image.originalFile.name}` : image.originalFile.name;
 			if (newPath === image.originalFile.path) {
-				new Notice("文件已在该文件夹中");
-				return;
+				if (!silent) new Notice("文件已在该文件夹中");
+				return null;
 			}
 			await this.app.fileManager.renameFile(image.originalFile, newPath);
 
@@ -110,9 +111,10 @@ export class FileOperationService {
 				}
 			}
 
-			new Notice("文件移动成功");
+			if (!silent) new Notice("文件移动成功");
+			return newPath;
 		} catch (error) {
-			new Notice(`移动失败: ${error.message}`);
+			if (!silent) new Notice(`移动失败: ${error.message}`);
 			throw error;
 		}
 	}

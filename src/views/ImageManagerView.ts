@@ -211,7 +211,16 @@ export class ImageManagerView extends ItemView {
 
 		// 删除按钮逻辑：多选优先于筛选
 		if (this.isMultiSelectMode && this.selectedImages.size > 0) {
-			// 多选模式且有选中项：删除选中
+			// 多选模式且有选中项：批量移动
+			const batchMoveSelectedBtn = rightSection.createEl("button", {
+				cls: "clickable-icon",
+				attr: { "aria-label": `移动选中 (${this.selectedImages.size})` },
+			});
+			setIcon(batchMoveSelectedBtn, "folder-tree");
+			batchMoveSelectedBtn.createSpan({ text: `${this.selectedImages.size}`, cls: "image-manager-icon-badge" });
+			batchMoveSelectedBtn.onclick = () => this.handleBatchMoveSelected();
+
+			// 多选模式且有选中项：批量删除
 			const batchDeleteSelectedBtn = rightSection.createEl("button", {
 				cls: "clickable-icon image-manager-destructive-icon",
 				attr: { "aria-label": `删除选中 (${this.selectedImages.size})` },
@@ -226,6 +235,7 @@ export class ImageManagerView extends ItemView {
 				attr: { "aria-label": "删除全部未引用" },
 			});
 			setIcon(deleteAllUnreferencedBtn, "trash-2");
+			deleteAllUnreferencedBtn.createSpan({ text: "all", cls: "image-manager-icon-badge image-manager-badge-destructive" });
 			deleteAllUnreferencedBtn.onclick = () => this.handleBatchDelete();
 		}
 
@@ -1067,10 +1077,20 @@ export class ImageManagerView extends ItemView {
 			void (async () => {
 				try {
 					const oldPath = image.path;
-					await this.fileOperations.moveFile(image, folder.path);
+					const newPath = await this.fileOperations.moveFile(image, folder.path);
+					if (!newPath) return; // 文件已在目标文件夹中
 
-					// 从内存中移除旧路径的图片
-					this.images = this.images.filter((img) => img.path !== oldPath);
+					// 判断新路径是否仍在当前筛选目录内
+					const stillInFilter = !this.selectedFolder ||
+						newPath.startsWith(this.selectedFolder + "/");
+
+					if (stillInFilter) {
+						// 仍在筛选范围内，更新内存数据
+						this.updateImageAfterMove(oldPath, newPath);
+					} else {
+						// 移出筛选范围，从列表移除
+						this.images = this.images.filter((img) => img.path !== oldPath);
+					}
 					this.applyFilters();
 					this.renderHeader();
 					this.renderGrid();
@@ -1110,6 +1130,14 @@ export class ImageManagerView extends ItemView {
 			}
 		);
 		modal.open();
+	}
+
+	/**
+	 * 更新移动后的图片数据
+	 */
+	private updateImageAfterMove(oldPath: string, newPath: string): void {
+		const newName = newPath.substring(newPath.lastIndexOf("/") + 1);
+		this.updateImageAfterRename(oldPath, newPath, newName);
 	}
 
 	/**
@@ -1311,6 +1339,68 @@ export class ImageManagerView extends ItemView {
 			}
 		);
 		modal.open();
+	}
+
+	/**
+	 * 批量移动选中的图片
+	 */
+	private handleBatchMoveSelected(): void {
+		if (this.selectedImages.size === 0) {
+			new Notice("没有选中的图片");
+			return;
+		}
+
+		const imagesToMove = this.images.filter(img => this.selectedImages.has(img.path));
+
+		new FolderPickerModal(this.app, (folder) => {
+			void (async () => {
+				const total = imagesToMove.length;
+				let successCount = 0;
+				let errorCount = 0;
+
+				const progressNotice = new Notice(`正在移动... 0/${total}`, 0);
+
+				for (const image of imagesToMove) {
+					try {
+						const oldPath = image.path;
+						const newPath = await this.fileOperations.moveFile(image, folder.path, true);
+						if (newPath) {
+							const stillInFilter = !this.selectedFolder ||
+								newPath.startsWith(this.selectedFolder + "/");
+
+							if (stillInFilter) {
+								this.updateImageAfterMove(oldPath, newPath);
+							} else {
+								this.images = this.images.filter(img => img.path !== oldPath);
+							}
+							successCount++;
+						} else {
+							// 文件已在目标文件夹中，视为跳过
+							successCount++;
+						}
+					} catch {
+						errorCount++;
+					}
+					this.selectedImages.delete(image.path);
+					progressNotice.setMessage(`正在移动... ${successCount + errorCount}/${total}`);
+				}
+
+				progressNotice.hide();
+				if (errorCount === 0) {
+					new Notice(`成功移动 ${successCount} 张图片`);
+				} else {
+					new Notice(`移动完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
+				}
+
+				// 退出多选模式
+				this.isMultiSelectMode = false;
+				this.selectedImages.clear();
+
+				this.applyFilters();
+				this.renderHeader();
+				this.renderGrid();
+			})();
+		}).open();
 	}
 
 	/**
