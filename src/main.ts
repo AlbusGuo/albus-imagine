@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -7,6 +7,7 @@ import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
+import { SUPPORTED_IMAGE_EXTENSIONS } from "./types/image-manager.types";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -80,6 +81,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				}
 			})
 		);
+
+		// 监听 Vault 文件变更事件，实时更新图片管理器视图
+		this.registerVaultChangeListeners();
 	}
 
 	/**
@@ -235,5 +239,95 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		} else {
 			document.body.addClass('afm-no-svg-invert');
 		}
+	}
+
+	/**
+	 * 注册 Vault 文件变更事件监听
+	 * 当图片或自定义文件类型发生创建、删除、重命名时，实时更新所有已打开的图片管理器视图
+	 */
+	private registerVaultChangeListeners(): void {
+		const handleVaultChange = (file: TFile) => {
+			if (this.isRelevantFile(file)) {
+				this.scheduleViewRefresh();
+			}
+		};
+
+		this.registerEvent(
+			this.app.vault.on('create', (file) => {
+				if (file instanceof TFile) {
+					handleVaultChange(file);
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				if (file instanceof TFile) {
+					handleVaultChange(file);
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('rename', (file) => {
+				if (file instanceof TFile) {
+					handleVaultChange(file);
+				}
+			})
+		);
+	}
+
+	/**
+	 * 判断文件是否为插件关注的文件类型（标准图片格式 + 用户自定义文件类型）
+	 */
+	private isRelevantFile(file: TFile): boolean {
+		const ext = file.extension.toLowerCase();
+
+		// 标准图片扩展名
+		if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
+			return true;
+		}
+
+		// 用户自定义文件类型（含封面文件）
+		const customTypes = this.settings.imageManager?.customFileTypes || [];
+		for (const ct of customTypes) {
+			if (
+				ct.fileExtension.toLowerCase() === ext ||
+				ct.coverExtension.toLowerCase() === ext
+			) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/** Vault 变更防抖定时器 */
+	private vaultChangeTimer: number | null = null;
+
+	/**
+	 * 防抖调度视图刷新（200ms 内的多次变更合并为一次刷新）
+	 */
+	private scheduleViewRefresh(): void {
+		if (this.vaultChangeTimer !== null) {
+			window.clearTimeout(this.vaultChangeTimer);
+		}
+		this.vaultChangeTimer = window.setTimeout(() => {
+			this.vaultChangeTimer = null;
+			this.notifyImageManagerViews();
+		}, 200);
+	}
+
+	/**
+	 * 通知所有打开的图片管理器视图刷新
+	 */
+	private notifyImageManagerViews(): void {
+		const leaves = this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
+		leaves.forEach(leaf => {
+			const view = leaf.view;
+			if (view instanceof ImageManagerView) {
+				view.refreshFromVault();
+			}
+		});
 	}
 }

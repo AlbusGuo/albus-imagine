@@ -1431,6 +1431,14 @@ export class ImageManagerView extends ItemView {
 	}
 
 	/**
+	 * 由 Vault 文件变更触发的刷新（不保存文件夹选择状态）
+	 * 供 main.ts 中 Vault 事件监听调用
+	 */
+	refreshFromVault(): void {
+		this.loadImages();
+	}
+
+	/**
 	 * 保存上次选择的文件夹
 	 */
 	private async saveLastSelectedFolder(): Promise<void> {
