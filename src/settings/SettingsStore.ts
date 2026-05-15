@@ -89,7 +89,7 @@ export default class SettingsStore {
 		) {
 			return defaults;
 		}
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+		// Runtime type guard above ensures saved is T-compatible
 		return saved as unknown as T;
 	}
 

@@ -126,7 +126,7 @@ export class LinkUpdateService {
 			if (!start_reg.test(line.text)) break;
 			
 			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
-			matched_results.push(...matched);
+			for (const item of matched) matched_results.push(item);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -136,7 +136,7 @@ export class LinkUpdateService {
 			if (!start_reg.test(line.text)) break;
 			
 			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
-			matched_results.push(...matched);
+			for (const item of matched) matched_results.push(item);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -224,7 +224,7 @@ export class LinkUpdateService {
 			if (!start_reg.test(line.text)) break;
 			
 			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
-			matched_results.push(...matched);
+			for (const item of matched) matched_results.push(item);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -234,7 +234,7 @@ export class LinkUpdateService {
 			if (!start_reg.test(line.text)) break;
 			
 			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
-			matched_results.push(...matched);
+			for (const item of matched) matched_results.push(item);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
