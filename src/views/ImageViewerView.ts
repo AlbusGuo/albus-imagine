@@ -133,8 +133,8 @@ export class ImageViewerView {
 
 		// move the image
 		this.imgViewEl.setCssProps({
-			'margin-left': this.imgStatus.left + 'px',
-			'margin-top': this.imgStatus.top + 'px',
+			'--afm-img-left': this.imgStatus.left + 'px',
+			'--afm-img-top': this.imgStatus.top + 'px',
 		});
 	};
 
@@ -193,8 +193,8 @@ export class ImageViewerView {
 		// 渲染
 		this.imgViewEl.setAttribute('width', this.imgStatus.curWidth + 'px');
 		this.imgViewEl.setCssProps({
-			'margin-left': this.imgStatus.left + 'px',
-			'margin-top': this.imgStatus.top + 'px',
+			'--afm-img-left': this.imgStatus.left + 'px',
+			'--afm-img-top': this.imgStatus.top + 'px',
 		});
 	}
 
@@ -280,8 +280,9 @@ export class ImageViewerView {
 				this.imgViewEl.alt = imgEl.alt;
 				this.imgViewEl.setAttribute('width', size.width + 'px');
 			this.imgViewEl.setCssProps({
-				'margin-top': size.top + 'px',
-				'margin-left': size.left + 'px',
+				'--afm-img-top': size.top + 'px',
+				'--afm-img-left': size.left + 'px',
+				'--afm-img-width': size.width + 'px',
 			});
 				// 添加默认棋盘背景（用于透明图片）
 				this.imgViewEl.addClass('img-default-background');

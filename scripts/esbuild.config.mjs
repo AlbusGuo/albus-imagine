@@ -2,8 +2,8 @@ import esbuild from "esbuild";
 import process from "process";
 import postcss from "postcss";
 import postcssNesting from "postcss-nesting";
-import builtins from "builtin-modules";
-import fs from "fs-extra";
+import { builtinModules } from "node:module";
+import fs from "node:fs";
 import path from "path";
 
 const banner = `/*
@@ -108,7 +108,7 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins,
+		...builtinModules,
 	],
 	format: "cjs",
 	target: "es2020",

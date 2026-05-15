@@ -125,7 +125,7 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
+			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
 			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
@@ -135,7 +135,7 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
+			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
 			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
@@ -223,7 +223,7 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
+			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
 			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
@@ -233,7 +233,7 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
+			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
 			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}

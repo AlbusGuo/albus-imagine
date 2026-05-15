@@ -287,10 +287,10 @@ export class ImagePreviewModal extends Modal {
 	private applyTransform(): void {
 		if (!this.imgStatus || !this.imageElement) return;
 		this.imageElement.setCssProps({
-			'width': this.imgStatus.curWidth + 'px',
-			'height': 'auto',
-			'margin-left': this.imgStatus.left + 'px',
-			'margin-top': this.imgStatus.top + 'px',
+			'--afm-preview-width': this.imgStatus.curWidth + 'px',
+			'--afm-preview-height': 'auto',
+			'--afm-preview-left': this.imgStatus.left + 'px',
+			'--afm-preview-top': this.imgStatus.top + 'px',
 		});
 	}
 

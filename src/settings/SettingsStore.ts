@@ -89,6 +89,7 @@ export default class SettingsStore {
 		) {
 			return defaults;
 		}
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 		return saved as unknown as T;
 	}
 

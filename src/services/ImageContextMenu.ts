@@ -672,8 +672,7 @@ export class ImageContextMenu extends Component {
 				}
 
 				try {
-					// @ts-ignore - showInFolder is an internal API
-					this.app.showInFolder(file.path);
+				(this.app as unknown as { showInFolder: (path: string) => void }).showInFolder(file.path);
 					new Notice("已打开系统资源管理器");
 				} catch (error) {
 					console.error("Failed to show in system explorer:", error);
@@ -831,10 +830,10 @@ export class ImageContextMenu extends Component {
 
 			// 匹配 Wiki 链接: ![[image.png]] 或 ![[image.png|100]] 或 ![[folder/image.png]]
 			const wikiRegex = /!\[\[([^\]|]+)(?:\|[^\]]+?)?\]\]/g;
-			let match;
+			let match: RegExpExecArray | null;
 			while ((match = wikiRegex.exec(line)) !== null) {
-				const fullMatch = match[0];
-				const linkPath = match[1].trim();
+				const fullMatch: string = match[0];
+				const linkPath: string = match[1].trim();
 				const linkFileName = linkPath.split('/').pop()?.toLowerCase() || '';
 				const linkBaseName = linkFileName.replace(/\.[^.]+$/, '');
 

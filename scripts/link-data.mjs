@@ -1,6 +1,5 @@
 import { spawn } from "child_process";
-import dotenv from "dotenv";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { lstat, readFile, symlink, unlink } from "fs/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -8,7 +7,30 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 
-dotenv.config({ quiet: true });
+// 手动解析 .env 文件（替代 dotenv）
+function loadEnv() {
+	try {
+		const envPath = join(projectRoot, ".env");
+		if (existsSync(envPath)) {
+			const content = readFileSync(envPath, "utf-8");
+			for (const line of content.split("\n")) {
+				const trimmed = line.trim();
+				if (!trimmed || trimmed.startsWith("#")) continue;
+				const eqIndex = trimmed.indexOf("=");
+				if (eqIndex === -1) continue;
+				const key = trimmed.slice(0, eqIndex).trim();
+				const value = trimmed.slice(eqIndex + 1).trim();
+				if (!process.env[key]) {
+					process.env[key] = value;
+				}
+			}
+		}
+	} catch {
+		// .env 文件不存在或无法读取，忽略
+	}
+}
+
+loadEnv();
 const VAULT_PATH = process.env.VAULT_PATH;
 if (!VAULT_PATH) {
 	throw new Error(
