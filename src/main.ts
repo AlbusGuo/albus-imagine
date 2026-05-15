@@ -95,7 +95,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.resizeHandler = new ResizeHandler(this, this.settings.imageResize);
 		
 		// 注册主文档事件
-		this.resizeHandler.registerDocument(document);
+		this.resizeHandler.registerDocument(activeDocument);
 
 		// 监听新窗口打开事件
 		this.registerEvent(
@@ -235,9 +235,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private updateSvgInvertClass(): void {
 		const shouldInvert = this.settings.imageManager?.invertSvgInDarkMode !== false;
 		if (shouldInvert) {
-			document.body.removeClass('afm-no-svg-invert');
+			activeDocument.body.removeClass('afm-no-svg-invert');
 		} else {
-			document.body.addClass('afm-no-svg-invert');
+			activeDocument.body.addClass('afm-no-svg-invert');
 		}
 	}
 

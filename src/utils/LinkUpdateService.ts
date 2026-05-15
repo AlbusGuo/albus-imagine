@@ -11,6 +11,16 @@ interface LinkMatch {
 	to_ch: number;
 }
 
+interface CMEditorView {
+	state: {
+		doc: {
+			lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
+			line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
+		};
+	};
+	dispatch: (changes: { changes: { from: number; to: number; insert: string } }) => void;
+}
+
 /**
  * 链接更新服务
  * 负责处理内部和外部图片链接的更新
@@ -79,17 +89,7 @@ export class LinkUpdateService {
 		if (!imageName) return;
 
 		const editor = activeView.editor;
-		const editorView = (editor as unknown as { 
-			cm: { 
-				state: { 
-					doc: { 
-						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
-						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
-					} 
-				};
-				dispatch: (changes: unknown) => void;
-			} 
-		}).cm;
+		const editorView = (editor as unknown as { cm: CMEditorView }).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 
 		if (!inCallout && !inTable) {
@@ -183,17 +183,7 @@ export class LinkUpdateService {
 		inCallout: boolean
 	): void {
 		const editor = activeView.editor;
-		const editorView = (editor as unknown as { 
-			cm: { 
-				state: { 
-					doc: { 
-						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
-						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
-					} 
-				};
-				dispatch: (changes: unknown) => void;
-			} 
-		}).cm;
+		const editorView = (editor as unknown as { cm: CMEditorView }).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 		const link = target.getAttribute('src');
 		const altText = target.getAttribute('alt');

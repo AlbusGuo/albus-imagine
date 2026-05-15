@@ -54,17 +54,17 @@ export class ImageViewerView {
 		}
 
 		// <div class="afm-img-viewer-container">
-		this.containerEl = document.createElement('div');
+		this.containerEl = activeDocument.createElement('div');
 		this.containerEl.addClass(IMAGE_VIEWER_CLASS.CONTAINER);
 		parentEl.appendChild(this.containerEl);
 
 		// <div class="afm-img-container">
-		this.imgContainerEl = document.createElement('div');
+		this.imgContainerEl = activeDocument.createElement('div');
 		this.imgContainerEl.addClass(IMAGE_VIEWER_CLASS.IMG_CONTAINER);
 		this.containerEl.appendChild(this.imgContainerEl);
 
 		// <img class="afm-img-view">
-		this.imgViewEl = document.createElement('img');
+		this.imgViewEl = activeDocument.createElement('img');
 		this.imgViewEl.addClass(IMAGE_VIEWER_CLASS.IMG_VIEW);
 		this.imgContainerEl.appendChild(this.imgViewEl);
 
@@ -89,7 +89,7 @@ export class ImageViewerView {
 		this.imgViewEl.addEventListener('wheel', this.handleWheel, { passive: false });
 
 		// ESC 键关闭
-		document.addEventListener('keydown', this.handleKeydown);
+		activeDocument.addEventListener('keydown', this.handleKeydown);
 	}
 
 	/**
@@ -118,7 +118,7 @@ export class ImageViewerView {
 		this.imgStatus.moveY = this.imgStatus.top - event.clientY;
 
 		// 鼠标按下时持续触发/移动事件
-		document.addEventListener('mousemove', this.handleMouseMove);
+		activeDocument.addEventListener('mousemove', this.handleMouseMove);
 	};
 
 	/**
@@ -132,8 +132,10 @@ export class ImageViewerView {
 		this.imgStatus.top = event.clientY + this.imgStatus.moveY;
 
 		// move the image
-		this.imgViewEl.style.setProperty('margin-left', this.imgStatus.left + 'px', 'important');
-		this.imgViewEl.style.setProperty('margin-top', this.imgStatus.top + 'px', 'important');
+		this.imgViewEl.setCssProps({
+			'margin-left': this.imgStatus.left + 'px',
+			'margin-top': this.imgStatus.top + 'px',
+		});
 	};
 
 	/**
@@ -141,7 +143,7 @@ export class ImageViewerView {
 	 */
 	private handleMouseUp = (event: MouseEvent): void => {
 		this.isDragging = false;
-		document.removeEventListener('mousemove', this.handleMouseMove);
+		activeDocument.removeEventListener('mousemove', this.handleMouseMove);
 	};
 
 	/**
@@ -190,8 +192,10 @@ export class ImageViewerView {
 
 		// 渲染
 		this.imgViewEl.setAttribute('width', this.imgStatus.curWidth + 'px');
-		this.imgViewEl.style.setProperty('margin-left', this.imgStatus.left + 'px', 'important');
-		this.imgViewEl.style.setProperty('margin-top', this.imgStatus.top + 'px', 'important');
+		this.imgViewEl.setCssProps({
+			'margin-left': this.imgStatus.left + 'px',
+			'margin-top': this.imgStatus.top + 'px',
+		});
 	}
 
 	/**
@@ -237,7 +241,7 @@ export class ImageViewerView {
 	 */
 	open(imgEl: HTMLImageElement): void {
 		// 始终挂载到 document.body，确保不被局部容器遮挡
-		const parentEl = document.body;
+		const parentEl = activeDocument.body;
 		if (!parentEl) return;
 
 		// 初始化容器
@@ -253,8 +257,8 @@ export class ImageViewerView {
 		const realImg = new Image();
 
 		const showImage = () => {
-			const windowWidth = document.documentElement.clientWidth || document.body.clientWidth;
-			const windowHeight = (document.documentElement.clientHeight || document.body.clientHeight) - 100;
+			const windowWidth = activeDocument.documentElement.clientWidth || activeDocument.body.clientWidth;
+			const windowHeight = (activeDocument.documentElement.clientHeight || activeDocument.body.clientHeight) - 100;
 
 			const size = this.calculateImgSize(realImg, windowWidth, windowHeight);
 
@@ -275,8 +279,10 @@ export class ImageViewerView {
 				this.imgViewEl.src = imgEl.src;
 				this.imgViewEl.alt = imgEl.alt;
 				this.imgViewEl.setAttribute('width', size.width + 'px');
-				this.imgViewEl.style.setProperty('margin-top', size.top + 'px', 'important');
-				this.imgViewEl.style.setProperty('margin-left', size.left + 'px', 'important');
+			this.imgViewEl.setCssProps({
+				'margin-top': size.top + 'px',
+				'margin-left': size.left + 'px',
+			});
 				// 添加默认棋盘背景（用于透明图片）
 				this.imgViewEl.addClass('img-default-background');
 			}
@@ -309,15 +315,15 @@ export class ImageViewerView {
 		// 重置状态
 		this.imgStatus = null;
 		this.isDragging = false;
-		document.removeEventListener('mousemove', this.handleMouseMove);
+		activeDocument.removeEventListener('mousemove', this.handleMouseMove);
 	}
 
 	/**
 	 * 移除查看器
 	 */
 	remove(): void {
-		document.removeEventListener('keydown', this.handleKeydown);
-		document.removeEventListener('mousemove', this.handleMouseMove);
+		activeDocument.removeEventListener('keydown', this.handleKeydown);
+		activeDocument.removeEventListener('mousemove', this.handleMouseMove);
 
 		if (this.containerEl) {
 			this.containerEl.remove();

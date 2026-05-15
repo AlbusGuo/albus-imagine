@@ -63,7 +63,7 @@ export class ImageViewerManager {
 	 */
 	refreshViewTrigger(doc?: Document): void {
 		if (!doc) {
-			doc = document;
+			doc = activeDocument;
 		}
 
 		// 记录此文档

@@ -58,7 +58,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 
 	private restoreScrollPosition() {
 		if (this.lastScrollPosition > 0) {
-			requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
 				this.containerEl.scrollTo({ top: this.lastScrollPosition, behavior: "auto" });
 			});
 		}
@@ -501,9 +501,9 @@ export class NativePluginSettingTab extends PluginSettingTab {
 	private updateSvgInvertClass(): void {
 		const shouldInvert = this.plugin.settings.imageManager?.invertSvgInDarkMode !== false;
 		if (shouldInvert) {
-			document.body.removeClass('afm-no-svg-invert');
+			activeDocument.body.removeClass('afm-no-svg-invert');
 		} else {
-			document.body.addClass('afm-no-svg-invert');
+			activeDocument.body.addClass('afm-no-svg-invert');
 		}
 	}
 }

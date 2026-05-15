@@ -14,7 +14,7 @@ export class FileOperationService {
 	openFile(image: ImageItem): void {
 		const ext = image.originalFile.extension.toLowerCase();
 		if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-			(this.app as any).openWithDefaultApp(image.originalFile.path);
+			(this.app as unknown as { openWithDefaultApp: (path: string) => void }).openWithDefaultApp(image.originalFile.path);
 		} else {
 			const leaf = this.app.workspace.getLeaf(false);
 			void leaf.openFile(image.originalFile);
@@ -44,7 +44,7 @@ export class FileOperationService {
 
 			new Notice("文件重命名成功");
 		} catch (error) {
-			new Notice(`重命名失败: ${error.message}`);
+			new Notice(`重命名失败: ${error instanceof Error ? error.message : String(error)}`);
 			throw error;
 		}
 	}
@@ -72,7 +72,7 @@ export class FileOperationService {
 			}
 		} catch (error) {
 			if (!silent) {
-				new Notice(`删除失败: ${error.message}`);
+				new Notice(`删除失败: ${error instanceof Error ? error.message : String(error)}`);
 			}
 			throw error;
 		}
@@ -114,7 +114,7 @@ export class FileOperationService {
 			if (!silent) new Notice("文件移动成功");
 			return newPath;
 		} catch (error) {
-			if (!silent) new Notice(`移动失败: ${error.message}`);
+			if (!silent) new Notice(`移动失败: ${error instanceof Error ? error.message : String(error)}`);
 			throw error;
 		}
 	}
