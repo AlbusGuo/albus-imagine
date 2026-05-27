@@ -44,7 +44,7 @@ export class ImageContextMenu extends Component {
 		if (this.contextMenuRegistered) return;
 
 		this.registerDomEvent(
-			activeDocument,
+			document,
 			"contextmenu",
 			this.handleContextMenuEvent,
 			true
@@ -61,7 +61,7 @@ export class ImageContextMenu extends Component {
 			const currentView = this.app.workspace.getActiveViewOfType(View);
 			if (currentView?.getViewType() === "canvas") return;
 
-			const img = target.instanceOf(HTMLImageElement) ? target : target.closest("img");
+			const img = target instanceof HTMLImageElement ? target : target.closest("img");
 			if (!img) return;
 
 			// 仅在编辑模式下工作
@@ -76,7 +76,7 @@ export class ImageContextMenu extends Component {
 
 			// 不阻止默认事件，让 Obsidian 的原生菜单先显示
 			// 延迟显示我们的菜单项，添加到原生菜单中
-			window.setTimeout(() => {
+			setTimeout(() => {
 				this.addMenuItemsToExistingMenu(img, event);
 			}, 50);
 		} catch (error) {
@@ -89,7 +89,7 @@ export class ImageContextMenu extends Component {
 	 */
 	private addMenuItemsToExistingMenu(img: HTMLImageElement, event: MouseEvent): void {
 		// 查找当前显示的右键菜单
-		const menus = activeDocument.querySelectorAll('.menu');
+		const menus = document.querySelectorAll('.menu');
 		if (menus.length === 0) {
 			// 如果没找到菜单，创建我们自己的菜单
 			const menu = new Menu();
@@ -167,7 +167,7 @@ export class ImageContextMenu extends Component {
 
 			const ext = fileToOpen.extension.toLowerCase();
 			if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-				(this.app as unknown as { openWithDefaultApp: (path: string) => void }).openWithDefaultApp(fileToOpen.path);
+				(this.app as any).openWithDefaultApp(fileToOpen.path);
 			} else {
 				const leaf = this.app.workspace.getLeaf(false);
 				void leaf.openFile(fileToOpen);
@@ -187,15 +187,15 @@ export class ImageContextMenu extends Component {
 	 * 创建菜单项
 	 */
 	private createMenuItem(container: HTMLElement, title: string, icon: string, callback: () => void | Promise<void>): void {
-		const menuItem = activeDocument.createElement('div');
+		const menuItem = document.createElement('div');
 		menuItem.addClass('menu-item', 'tappable');
 		menuItem.setAttribute('data-albus-imagine', '');
 
-		const menuItemIcon = activeDocument.createElement('div');
+		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
 		setIcon(menuItemIcon, icon);
 
-		const menuItemTitle = activeDocument.createElement('div');
+		const menuItemTitle = document.createElement('div');
 		menuItemTitle.addClass('menu-item-title');
 		menuItemTitle.textContent = title;
 
@@ -232,19 +232,19 @@ export class ImageContextMenu extends Component {
 	 * 创建带子菜单的菜单项（使用 Obsidian Menu API 实现原生风格子菜单）
 	 */
 	private createMenuItemWithSubmenu(container: HTMLElement, title: string, icon: string, _img: HTMLImageElement, submenuItems: Array<{title: string, icon: string, callback: () => void}>): void {
-		const menuItem = activeDocument.createElement('div');
+		const menuItem = document.createElement('div');
 		menuItem.addClass('menu-item', 'tappable');
 		menuItem.setAttribute('data-albus-imagine', '');
 
-		const menuItemIcon = activeDocument.createElement('div');
+		const menuItemIcon = document.createElement('div');
 		menuItemIcon.addClass('menu-item-icon');
 		setIcon(menuItemIcon, icon);
 
-		const menuItemTitle = activeDocument.createElement('div');
+		const menuItemTitle = document.createElement('div');
 		menuItemTitle.addClass('menu-item-title');
 		menuItemTitle.textContent = title;
 
-		const submenuArrow = activeDocument.createElement('div');
+		const submenuArrow = document.createElement('div');
 		submenuArrow.addClass('menu-item-icon', 'afm-submenu-flair');
 		setIcon(submenuArrow, 'chevron-right');
 
@@ -257,7 +257,7 @@ export class ImageContextMenu extends Component {
 
 		const clearHideTimeout = () => {
 			if (submenuTimeout) {
-				window.clearTimeout(submenuTimeout);
+				clearTimeout(submenuTimeout);
 				submenuTimeout = null;
 			}
 		};
@@ -306,7 +306,7 @@ export class ImageContextMenu extends Component {
 			});
 
 			// 在子菜单 DOM 上监听悬停，防止光标移过去时子菜单被关闭
-			const submenuEl = (submenuInstance as unknown as { dom: HTMLElement })?.dom;
+			const submenuEl = (submenuInstance as any).dom as HTMLElement | undefined;
 			if (submenuEl) {
 				submenuEl.addEventListener('mouseenter', clearHideTimeout);
 				submenuEl.addEventListener('mouseleave', hideSubmenu);
@@ -338,7 +338,7 @@ export class ImageContextMenu extends Component {
 	 * 创建分隔符元素
 	 */
 	private createSeparator(): HTMLDivElement {
-		const separator = activeDocument.createElement('div');
+		const separator = document.createElement('div');
 		separator.addClass('menu-separator');
 		separator.setAttribute('data-albus-imagine', '');
 		return separator;
@@ -578,7 +578,7 @@ export class ImageContextMenu extends Component {
 
 				const ext = fileToOpen.extension.toLowerCase();
 				if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-					(this.app as unknown as { openWithDefaultApp: (path: string) => void }).openWithDefaultApp(fileToOpen.path);
+					(this.app as any).openWithDefaultApp(fileToOpen.path);
 				} else {
 					const leaf = this.app.workspace.getLeaf(false);
 					void leaf.openFile(fileToOpen);
@@ -672,7 +672,8 @@ export class ImageContextMenu extends Component {
 				}
 
 				try {
-				(this.app as unknown as { showInFolder: (path: string) => void }).showInFolder(file.path);
+					// @ts-ignore - showInFolder is an internal API
+					this.app.showInFolder(file.path);
 					new Notice("已打开系统资源管理器");
 				} catch (error) {
 					console.error("Failed to show in system explorer:", error);
@@ -769,17 +770,13 @@ export class ImageContextMenu extends Component {
 		// 多个匹配时，通过 DOM 位置定位
 		if (img) {
 			try {
-				// CodeMirror 6 API - Obsidian Editor 的内部实现
-				const editorView = (editor as unknown as {
-					cm: {
-						posAtDOM: (node: Node) => number;
-						state: { doc: { lineAt: (pos: number) => { number: number } } };
-					};
-				})?.cm;
+				// @ts-ignore - CodeMirror 6 API
+				const editorView = editor.cm;
 				if (editorView?.posAtDOM) {
 					// 获取光标在文档中的位置
 					const imgPos = editorView.posAtDOM(img);
 					if (imgPos !== null && imgPos !== undefined) {
+						// @ts-ignore
 						const lineObj = editorView.state.doc.lineAt(imgPos);
 						const targetLine = lineObj.number - 1; // 转换为 0-based
 
@@ -830,10 +827,10 @@ export class ImageContextMenu extends Component {
 
 			// 匹配 Wiki 链接: ![[image.png]] 或 ![[image.png|100]] 或 ![[folder/image.png]]
 			const wikiRegex = /!\[\[([^\]|]+)(?:\|[^\]]+?)?\]\]/g;
-			let match: RegExpExecArray | null;
+			let match;
 			while ((match = wikiRegex.exec(line)) !== null) {
-				const fullMatch: string = match[0];
-				const linkPath: string = match[1].trim();
+				const fullMatch = match[0];
+				const linkPath = match[1].trim();
 				const linkFileName = linkPath.split('/').pop()?.toLowerCase() || '';
 				const linkBaseName = linkFileName.replace(/\.[^.]+$/, '');
 
@@ -971,7 +968,7 @@ export class ImageContextMenu extends Component {
 		}
 
 		// 创建多行文本输入框（自动调节高度）
-		const textarea = activeDocument.createElement("textarea");
+		const textarea = document.createElement("textarea");
 		textarea.value = currentCaption;
 		textarea.placeholder = "输入图片标题（留空删除）";
 		textarea.className = "afm-caption-input";
@@ -1007,7 +1004,7 @@ export class ImageContextMenu extends Component {
 		imageEmbed.addClass("afm-editing-caption");
 		
 		// 初始化高度并聚焦
-		window.setTimeout(autoResize, 0);
+		setTimeout(autoResize, 0);
 		textarea.focus();
 		textarea.select();
 
@@ -1027,8 +1024,8 @@ export class ImageContextMenu extends Component {
 				
 				const scrollTop = activeView.containerEl.scrollTop;
 				
-				window.setTimeout(() => {
-					window.requestAnimationFrame(() => {
+				setTimeout(() => {
+					requestAnimationFrame(() => {
 						editor.setLine(match.lineNumber, newLine);
 						activeView.containerEl.scrollTop = scrollTop;
 						
@@ -1039,7 +1036,7 @@ export class ImageContextMenu extends Component {
 					});
 				}, 150);
 			} else {
-				window.setTimeout(() => {
+				setTimeout(() => {
 					if (textarea.parentElement) {
 						textarea.remove();
 					}
@@ -1049,8 +1046,8 @@ export class ImageContextMenu extends Component {
 		};
 
 		textarea.addEventListener("blur", () => {
-			window.setTimeout(() => {
-				if (activeDocument.contains(textarea)) {
+			setTimeout(() => {
+				if (document.contains(textarea)) {
 					saveCaption();
 				}
 			}, 10);

@@ -89,8 +89,7 @@ export default class SettingsStore {
 		) {
 			return defaults;
 		}
-		// Runtime type guard above ensures saved is T-compatible
-		return saved as unknown as T;
+		return saved as T;
 	}
 
 	async loadSettings() {
@@ -117,7 +116,7 @@ export default class SettingsStore {
 	 */
 	async updateSettingByPath<T>(path: string, value: T) {
 		// 创建设置的深拷贝
-		const newSettings = JSON.parse(JSON.stringify(this.#plugin.settings)) as IPluginSettings;
+		const newSettings = JSON.parse(JSON.stringify(this.#plugin.settings));
 		const pathParts = path.split(".");
 		let current: unknown = newSettings;
 

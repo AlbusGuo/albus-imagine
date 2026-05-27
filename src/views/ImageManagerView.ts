@@ -430,7 +430,7 @@ export class ImageManagerView extends ItemView {
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
 		// 使用 requestAnimationFrame 批量渲染，避免阻塞
-		this.pendingRenderRAF = window.requestAnimationFrame(() => {
+		this.pendingRenderRAF = requestAnimationFrame(() => {
 			this.pendingRenderRAF = null;
 
 			// 在同一帧内清空旧内容并插入新内容，避免闪烁
@@ -450,7 +450,7 @@ export class ImageManagerView extends ItemView {
 			this.updateLoadMoreIndicator();
 
 			// 自动加载：若内容未溢出容器但仍有更多图片，则继续加载
-			window.requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
 				if (
 					this.renderedCount < this.filteredImages.length &&
 					this.gridContainer.scrollHeight <= this.gridContainer.clientHeight
@@ -465,7 +465,7 @@ export class ImageManagerView extends ItemView {
 					void this.checkBatchReferences(imagesToRender, itemElements);
 				}, { timeout: 2000 });
 			} else {
-				window.setTimeout(() => {
+				setTimeout(() => {
 					void this.checkBatchReferences(imagesToRender, itemElements);
 				}, 100);
 			}
@@ -726,14 +726,14 @@ export class ImageManagerView extends ItemView {
 			this.activeImageLoads++;
 			img.removeAttribute("data-src");
 
-			const loadTimeout = window.setTimeout(() => {
+			const loadTimeout = setTimeout(() => {
 				if (!img.complete) {
 					img.onerror?.(new Event("error"));
 				}
 			}, 15000);
 
 			img.onload = () => {
-				window.clearTimeout(loadTimeout);
+				clearTimeout(loadTimeout);
 				img.addClass("is-loaded");
 				this.activeImageLoads--;
 				this.processImageLoadQueue();
@@ -741,7 +741,7 @@ export class ImageManagerView extends ItemView {
 
 			const originalOnerror = img.onerror;
 			img.onerror = (e) => {
-				window.clearTimeout(loadTimeout);
+				clearTimeout(loadTimeout);
 				this.activeImageLoads--;
 				if (typeof originalOnerror === "function") {
 					originalOnerror.call(img, e);
@@ -852,7 +852,7 @@ export class ImageManagerView extends ItemView {
 			this.applyFilters();
 			this.renderHeader();
 		} catch (error) {
-			new Notice(`加载图片失败: ${error instanceof Error ? error.message : String(error)}`);
+			new Notice(`加载图片失败: ${error.message}`);
 			console.error("Error loading images:", error);
 		} finally {
 			this.isLoading = false;
@@ -889,7 +889,7 @@ export class ImageManagerView extends ItemView {
 			new Notice(`引用检查完成：已检查 ${this.images.length} 张图片`);
 		} catch (error) {
 			progressNotice.hide();
-			new Notice(`检查引用失败: ${error instanceof Error ? error.message : String(error)}`);
+			new Notice(`检查引用失败: ${error.message}`);
 			console.error("Error checking references:", error);
 		} finally {
 			this.isCheckingReferences = false;
@@ -938,7 +938,7 @@ export class ImageManagerView extends ItemView {
 				
 				// 每处理一小批后，给UI线程一些时间
 				if (i + miniBatchSize < needCheckImages.length) {
-					await new Promise(resolve => window.setTimeout(resolve, 10));
+					await new Promise(resolve => setTimeout(resolve, 10));
 				}
 			}
 		} catch (error) {
@@ -1251,7 +1251,7 @@ export class ImageManagerView extends ItemView {
 					onProgress(successCount + errorCount, total);
 					
 					// 给 UI 一些时间更新
-					await new Promise(resolve => window.setTimeout(resolve, 0));
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 
 				// 显示结果
@@ -1319,7 +1319,7 @@ export class ImageManagerView extends ItemView {
 					}
 					
 					onProgress(successCount + errorCount, total);
-					await new Promise(resolve => window.setTimeout(resolve, 0));
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 
 				// 显示结果

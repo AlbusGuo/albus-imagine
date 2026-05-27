@@ -67,9 +67,9 @@ export class ImagePickerModal extends Modal {
 		this.loadImages();
 
 		// 阻止 Modal 自动聚焦到搜索框（会弹出联想输入法弹窗影响体验）
-		window.requestAnimationFrame(() => {
-			if (activeDocument.activeElement instanceof HTMLElement) {
-				activeDocument.activeElement.blur();
+		activeWindow.requestAnimationFrame(() => {
+			if (document.activeElement instanceof HTMLElement) {
+				document.activeElement.blur();
 			}
 		});
 	}
@@ -354,7 +354,7 @@ export class ImagePickerModal extends Modal {
 		const endIndex = Math.min(startIndex + this.batchSize, this.filteredImages.length);
 		const imagesToRender = this.filteredImages.slice(startIndex, endIndex);
 
-		window.requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
 			// 在同一帧内清空旧内容并插入新内容，避免闪烁
 			let gridEl: HTMLElement | null = null;
 			if (append) {
@@ -372,7 +372,7 @@ export class ImagePickerModal extends Modal {
 			this.updateLoadMoreIndicator();
 
 			// 自动加载：若内容未溢出容器但仍有更多图片，则继续加载
-			window.requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
 				if (
 					this.renderedCount < this.filteredImages.length &&
 					this.gridContainer.scrollHeight <= this.gridContainer.clientHeight
@@ -498,7 +498,7 @@ export class ImagePickerModal extends Modal {
 			this.applyFilters();
 			this.renderHeader();
 		} catch (error) {
-			new Notice(`加载图片失败: ${error instanceof Error ? error.message : String(error)}`);
+			new Notice(`加载图片失败: ${error.message}`);
 		} finally {
 			this.isLoading = false;
 			this.renderGrid();

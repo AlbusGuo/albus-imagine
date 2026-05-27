@@ -147,10 +147,6 @@
 	max-height: none;
 	user-select: none;
 	-webkit-user-drag: none;
-	width: var(--afm-preview-width, auto);
-	height: var(--afm-preview-height, auto);
-	margin-left: var(--afm-preview-left, 0);
-	margin-top: var(--afm-preview-top, 0);
 }
 
 /* 预览画布中的 SVG 图片：覆盖网格缩略图的 100% 尺寸，使 JS 缩放/拖拽生效 */

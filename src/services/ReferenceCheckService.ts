@@ -65,7 +65,7 @@ export class ReferenceCheckService {
 				if (onProgress && processedCount % 10 === 0) {
 					onProgress(processedCount, updatedImages.length);
 					// 每处理10张图片，给UI线程一些时间
-					await new Promise(resolve => window.setTimeout(resolve, 0));
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 			}
 			
@@ -97,9 +97,10 @@ export class ReferenceCheckService {
 		}
 
 		// 使用 Obsidian 的反向链接 API
-		const backlinks = (this.app.metadataCache as unknown as {
-			getBacklinksForFile: (file: TFile) => { data: Map<string, Array<{ link: string; position: { start: { line: number; col: number }; end: { line: number; col: number } } }>> } | null;
-		}).getBacklinksForFile(targetFile);
+		const metadataCache = this.app.metadataCache as {
+			getBacklinksForFile?: (file: TFile) => { data?: Map<string, unknown> } | undefined;
+		};
+		const backlinks = metadataCache.getBacklinksForFile?.(targetFile);
 		
 		if (!backlinks || !backlinks.data) {
 			return references;
@@ -114,15 +115,17 @@ export class ReferenceCheckService {
 			}
 
 			// 检查每个引用位置
-			for (const occurrence of linkOccurrences) {
-				// 判断是嵌入还是链接
-				const isEmbed = occurrence.link?.startsWith("!");
-				
-				references.push({
-					file: sourceFile,
-					type: isEmbed ? "embed" : "link",
-					position: occurrence.position,
-				});
+			if (Array.isArray(linkOccurrences)) {
+				for (const occurrence of linkOccurrences) {
+					// 判断是嵌入还是链接
+					const isEmbed = occurrence.link?.startsWith("!");
+					
+					references.push({
+						file: sourceFile,
+						type: isEmbed ? "embed" : "link",
+						position: occurrence.position,
+					});
+				}
 			}
 		}
 

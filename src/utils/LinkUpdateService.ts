@@ -11,16 +11,6 @@ interface LinkMatch {
 	to_ch: number;
 }
 
-interface CMEditorView {
-	state: {
-		doc: {
-			lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
-			line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
-		};
-	};
-	dispatch: (changes: { changes: { from: number; to: number; insert: string } }) => void;
-}
-
 /**
  * 链接更新服务
  * 负责处理内部和外部图片链接的更新
@@ -89,7 +79,17 @@ export class LinkUpdateService {
 		if (!imageName) return;
 
 		const editor = activeView.editor;
-		const editorView = (editor as unknown as { cm: CMEditorView }).cm;
+		const editorView = (editor as unknown as { 
+			cm: { 
+				state: { 
+					doc: { 
+						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
+						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
+					} 
+				};
+				dispatch: (changes: unknown) => void;
+			} 
+		}).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 
 		if (!inCallout && !inTable) {
@@ -125,8 +125,8 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
-			for (const item of matched) matched_results.push(item);
+			const matched = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
+			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -135,8 +135,8 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched: LinkMatch[] = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
-			for (const item of matched) matched_results.push(item);
+			const matched = this.matchLineWithInternalLink(line.text, imageName, newWidth, inTable);
+			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -183,7 +183,17 @@ export class LinkUpdateService {
 		inCallout: boolean
 	): void {
 		const editor = activeView.editor;
-		const editorView = (editor as unknown as { cm: CMEditorView }).cm;
+		const editorView = (editor as unknown as { 
+			cm: { 
+				state: { 
+					doc: { 
+						lineAt: (pos: number) => { from: number; to: number; number: number; text: string };
+						line: (lineNumber: number) => { from: number; to: number; number: number; text: string };
+					} 
+				};
+				dispatch: (changes: unknown) => void;
+			} 
+		}).cm;
 		const target_line = editorView.state.doc.lineAt(target_pos);
 		const link = target.getAttribute('src');
 		const altText = target.getAttribute('alt');
@@ -223,8 +233,8 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
-			for (const item of matched) matched_results.push(item);
+			const matched = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
+			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 
@@ -233,8 +243,8 @@ export class LinkUpdateService {
 			const line = editorView.state.doc.line(i);
 			if (!start_reg.test(line.text)) break;
 			
-			const matched: LinkMatch[] = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
-			for (const item of matched) matched_results.push(item);
+			const matched = this.matchLineWithExternalLink(line.text, link, altText || '', newWidth, inTable);
+			matched_results.push(...matched);
 			matched_lines.push(...new Array(matched.length).fill(i));
 		}
 

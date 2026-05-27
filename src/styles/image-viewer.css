@@ -33,9 +33,6 @@
 	max-height: none;
 	pointer-events: auto;
 	cursor: pointer;
-	width: var(--afm-img-width, auto);
-	margin-left: var(--afm-img-left, 0);
-	margin-top: var(--afm-img-top, 0);
 }
 
 .afm-cursor-zoom-in {

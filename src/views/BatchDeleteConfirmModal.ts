@@ -71,7 +71,7 @@ export class BatchDeleteConfirmModal extends Modal {
 		});
 
 		// 默认聚焦取消按钮（更安全）
-		window.setTimeout(() => cancelBtn.focus(), 0);
+		setTimeout(() => cancelBtn.focus(), 0);
 
 		// ESC 键关闭
 		this.scope.register([], "Escape", () => {

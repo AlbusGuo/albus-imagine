@@ -265,15 +265,15 @@ export class ResizeHandler {
 		};
 
 		const onMouseUp = (e: MouseEvent) => {
-			window.setTimeout(allowOtherEvent, 100);
+			setTimeout(allowOtherEvent, 100);
 			e.preventDefault();
-			activeDocument.removeEventListener('mousemove', onMouseMove);
-			activeDocument.removeEventListener('mouseup', onMouseUp);
+			document.removeEventListener('mousemove', onMouseMove);
+			document.removeEventListener('mouseup', onMouseUp);
 			this.endDrag(img, target_pos);
 		};
 
-		activeDocument.addEventListener('mousemove', onMouseMove);
-		activeDocument.addEventListener('mouseup', onMouseUp);
+		document.addEventListener('mousemove', onMouseMove);
+		document.addEventListener('mouseup', onMouseUp);
 	}
 
 	/**
@@ -297,7 +297,7 @@ export class ResizeHandler {
 		if (this.rafId !== null) {
 			cancelAnimationFrame(this.rafId);
 		}
-		this.rafId = window.requestAnimationFrame(() => {
+		this.rafId = requestAnimationFrame(() => {
 			img.style.width = `${newWidth}px`;
 			this.rafId = null;
 		});
@@ -342,8 +342,8 @@ export class ResizeHandler {
 		
 		// 延迟移除内联样式，等待 markdown 渲染完成
 		// 使用 requestAnimationFrame 确保在下一帧移除，让 markdown 的尺寸先生效
-		window.requestAnimationFrame(() => {
-			window.requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
 				img.style.removeProperty('width');
 				img.style.removeProperty('height');
 				img.style.removeProperty('max-width');

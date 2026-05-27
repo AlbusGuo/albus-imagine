@@ -120,7 +120,7 @@ export class ImagePreviewModal extends Modal {
 		});
 		this.imageContainer = imageContainer;
 
-		const img = activeDocument.createElement("img");
+		const img = document.createElement("img");
 		img.addClass("image-manager-preview-image");
 		img.src = this.getImagePath(this.image);
 		img.alt = this.image.name;
@@ -155,14 +155,14 @@ export class ImagePreviewModal extends Modal {
 			});
 		};
 
-		const loadTimeout = window.setTimeout(() => {
+		const loadTimeout = setTimeout(() => {
 			if (!img.complete && !loadFailed) {
 				img.onerror?.(new Event("error"));
 			}
 		}, 15000);
 
 		img.onload = () => {
-			window.clearTimeout(loadTimeout);
+			clearTimeout(loadTimeout);
 			img.addClass("is-loaded");
 			this.initImageStatus(img, imageContainer);
 		};
@@ -202,8 +202,8 @@ export class ImagePreviewModal extends Modal {
 
 		this.boundMouseMove = onMouseMove;
 		this.boundMouseUp = onMouseUp;
-		activeDocument.addEventListener("mousemove", onMouseMove);
-		activeDocument.addEventListener("mouseup", onMouseUp);
+		document.addEventListener("mousemove", onMouseMove);
+		document.addEventListener("mouseup", onMouseUp);
 
 		// 双击重置视图
 		imageContainer.addEventListener("dblclick", () => {
@@ -286,12 +286,10 @@ export class ImagePreviewModal extends Modal {
 	 */
 	private applyTransform(): void {
 		if (!this.imgStatus || !this.imageElement) return;
-		this.imageElement.setCssProps({
-			'--afm-preview-width': this.imgStatus.curWidth + 'px',
-			'--afm-preview-height': 'auto',
-			'--afm-preview-left': this.imgStatus.left + 'px',
-			'--afm-preview-top': this.imgStatus.top + 'px',
-		});
+		this.imageElement.style.setProperty('width', this.imgStatus.curWidth + 'px', 'important');
+		this.imageElement.style.setProperty('height', 'auto', 'important');
+		this.imageElement.style.setProperty('margin-left', this.imgStatus.left + 'px', 'important');
+		this.imageElement.style.setProperty('margin-top', this.imgStatus.top + 'px', 'important');
 	}
 
 	/**
@@ -491,11 +489,11 @@ export class ImagePreviewModal extends Modal {
 	onClose(): void {
 		// 清理全局事件监听器
 		if (this.boundMouseMove) {
-			activeDocument.removeEventListener("mousemove", this.boundMouseMove);
+			document.removeEventListener("mousemove", this.boundMouseMove);
 			this.boundMouseMove = null;
 		}
 		if (this.boundMouseUp) {
-			activeDocument.removeEventListener("mouseup", this.boundMouseUp);
+			document.removeEventListener("mouseup", this.boundMouseUp);
 			this.boundMouseUp = null;
 		}
 
