@@ -1,22 +1,25 @@
 /**
  * 设置页面样式
- * 参考 Note Toolbar 插件实现
- * 结合 Pretty Properties 的标签页设计
+ * 完全复刻 mathcraft 插件的固定标签页布局
+ * 标签页固定顶部，内容区域独立滚动
  */
 
-/* 主容器 */
-.afm-settings-ui {
-	/* 不添加额外 padding，使用原生样式 */
+/* 根容器 — flex column 填满设置面板 */
+.afm-settings-root {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 }
 
-/* 标签页导航 */
+/* 固定顶部标签栏 */
 .afm-settings-tabs {
 	display: flex;
 	justify-content: flex-start;
 	border-bottom: 1px solid var(--background-modifier-border);
 	overflow-x: auto;
 	padding: 0;
-	margin: 0 0 16px;
+	margin: 0;
+	flex-shrink: 0;
 }
 
 .afm-settings-tabs::-webkit-scrollbar {
@@ -49,51 +52,61 @@
 	border-bottom-color: var(--interactive-accent);
 }
 
-/* 内容容器 */
+/* 可滚动内容区域 */
+.afm-settings-scroll {
+	flex: 1 1 0;
+	overflow-y: auto;
+	min-height: 0;
+}
+
 .afm-settings-content {
-	/* 使用原生的 setting-group 样式 */
+	padding-top: 16px;
+}
+
+.afm-settings-content .setting-group + .setting-item-heading {
+	margin-top: 1.5em;
 }
 
 /* SettingGroup 样式优化 - 参考 Note Toolbar */
-.afm-settings-ui .setting-group {
+.afm-settings-root .setting-group {
 	margin-bottom: 2em;
 }
 
-.afm-settings-ui .setting-group .setting-items {
+.afm-settings-root .setting-group .setting-items {
 	background-color: var(--setting-items-background);
 	border-radius: var(--setting-items-radius);
 	padding: 1em;
 }
 
-.afm-settings-ui .setting-group .setting-items:focus-within {
+.afm-settings-root .setting-group .setting-items:focus-within {
 	/* 移除外层容器的 focus 样式，只保留输入框本身的 focus */
 	box-shadow: none;
 }
 
-.afm-settings-ui .setting-item {
+.afm-settings-root .setting-item {
 	border-top: var(--border-width) solid var(--background-modifier-border);
 	padding: 1em 0;
 }
 
-.afm-settings-ui .setting-item:first-child {
+.afm-settings-root .setting-item:first-child {
 	border-top: none;
 }
 
-.afm-settings-ui .setting-item-info .setting-item-description {
+.afm-settings-root .setting-item-info .setting-item-description {
 	overflow: visible;
 }
 
-.afm-settings-ui .setting-item-control .clickable-icon:focus-within {
+.afm-settings-root .setting-item-control .clickable-icon:focus-within {
 	box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 /* 输入框适应容器宽度 */
-.afm-settings-ui .setting-item-control {
+.afm-settings-root .setting-item-control {
 	flex-wrap: wrap;
 	gap: 0.5em;
 }
 
-.afm-settings-ui .setting-item-control input[type="text"] {
+.afm-settings-root .setting-item-control input[type="text"] {
 	flex: 1;
 	min-width: 100px;
 	max-width: 100%;

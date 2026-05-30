@@ -1,51 +1,76 @@
 /**
  * 原生 Obsidian 设置界面
- * 使用 SettingGroup API 组织设置项
- * 参考 Note Toolbar 插件实现，保留标签页设计
+ * 完全复刻 mathcraft 插件的固定标签页结构
+ * 标签页固定顶部，内容区域独立滚动
  */
 
 import CPlugin from "@src/main";
-import { 
-	debounce,
-	Notice,
-	PluginSettingTab, 
-	Setting,
-	SettingGroup,
-} from "obsidian";
-import { SortField, SortOrder } from "../types/image-manager.types";
+import { PluginSettingTab } from "obsidian";
+import { showImageManagerSettings } from "./image-manager-settings";
+import { showImageResizeSettings } from "./image-resize-settings";
+import { showImageViewerSettings } from "./image-viewer-settings";
+import { showCustomFileTypesSettings } from "./custom-file-types-settings";
 
-type SettingsTab = "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER" | "CUSTOM_FILE_TYPES";
+type SettingsTabKey = "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER" | "CUSTOM_FILE_TYPES";
 
-const TAB_LABELS: Record<SettingsTab, string> = {
-	IMAGE_MANAGER: "图片管理器",
-	IMAGE_RESIZE: "图片拖拽",
-	IMAGE_VIEWER: "图片查看器",
-	CUSTOM_FILE_TYPES: "自定义文件类型",
-};
+interface SettingsTab {
+	key: SettingsTabKey;
+	name: string;
+	render: (tab: NativePluginSettingTab) => void;
+}
+
+const SETTINGS_TABS: SettingsTab[] = [
+	{ key: "IMAGE_MANAGER", name: "图片管理器", render: showImageManagerSettings },
+	{ key: "IMAGE_RESIZE", name: "图片拖拽", render: showImageResizeSettings },
+	{ key: "IMAGE_VIEWER", name: "图片查看器", render: showImageViewerSettings },
+	{ key: "CUSTOM_FILE_TYPES", name: "自定义文件类型", render: showCustomFileTypesSettings },
+];
 
 export class NativePluginSettingTab extends PluginSettingTab {
 	plugin: CPlugin;
+	contentEl!: HTMLElement;
 	private lastScrollPosition: number = 0;
-	private activeTab: SettingsTab = "IMAGE_MANAGER";
+
+	icon: string = 'image';
 
 	constructor(plugin: CPlugin) {
 		super(plugin.app, plugin);
 		this.plugin = plugin;
-		this.icon = 'image';
-		// 恢复上次选择的标签页
-		this.activeTab = this.plugin.settings.settingsTab || "IMAGE_MANAGER";
 	}
 
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.addClass('afm-settings-ui');
+		containerEl.addClass('afm-settings-root');
 
-		// 渲染标签页导航
-		this.renderTabs(containerEl);
+		// 恢复上次选择的标签页
+		const activeTabKey = this.plugin.settings.settingsTab || "IMAGE_MANAGER";
+
+		// 固定顶部标签栏
+		const tabsEl = containerEl.createEl('div', { cls: 'afm-settings-tabs' });
+
+		for (const tab of SETTINGS_TABS) {
+			const tabEl = tabsEl.createDiv({ cls: 'afm-settings-tab' });
+			if (activeTabKey === tab.key) {
+				tabEl.classList.add('is-active');
+			}
+			tabEl.setText(tab.name);
+			tabEl.addEventListener('click', () => {
+				this.plugin.settings.settingsTab = tab.key;
+				void this.plugin.saveSettings();
+				this.display();
+			});
+		}
+
+		// 可滚动内容区域
+		const scrollEl = containerEl.createDiv({ cls: 'afm-settings-scroll' });
+		this.contentEl = scrollEl.createDiv({ cls: 'afm-settings-content' });
 
 		// 渲染当前标签页内容
-		this.renderTabContent(containerEl);
+		const activeTab = SETTINGS_TABS.find(t => t.key === activeTabKey);
+		if (activeTab) {
+			activeTab.render(this);
+		}
 
 		// 恢复滚动位置
 		this.restoreScrollPosition();
@@ -65,440 +90,9 @@ export class NativePluginSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * 渲染标签页导航
+	 * 更新SVG反色CSS类（供 image-manager-settings 调用）
 	 */
-	private renderTabs(containerEl: HTMLElement): void {
-		const tabsContainer = containerEl.createDiv('afm-settings-tabs');
-
-		(Object.keys(TAB_LABELS) as SettingsTab[]).forEach((tab) => {
-			const tabEl = tabsContainer.createDiv({
-				cls: `afm-settings-tab${this.activeTab === tab ? ' is-active' : ''}`,
-				text: TAB_LABELS[tab]
-			});
-
-			tabEl.addEventListener('click', () => {
-				if (this.activeTab === tab) return;
-				this.activeTab = tab;
-				this.plugin.settings.settingsTab = tab;
-				void this.plugin.saveSettings();
-				this.display();
-			});
-		});
-	}
-
-	/**
-	 * 渲染当前标签页内容
-	 */
-	private renderTabContent(containerEl: HTMLElement): void {
-		const contentContainer = containerEl.createDiv('afm-settings-content');
-
-		switch (this.activeTab) {
-			case "IMAGE_MANAGER":
-				this.displayImageManagerSettings(contentContainer);
-				break;
-			case "IMAGE_RESIZE":
-				this.displayImageResizeSettings(contentContainer);
-				break;
-			case "IMAGE_VIEWER":
-				this.displayImageViewerSettings(contentContainer);
-				break;
-			case "CUSTOM_FILE_TYPES":
-				this.displayCustomFileTypes(contentContainer);
-				break;
-		}
-	}
-
-	/**
-	 * 图片管理器设置
-	 */
-	private displayImageManagerSettings(containerEl: HTMLElement): void {
-		const group = new SettingGroup(containerEl);
-
-		// 显示文件大小
-		group.addSetting((setting) => {
-			setting
-				.setName('显示文件大小')
-				.setDesc('在图片卡片上显示文件大小信息')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageManager?.showFileSize !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.showFileSize = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 显示修改时间
-		group.addSetting((setting) => {
-			setting
-				.setName('显示修改时间')
-				.setDesc('在图片卡片上显示最后修改时间')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageManager?.showModifiedTime !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.showModifiedTime = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 默认排序字段
-		group.addSetting((setting) => {
-			setting
-				.setName('默认排序字段')
-				.setDesc('打开图片管理器时的默认排序方式')
-				.addDropdown((dropdown) => {
-					dropdown
-						.addOption('mtime', '修改时间')
-						.addOption('ctime', '创建时间')
-						.addOption('size', '文件大小')
-						.addOption('name', '文件名')
-						.addOption('references', '引用数量')
-						.setValue(this.plugin.settings.imageManager?.defaultSortField || 'mtime')
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.defaultSortField = value as SortField;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 默认排序顺序
-		group.addSetting((setting) => {
-			setting
-				.setName('默认排序顺序')
-				.setDesc('打开图片管理器时的默认排序顺序')
-				.addDropdown((dropdown) => {
-					dropdown
-						.addOption('desc', '降序')
-						.addOption('asc', '升序')
-						.setValue(this.plugin.settings.imageManager?.defaultSortOrder || 'desc')
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.defaultSortOrder = value as SortOrder;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 排除文件夹
-		group.addSetting((setting) => {
-			setting
-				.setName('排除文件夹')
-				.setDesc('在图片管理器中排除这些文件夹')
-				.addTextArea((text) => {
-					const excludedFolders = this.plugin.settings.imageManager?.excludedFolders || [];
-					text
-						.setPlaceholder('输入要排除的文件夹路径, 每行一个')
-						.setValue(excludedFolders.join('\n'))
-						.onChange(debounce(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							// 将文本分割成行，并过滤空行
-							const folders = value.split('\n')
-								.map(line => line.trim())
-								.filter(line => line.length > 0);
-							this.plugin.settings.imageManager.excludedFolders = folders;
-							await this.plugin.saveSettings();
-						}, 500));
-					text.inputEl.rows = 6;
-					text.inputEl.addClass('afm-textarea-full-width');
-				});
-		});
-
-		// 删除确认
-		group.addSetting((setting) => {
-			setting
-				.setName('删除确认')
-				.setDesc('删除文件前显示确认对话框')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageManager?.confirmDelete !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.confirmDelete = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// SVG图片反色处理
-		group.addSetting((setting) => {
-			setting
-				.setName('深色模式下 SVG 图片反色')
-				.setDesc('在深色主题下对 SVG 图片进行反色处理，使其更适配深色背景')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageManager?.invertSvgInDarkMode !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageManager) {
-								this.plugin.settings.imageManager = {};
-							}
-							this.plugin.settings.imageManager.invertSvgInDarkMode = value;
-							await this.plugin.saveSettings();
-							// 更新CSS类
-							this.updateSvgInvertClass();
-						});
-				});
-		});
-
-	}
-
-	/**
-	 * 自定义文件类型设置
-	 */
-	private displayCustomFileTypes(containerEl: HTMLElement): void {
-		const customTypes = this.plugin.settings.imageManager?.customFileTypes || [];
-
-		// 外层卡片容器（与参考插件 .basic-vault-button-group 结构一致）
-		const groupEl = containerEl.createDiv('afm-custom-type-group');
-
-		// 列表区域
-		const listContainer = groupEl.createDiv('afm-custom-type-list-container');
-
-		if (customTypes.length === 0) {
-			new Setting(listContainer)
-				.setName('暂无自定义文件类型')
-				.setDesc('点击下方按钮开始创建');
-		} else {
-			const group = new SettingGroup(listContainer);
-			customTypes.forEach((type, index) => {
-				group.addSetting((setting) => {
-					setting
-						.setName('类型')
-						.addText((text) => {
-							text
-								.setPlaceholder('文件扩展名（如 PDF）')
-								.setValue(type.fileExtension)
-								.onChange(debounce(async (value) => {
-									type.fileExtension = value;
-									if (!this.plugin.settings.imageManager) {
-										this.plugin.settings.imageManager = {};
-									}
-									this.plugin.settings.imageManager.customFileTypes = customTypes;
-									await this.plugin.saveSettings();
-								}, 500));
-						})
-						.addText((text) => {
-							text
-								.setPlaceholder('封面扩展名（如 JPG）')
-								.setValue(type.coverExtension)
-								.onChange(debounce(async (value) => {
-									type.coverExtension = value;
-									if (!this.plugin.settings.imageManager) {
-										this.plugin.settings.imageManager = {};
-									}
-									this.plugin.settings.imageManager.customFileTypes = customTypes;
-									await this.plugin.saveSettings();
-								}, 500));
-						})
-						.addText((text) => {
-							text
-								.setPlaceholder('封面文件夹 (可选)')
-								.setValue(type.coverFolder || '')
-								.onChange(debounce(async (value) => {
-									type.coverFolder = value;
-									if (!this.plugin.settings.imageManager) {
-										this.plugin.settings.imageManager = {};
-									}
-									this.plugin.settings.imageManager.customFileTypes = customTypes;
-									await this.plugin.saveSettings();
-								}, 500));
-						})
-						.addExtraButton((btn) => {
-							btn
-								.setIcon('trash-2')
-								.setTooltip('删除此类型')
-								.onClick(async () => {
-									customTypes.splice(index, 1);
-									if (!this.plugin.settings.imageManager) {
-										this.plugin.settings.imageManager = {};
-									}
-									this.plugin.settings.imageManager.customFileTypes = customTypes;
-									await this.plugin.saveSettings();
-									this.display();
-								});
-						});
-				});
-			});
-		}
-
-		// 添加按钮（与参考插件完全一致的原生 DOM 结构）
-		const addContainer = groupEl.createDiv('afm-add-container');
-		const addBtn = addContainer.createEl('button', {
-			text: '添加文件类型',
-			cls: 'afm-add-btn',
-		});
-		addBtn.addEventListener('click', () => {
-			customTypes.push({
-				fileExtension: '',
-				coverExtension: '',
-				coverFolder: ''
-			});
-			this.display();
-		});
-	}
-
-	/**
-	 * 图片拖拽设置
-	 */
-	private displayImageResizeSettings(containerEl: HTMLElement): void {
-		const group = new SettingGroup(containerEl);
-
-		// 启用一般图片拖拽调整
-		group.addSetting((setting) => {
-			setting
-				.setName('启用 callout 外图片拖拽调整大小')
-				.setDesc('是否允许通过拖拽 callout 外图片边缘来调整图片大小')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageResize?.dragResizeGeneral !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageResize) {
-								this.plugin.settings.imageResize = {
-									resizeInterval: 0,
-									edgeSize: 20,
-									dragResizeGeneral: true,
-									dragResizeCallout: true
-								};
-							}
-							this.plugin.settings.imageResize.dragResizeGeneral = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 启用 Callout 内图片拖拽调整
-		group.addSetting((setting) => {
-			setting
-				.setName('启用 callout 内图片拖拽调整大小')
-				.setDesc('是否允许通过拖拽 callout 内图片边缘来调整图片大小')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageResize?.dragResizeCallout !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageResize) {
-								this.plugin.settings.imageResize = {
-									resizeInterval: 0,
-									edgeSize: 20,
-									dragResizeGeneral: true,
-									dragResizeCallout: true
-								};
-							}
-							this.plugin.settings.imageResize.dragResizeCallout = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-
-		// 调整间隔
-		group.addSetting((setting) => {
-			const currentValue = this.plugin.settings.imageResize?.resizeInterval || 0;
-			setting
-				.setName('调整大小的时间间隔')
-				.setDesc(`拖动调整最小刻度（当前: ${currentValue} px，0 表示不对齐刻度）`)
-				.addText((text) => {
-					text
-						.setPlaceholder('0')
-						.setValue(currentValue.toString())
-						.onChange(debounce(async (value) => {
-							const numValue = parseInt(value);
-							if (!isNaN(numValue) && numValue >= 0) {
-								if (!this.plugin.settings.imageResize) {
-									this.plugin.settings.imageResize = {
-										resizeInterval: 0,
-										edgeSize: 20,
-										dragResizeGeneral: true,
-										dragResizeCallout: true
-									};
-								}
-								this.plugin.settings.imageResize.resizeInterval = numValue;
-								await this.plugin.saveSettings();
-								setting.setDesc(`拖动调整最小刻度（当前: ${numValue} px，0 表示不对齐刻度）`);
-							} else {
-								new Notice('请输入非负整数');
-							}
-						}, 500));
-					text.inputEl.type = 'number';
-					text.inputEl.min = '0';
-					text.inputEl.step = '1';
-				});
-		});
-
-		// 边缘检测区域
-		group.addSetting((setting) => {
-			const currentValue = this.plugin.settings.imageResize?.edgeSize || 20;
-			setting
-				.setName('边缘检测区域大小')
-				.setDesc(`鼠标在图片边缘多少像素内可以触发调整大小（当前: ${currentValue} px）`)
-				.addSlider((slider) => {
-					slider
-						.setLimits(5, 150, 1)
-						.setValue(currentValue)
-						.setDynamicTooltip()
-						.onChange(debounce(async (value) => {
-							if (!this.plugin.settings.imageResize) {
-								this.plugin.settings.imageResize = {
-									resizeInterval: 0,
-									edgeSize: 20,
-									dragResizeGeneral: true,
-									dragResizeCallout: true
-								};
-							}
-							this.plugin.settings.imageResize.edgeSize = value;
-							await this.plugin.saveSettings();
-							setting.setDesc(`鼠标在图片边缘多少像素内可以触发调整大小（当前: ${value} px）`);
-						}, 100));
-				});
-		});
-	}
-
-	/**
-	 * 图片查看器设置
-	 */
-	private displayImageViewerSettings(containerEl: HTMLElement): void {
-		const group = new SettingGroup(containerEl);
-
-		// 启用查看器
-		group.addSetting((setting) => {
-			setting
-				.setName('启用图片查看器')
-				.setDesc('在所有位置启用 Ctrl+Click 查看图片功能')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageViewer?.enabled !== false)
-						.onChange(async (value) => {
-							if (!this.plugin.settings.imageViewer) {
-								this.plugin.settings.imageViewer = {
-									enabled: true
-								};
-							}
-							this.plugin.settings.imageViewer.enabled = value;
-							await this.plugin.saveSettings();
-						});
-				});
-		});
-	}
-
-	/**
-	 * 更新SVG反色CSS类
-	 */
-	private updateSvgInvertClass(): void {
+	updateSvgInvertClass(): void {
 		const shouldInvert = this.plugin.settings.imageManager?.invertSvgInDarkMode !== false;
 		if (shouldInvert) {
 			document.body.removeClass('afm-no-svg-invert');
