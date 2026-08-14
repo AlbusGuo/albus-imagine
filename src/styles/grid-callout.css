@@ -3,64 +3,66 @@
  * 用于在 Obsidian 中以网格布局展示图片
  */
 
-.callout.callout[data-callout*=grid] {
-  max-width: unset !important;
+body .callout.callout[data-callout*=grid] {
+  max-width: unset;
   white-space: nowrap;
   overflow: hidden;
   background: transparent;
   border: none;
-  background-color: transparent !important;
-  box-shadow: none !important;
+  box-shadow: none;
   margin: 0;
   padding: 0;
 }
 
-.callout.callout[data-callout*=grid].is-collapsed .callout-fold {
+body .callout.callout[data-callout*=grid].is-collapsed .callout-fold {
   border: none;
   padding: 5px 10px;
 }
 
-.callout.callout[data-callout*=grid] .callout-title,
-.callout.callout[data-callout*=grid] .callout-title :is(.callout-icon, .callout-title-inner) {
+body .callout.callout[data-callout*=grid] .callout-title,
+body .callout.callout[data-callout*=grid] .callout-title :is(.callout-icon, .callout-title-inner) {
   display: none;
 }
 
-.callout.callout[data-callout*=grid] .callout-content {
-  overflow-x: auto !important;
-  overflow: visible;
+body .callout.callout[data-callout*=grid] .callout-content {
+  overflow: auto;
   margin: 0;
   padding: 0;
   border: none;
 }
 
-.callout.callout[data-callout*=grid] .callout-content p {
+body .callout.callout[data-callout*=grid] .callout-content p {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, auto));
   grid-gap: 2px;
   align-items: center;
 }
 
-.callout.callout[data-callout*=grid] .callout-content ul {
+body .callout.callout[data-callout*=grid] .callout-content ul {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, auto));
   grid-gap: 0 10px;
   align-items: center;
+  padding-inline-start: 0;
 }
 
-.callout.callout[data-callout*=grid] .callout-content ul li {
+body .callout.callout[data-callout*=grid] .callout-content ul li {
   white-space: normal;
-  padding-left: 1em;
-  text-indent: -1em;
+  padding-inline-start: 1em;
+  list-style: none;
 }
 
-.callout.callout[data-callout*=grid] .callout-content ul li::before {
-  content: ' ' !important;
+body .callout.callout[data-callout*=grid] .callout-content ul li::before {
+  content: "";
+  display: inline-block;
+  inline-size: 0;
+  margin-inline-start: -1em;
 }
 
-.callout.callout[data-callout*=grid] .callout-content img {
+body .callout.callout[data-callout*=grid] .callout-content img {
   display: flex;
   flex: 1;
   align-self: stretch;
   object-fit: cover;
-  margin: unset !important;
+  margin: 0;
 }

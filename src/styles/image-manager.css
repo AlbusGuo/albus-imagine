@@ -89,13 +89,13 @@
 
 /* ==================== 操作按钮 ==================== */
 /* 破坏性操作图标按钮 (红色) */
-.image-manager-destructive-icon {
-	color: var(--text-error) !important;
+.image-manager-container .clickable-icon.image-manager-destructive-icon {
+	color: var(--text-error);
 }
 
-.image-manager-destructive-icon:hover {
-	color: var(--text-on-accent) !important;
-	background: var(--color-red) !important;
+.image-manager-container .clickable-icon.image-manager-destructive-icon:hover {
+	color: var(--text-on-accent);
+	background: var(--color-red);
 }
 
 /* 激活态图标按钮 (筛选, 多选等) */
@@ -329,9 +329,9 @@
 }
 
 /* 禁用 SVG 反色 */
-.theme-dark.afm-no-svg-invert .image-manager-svg-image.is-loaded {
-	filter: none !important;
-	opacity: 1 !important;
+body.theme-dark.afm-no-svg-invert .image-manager-container .image-manager-svg-image.is-loaded {
+	filter: none;
+	opacity: 1;
 }
 
 /* 封面缺失占位符 */

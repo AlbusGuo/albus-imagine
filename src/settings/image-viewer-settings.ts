@@ -1,15 +1,12 @@
-import { SettingGroup } from 'obsidian';
-import { NativePluginSettingTab } from './NativePluginSettingTab';
+import { SettingDefinitionRender, SettingGroup } from 'obsidian';
+import type { NativePluginSettingTab } from './NativePluginSettingTab';
+import type CPlugin from '@src/main';
+import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
 
-export function showImageViewerSettings(tab: NativePluginSettingTab): void {
-	const { contentEl, plugin } = tab;
-	const group = new SettingGroup(contentEl);
-
-	// 启用查看器
-	group.addSetting((setting) => {
-		setting
-			.setName('启用图片查看器')
-			.setDesc('在所有位置启用 Ctrl+Click 查看图片功能')
+export function getImageViewerSettingDefinitions(plugin: CPlugin): SettingDefinitionRender[] {
+	return [
+		createSettingDefinition('启用图片查看器', '在所有位置启用 Ctrl+Click 查看图片功能', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageViewer?.enabled !== false)
@@ -23,12 +20,9 @@ export function showImageViewerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	group.addSetting((setting) => {
+		}),
+		createSettingDefinition('禁用内置点击查看图片', '阻止内置图片灯箱响应普通点击, 不影响右键菜单, 拖拽缩放或本插件的快捷查看', (setting) => {
 		setting
-			.setName('禁用内置点击查看图片')
-			.setDesc('阻止内置图片灯箱响应普通点击, 不影响右键菜单, 拖拽缩放或本插件的快捷查看')
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageViewer?.disableNativeImageViewer === true)
@@ -42,5 +36,11 @@ export function showImageViewerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
+		}),
+	];
+}
+
+export function showImageViewerSettings(tab: NativePluginSettingTab): void {
+	const group = new SettingGroup(tab.contentEl);
+	renderSettingDefinitions(group, getImageViewerSettingDefinitions(tab.plugin));
 }

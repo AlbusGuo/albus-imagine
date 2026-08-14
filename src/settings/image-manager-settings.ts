@@ -1,16 +1,13 @@
-import { debounce, SettingGroup } from 'obsidian';
-import { NativePluginSettingTab } from './NativePluginSettingTab';
+import { debounce, SettingDefinitionRender, SettingGroup } from 'obsidian';
+import type { NativePluginSettingTab } from './NativePluginSettingTab';
 import { SortField, SortOrder } from '../types/image-manager.types';
+import type CPlugin from '@src/main';
+import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
 
-export function showImageManagerSettings(tab: NativePluginSettingTab): void {
-	const { contentEl, plugin } = tab;
-	const group = new SettingGroup(contentEl);
-
-	// 显示文件大小
-	group.addSetting((setting) => {
-		setting
-			.setName('显示文件大小')
-			.setDesc('在图片卡片上显示文件大小信息')
+export function getImageManagerSettingDefinitions(plugin: CPlugin): SettingDefinitionRender[] {
+	return [
+		createSettingDefinition('显示文件大小', '在图片卡片上显示文件大小信息', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageManager?.showFileSize !== false)
@@ -22,13 +19,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 显示修改时间
-	group.addSetting((setting) => {
-		setting
-			.setName('显示修改时间')
-			.setDesc('在图片卡片上显示最后修改时间')
+		}),
+		createSettingDefinition('显示修改时间', '在图片卡片上显示最后修改时间', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageManager?.showModifiedTime !== false)
@@ -40,13 +33,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 默认排序字段
-	group.addSetting((setting) => {
-		setting
-			.setName('默认排序字段')
-			.setDesc('打开图片管理器时的默认排序方式')
+		}),
+		createSettingDefinition('默认排序字段', '打开图片管理器时的默认排序方式', (setting) => {
+			setting
 			.addDropdown((dropdown) => {
 				dropdown
 					.addOption('mtime', '修改时间')
@@ -63,13 +52,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 默认排序顺序
-	group.addSetting((setting) => {
-		setting
-			.setName('默认排序顺序')
-			.setDesc('打开图片管理器时的默认排序顺序')
+		}),
+		createSettingDefinition('默认排序顺序', '打开图片管理器时的默认排序顺序', (setting) => {
+			setting
 			.addDropdown((dropdown) => {
 				dropdown
 					.addOption('desc', '降序')
@@ -83,13 +68,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 排除文件夹
-	group.addSetting((setting) => {
-		setting
-			.setName('排除文件夹')
-			.setDesc('在图片管理器中排除这些文件夹')
+		}),
+		createSettingDefinition('排除文件夹', '在图片管理器中排除这些文件夹', (setting) => {
+			setting
 			.addTextArea((text) => {
 				const excludedFolders = plugin.settings.imageManager?.excludedFolders || [];
 				text
@@ -108,13 +89,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 				text.inputEl.rows = 6;
 				text.inputEl.addClass('afm-textarea-full-width');
 			});
-	});
-
-	// 删除确认
-	group.addSetting((setting) => {
-		setting
-			.setName('删除确认')
-			.setDesc('删除文件前显示确认对话框')
+		}),
+		createSettingDefinition('删除确认', '删除文件前显示确认对话框', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageManager?.confirmDelete !== false)
@@ -126,13 +103,9 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// SVG 图片反色处理
-	group.addSetting((setting) => {
-		setting
-			.setName('深色模式下 SVG 图片反色')
-			.setDesc('在深色主题下对 SVG 图片进行反色处理, 使其更适配深色背景')
+		}),
+		createSettingDefinition('深色模式下 SVG 图片反色', '在深色主题下对 SVG 图片进行反色处理, 使其更适配深色背景', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageManager?.invertSvgInDarkMode !== false)
@@ -144,5 +117,11 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
+		}),
+	];
+}
+
+export function showImageManagerSettings(tab: NativePluginSettingTab): void {
+	const group = new SettingGroup(tab.contentEl);
+	renderSettingDefinitions(group, getImageManagerSettingDefinitions(tab.plugin));
 }

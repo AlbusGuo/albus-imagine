@@ -3,15 +3,10 @@
  */
 
 /* 鼠标样式类 (由 ResizeHandler 动态添加) */
-.image-cursor-nwse-resize {
-	cursor: nwse-resize !important;
+img.image-cursor-nwse-resize {
+	cursor: nwse-resize;
 }
 
-.image-cursor-default {
-	cursor: default !important;
-}
-
-/* Excalidraw 图片样式 (由 LinkUpdateService 动态添加) */
-.image-excalidraw-no-max-width {
-	max-width: none !important;
+img.image-cursor-default {
+	cursor: default;
 }

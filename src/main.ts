@@ -10,6 +10,7 @@ import { ImageContextMenu } from "./services/ImageContextMenu";
 import { SUPPORTED_IMAGE_EXTENSIONS } from "./types/image-manager.types";
 import { ImageCatalogService } from "./services/ImageCatalogService";
 import { ReferenceCheckService } from "./services/ReferenceCheckService";
+import { ImageLayoutStateManager } from "./services/ImageLayoutStateManager";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -19,6 +20,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private readonly referenceIndex = new ReferenceCheckService(this.app);
 	private resizeHandler: ResizeHandler | null = null;
 	private imageViewerManager: ImageViewerManager | null = null;
+	private imageLayoutStateManager: ImageLayoutStateManager | null = null;
 	private workspaceDocuments = new Set<Document>();
 	private referenceInvalidationTimer: number | null = null;
 
@@ -47,6 +49,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 		// 初始化图片上下文菜单
 		this.initializeContextMenu();
+
+		// 将图片参数同步为容器状态类, 避免高成本的 CSS :has() 选择器
+		this.imageLayoutStateManager = new ImageLayoutStateManager();
+		this.addChild(this.imageLayoutStateManager);
+		this.workspaceDocuments.forEach((doc) => this.imageLayoutStateManager?.registerDocument(doc));
 
 		// 注册视图
 		this.registerView(
@@ -95,9 +102,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			this.workspaceDocuments.add(win.document);
 			this.resizeHandler?.registerDocument(win.document);
 			this.imageViewerManager?.refreshViewTrigger(win.document);
+			this.imageLayoutStateManager?.registerDocument(win.document);
 			this.updateSvgInvertClass(win.document);
 		}));
 		this.registerEvent(this.app.workspace.on("window-close", (_workspaceWindow, win) => {
+			this.imageLayoutStateManager?.unregisterDocument(win.document);
 			this.workspaceDocuments.delete(win.document);
 		}));
 
@@ -178,6 +187,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 	onunload() {
 		this.disposeResizeHandler();
+		if (this.imageLayoutStateManager) {
+			this.removeChild(this.imageLayoutStateManager);
+			this.imageLayoutStateManager = null;
+		}
 
 		if (this.imageViewerManager) {
 			this.imageViewerManager.cleanup();

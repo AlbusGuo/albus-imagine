@@ -2,27 +2,27 @@
  * 图片预览 Modal 样式
  */
 
-.modal.image-manager-preview-modal-container {
-	padding: 0 !important;
+.modal-container .modal.image-manager-preview-modal-container {
+	padding: 0;
 	width: var(--modal-width);
 	height: var(--modal-height);
 	max-width: var(--modal-max-width);
 	max-height: var(--modal-max-height);
-	display: flex !important;
-	flex-direction: column !important;
+	display: flex;
+	flex-direction: column;
 }
 
-.modal.image-manager-preview-modal-container .modal-header {
+.modal-container .modal.image-manager-preview-modal-container .modal-header {
 	padding: var(--size-4-4);
 }
 
 /* 预览弹窗内容 */
-.modal.image-manager-preview-modal-container .modal-content {
-	padding: 0 !important;
-	margin: 0 !important;
-	height: 100% !important;
-	display: flex !important;
-	flex-direction: column !important;
+.modal-container .modal.image-manager-preview-modal-container .modal-content {
+	padding: 0;
+	margin: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 }
 
 /* 预览弹窗 */
@@ -61,9 +61,9 @@
 }
 
 /* 无限画布模式 */
-.image-manager-canvas {
+.image-manager-preview-image-container.image-manager-canvas {
 	cursor: grab;
-	overflow: hidden !important;
+	overflow: hidden;
 }
 
 .image-manager-canvas-dragging {
@@ -238,9 +238,9 @@
 .image-manager-detail-column .image-manager-detail-label {
 	min-width: 50px;
 }
-.image-manager-preview-image {
-	width: var(--afm-panzoom-width) !important;
-	height: auto !important;
-	margin-left: var(--afm-panzoom-left) !important;
-	margin-top: var(--afm-panzoom-top) !important;
+.image-manager-canvas > img.image-manager-preview-image {
+	width: var(--afm-panzoom-width);
+	height: auto;
+	margin-left: var(--afm-panzoom-left);
+	margin-top: var(--afm-panzoom-top);
 }

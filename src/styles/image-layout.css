@@ -2,74 +2,70 @@
 图片添加 dark 参数可在深色模式下反色
 ======================================== */
 
-.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]) {
-  filter: invert(1) hue-rotate(180deg) !important;
+body.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]) {
+  filter: invert(1) hue-rotate(180deg);
 }
 
-.theme-dark .image-embed[src*="#dark"] img {
-  filter: invert(1) hue-rotate(180deg) !important;
+body.theme-dark .image-embed[src*="#dark"] img {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* 禁用 SVG 反色时, 不对 dark 参数生效 */
-.afm-no-svg-invert.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]),
-.afm-no-svg-invert.theme-dark .image-embed[src*="#dark"] img {
-  filter: none !important;
+body.afm-no-svg-invert.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]),
+body.afm-no-svg-invert.theme-dark .image-embed[src*="#dark"] img {
+  filter: none;
 }
 
 /* ========================================
 图片排版位置
 ======================================== */
-.markdown-source-view.mod-cm6 .image-embed[alt$="center"],
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="center"],[alt$="|center"],[alt*="|center|"]) {
-  margin: auto !important;
+body .markdown-source-view.mod-cm6 .image-embed[alt$="center"],
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="center"],[alt$="|center"],[alt*="|center|"]) {
+  margin: auto;
   display: block;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-left"],[alt$="|align-left"],[alt*="|align-left|"]) {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-left"],[alt$="|align-left"],[alt*="|align-left|"]) {
   display: block;
-  margin-left: 0 !important;
-  margin-right: auto !important;
+  margin-left: 0;
+  margin-right: auto;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-right"],[alt$="|align-right"],[alt*="|align-right|"]) {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-right"],[alt$="|align-right"],[alt*="|align-right|"]) {
   display: block;
-  margin-left: auto !important;
-  margin-right: 0 !important;
+  margin-left: auto;
+  margin-right: 0;
 }
 
 /* 无标题语法的排版参数位于 img.alt; 必须对 Obsidian 的 embed 容器对齐,
  * 否则实时预览中的 shrink-to-fit 容器会让右对齐视觉上仍停留在左侧. */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed:has(
-  img:is([alt="align-left"],[alt$="|align-left"],[alt*="|align-left|"])
-) {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed.afm-align-left {
   clear: both;
   display: table;
-  margin: 0.5rem auto 0.5rem 0 !important;
+  margin: 0.5rem auto 0.5rem 0;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed:has(
-  img:is([alt="align-right"],[alt$="|align-right"],[alt*="|align-right|"])
-) {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed.afm-align-right {
   clear: both;
   display: table;
-  margin: 0.5rem 0 0.5rem auto !important;
+  margin: 0.5rem 0 0.5rem auto;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="inline"],[alt$="|inline"],[alt*="|inline|"]) {
-  display: inline !important;
-  padding: 0.05em 0.05em !important;
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="inline"],[alt$="|inline"],[alt*="|inline|"]) {
+  display: inline;
+  padding: 0.05em;
   vertical-align: bottom;
 }
 
 /* 左右环绕 (无标题, | 语法): 阅读模式使用真实文档流. */
-:is(.markdown-preview-view,.markdown-rendered) img:is([alt="left"],[alt$="|left"],[alt*="|left|"]) {
-  float: left !important;
-  margin: 0.5rem 1rem 0.5rem 0 !important;
+body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="left"],[alt$="|left"],[alt*="|left|"]) {
+  float: left;
+  margin: 0.5rem 1rem 0.5rem 0;
 }
 
-:is(.markdown-preview-view,.markdown-rendered) img:is([alt="right"],[alt$="|right"],[alt*="|right|"]) {
-  float: right !important;
-  margin: 0.5rem 0 0.5rem 1rem !important;
+body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="right"],[alt$="|right"],[alt*="|right|"]) {
+  float: right;
+  margin: 0.5rem 0 0.5rem 1rem;
 }
 
 /*
@@ -77,46 +73,31 @@
  * 图片所属空行盒允许鼠标穿透, 避免它覆盖后续文字的点击区域; 图片本体恢复
  * pointer-events, 因此右键菜单, 查看和拖拽缩放仍然可用.
  */
-.markdown-source-view.mod-cm6.is-live-preview .cm-line:is(
-  :has(> .image-embed[src*="#left"]),
-  :has(> .image-embed[src*="#right"]),
-  :has(> .image-embed img:is([alt="left"],[alt$="|left"],[alt*="|left|"])),
-  :has(> .image-embed img:is([alt="right"],[alt$="|right"],[alt*="|right|"]))
-):not(:has(> :not(.image-embed):not(br))) {
+body .markdown-source-view.mod-cm6.is-live-preview .cm-line.afm-wrap-image-only {
 	pointer-events: none;
 }
 
-.markdown-source-view.mod-cm6.is-live-preview .image-embed:is(
-  [src*="#left"],
-  :has(img:is([alt="left"],[alt$="|left"],[alt*="|left|"]))
-) {
+body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-left {
   position: relative;
   float: left;
   clear: both;
   display: table;
-  margin: 0.5rem 1rem 0.5rem 0 !important;
+  margin: 0.5rem 1rem 0.5rem 0;
   pointer-events: auto;
 }
 
-.markdown-source-view.mod-cm6.is-live-preview .cm-content:has(
-  .image-embed[src*="#left"],
-  .image-embed[src*="#right"],
-  .image-embed img:is([alt="left"],[alt$="|left"],[alt*="|left|"],[alt="right"],[alt$="|right"],[alt*="|right|"])
-)::after {
+body .markdown-source-view.mod-cm6.is-live-preview .cm-content.afm-has-wrapped-image::after {
   content:"";
   display: block;
   clear: both;
 }
 
-.markdown-source-view.mod-cm6.is-live-preview .image-embed:is(
-  [src*="#right"],
-  :has(img:is([alt="right"],[alt$="|right"],[alt*="|right|"]))
-) {
+body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-right {
   position: relative;
   float: right;
   clear: both;
   display: table;
-  margin: 0.5rem 0 0.5rem 1rem !important;
+  margin: 0.5rem 0 0.5rem 1rem;
   pointer-events: auto;
 }
 
@@ -128,21 +109,21 @@
 ======================================== */
 
 /* 居中与非环绕对齐在阅读, 编辑模式下使用同一几何模型. */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#center"] {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#center"] {
   clear: both;
-  margin: 0 auto !important;
+  margin: 0 auto;
   display: table;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-left"] {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-left"] {
   clear: both;
-  margin: 0.5rem auto 0.5rem 0 !important;
+  margin: 0.5rem auto 0.5rem 0;
   display: table;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-right"] {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-right"] {
   clear: both;
-  margin: 0.5rem 0 0.5rem auto !important;
+  margin: 0.5rem 0 0.5rem auto;
   display: table;
 }
 
@@ -157,18 +138,18 @@
 }
 
 /* 左右环绕: 阅读模式使用真实 float. */
-:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#left"] {
+body :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#left"] {
   position: relative;
   float: left;
-  margin: 0.5rem 1rem 0.5rem 0 !important;
+  margin: 0.5rem 1rem 0.5rem 0;
   clear: both;
   display: table;
 }
 
-:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#right"] {
+body :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#right"] {
   position: relative;
   float: right;
-  margin: 0.5rem 0 0.5rem 1rem !important;
+  margin: 0.5rem 0 0.5rem 1rem;
   clear: both;
   display: table;
 }
@@ -196,17 +177,17 @@
 }
 
 /* --- 行内 --- */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#inline"] {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#inline"] {
   clear: both;
-  margin: 0 auto !important;
+  margin: 0 auto;
   width: fit-content;
   display: inline-table;
 }
 
 /* --- 标题编辑 --- */
 /* 编辑标题时隐藏 ::after 伪元素 */
-.image-embed.afm-editing-caption::after {
-  display: none !important;
+body .image-embed.afm-editing-caption::after {
+  display: none;
 }
 
 /* 编辑控件在 document.body 的独立浮层中; 原容器只保留与标题一致的空间,
@@ -226,54 +207,54 @@
 }
 
 /* 标题输入框 - 所有状态使用完全相同的几何和透明外观. */
-.afm-caption-editor-overlay .afm-caption-input {
-	display: block !important;
-	width: 100% !important;
-	height: var(--afm-caption-height, auto) !important;
-	min-height: 24px !important;
-	margin: 0.5rem 0 !important;
-	padding: 0 0.5rem !important;
-	box-sizing: border-box !important;
-	resize: none !important;
-	overflow: hidden !important;
-	font-family: var(--afm-caption-font-family, var(--font-text)) !important;
-	font-style: var(--afm-caption-font-style, normal) !important;
-	font-weight: var(--afm-caption-font-weight, normal) !important;
-	font-size: 0.85rem !important;
-	line-height: 1.5 !important;
-	letter-spacing: var(--afm-caption-letter-spacing, normal) !important;
-	text-align: center !important;
-	white-space: pre-wrap !important;
-	overflow-wrap: anywhere !important;
-	word-break: break-word !important;
-	color: var(--text-muted) !important;
-	-webkit-text-fill-color: var(--text-muted) !important;
-	caret-color: var(--text-normal) !important;
-	background: transparent !important;
-	border: 0 !important;
-	border-radius: 0 !important;
-	outline: 0 !important;
-	box-shadow: none !important;
-	opacity: 1 !important;
-	appearance: none !important;
-	cursor: text !important;
-	user-select: text !important;
+body .afm-caption-editor-overlay textarea.afm-caption-input {
+	display: block;
+	width: 100%;
+	height: var(--afm-caption-height, auto);
+	min-height: 24px;
+	margin: 0.5rem 0;
+	padding: 0 0.5rem;
+	box-sizing: border-box;
+	resize: none;
+	overflow: hidden;
+	font-family: var(--afm-caption-font-family, var(--font-text));
+	font-style: var(--afm-caption-font-style, normal);
+	font-weight: var(--afm-caption-font-weight, normal);
+	font-size: 0.85rem;
+	line-height: 1.5;
+	letter-spacing: var(--afm-caption-letter-spacing, normal);
+	text-align: center;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	color: var(--text-muted);
+	-webkit-text-fill-color: var(--text-muted);
+	caret-color: var(--text-normal);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	outline: 0;
+	box-shadow: none;
+	opacity: 1;
+	appearance: none;
+	cursor: text;
+	user-select: text;
 }
 
-.afm-caption-editor-overlay .afm-caption-input:hover,
-.afm-caption-editor-overlay .afm-caption-input:focus,
-.afm-caption-editor-overlay .afm-caption-input:focus-visible,
-.afm-caption-editor-overlay .afm-caption-input:active {
-	color: var(--text-muted) !important;
-	-webkit-text-fill-color: var(--text-muted) !important;
-	caret-color: var(--text-normal) !important;
-	background: transparent !important;
-	border: 0 !important;
-	outline: 0 !important;
-	box-shadow: none !important;
+body .afm-caption-editor-overlay textarea.afm-caption-input:hover,
+body .afm-caption-editor-overlay textarea.afm-caption-input:focus,
+body .afm-caption-editor-overlay textarea.afm-caption-input:focus-visible,
+body .afm-caption-editor-overlay textarea.afm-caption-input:active {
+	color: var(--text-muted);
+	-webkit-text-fill-color: var(--text-muted);
+	caret-color: var(--text-normal);
+	background: transparent;
+	border: 0;
+	outline: 0;
+	box-shadow: none;
 }
 
-.afm-caption-editor-overlay .afm-caption-input::placeholder {
-	color: var(--text-faint) !important;
+body .afm-caption-editor-overlay textarea.afm-caption-input::placeholder {
+	color: var(--text-faint);
 	opacity: 1;
 }

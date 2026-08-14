@@ -11,3 +11,12 @@ export function setDestructiveButton(button: ButtonComponent): ButtonComponent {
 	if (compatibleButton.setWarning) return compatibleButton.setWarning();
 	return button;
 }
+
+export function refreshSettingTab(settingTab: object, fallback: () => void): void {
+	const update = Reflect.get(settingTab, "update") as unknown;
+	if (typeof update === "function") {
+		(update as (this: object) => void).call(settingTab);
+		return;
+	}
+	fallback();
+}

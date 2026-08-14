@@ -31,10 +31,10 @@
 /* 图片视图 - 对应 .oit .oit-img-container .oit-img-view */
 .afm-img-viewer-container .afm-img-container .afm-img-view {
 	max-height: none;
-	width: var(--afm-panzoom-width) !important;
-	height: auto !important;
-	margin-left: var(--afm-panzoom-left) !important;
-	margin-top: var(--afm-panzoom-top) !important;
+	width: var(--afm-panzoom-width);
+	height: auto;
+	margin-left: var(--afm-panzoom-left);
+	margin-top: var(--afm-panzoom-top);
 	pointer-events: auto;
 	cursor: grab;
 }
@@ -44,9 +44,9 @@
 }
 
 /* 透明图片的棋盘背景 - 对应 .oit .img-default-background */
-.afm-img-viewer-container .img-default-background {
-	background-position: 0 0, 5px 5px !important;
-	background-size: 10px 10px !important;
+.afm-img-viewer-container .afm-img-container .afm-img-view.img-default-background {
+	background-position: 0 0, 5px 5px;
+	background-size: 10px 10px;
 	background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%),
-	                  linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%) !important;
+	                  linear-gradient(45deg, #eee 25%, #fff 25%, #fff 75%, #eee 75%, #eee 100%);
 }

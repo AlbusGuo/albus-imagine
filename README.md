@@ -3,6 +3,31 @@
 [![版本](https://img.shields.io/github/v/release/AlbusGuo/albus-imagine)](https://github.com/AlbusGuo/albus-imagine/releases)
 [![下载](https://img.shields.io/github/downloads/AlbusGuo/albus-imagine/total)](https://github.com/AlbusGuo/albus-imagine/releases)
 
+# Imagine -- Image management for Obsidian
+
+Imagine is a desktop community plugin that provides an integrated workflow for browsing, inserting, arranging, resizing, viewing, and cleaning up images in an Obsidian vault.
+
+## Features
+
+- Browse vault images in a responsive manager with folder filters, search, sorting, lazy loading, reference counts, and batch deletion.
+- Insert one or more images from a native-style picker and configure alignment, text wrapping, dark-theme inversion, and captions before insertion.
+- Change an embedded image's position, inversion, or caption from its native Obsidian context menu.
+- Resize images by dragging in Live Preview while keeping changes in the editor undo history.
+- Open images in a full-screen viewer with zooming and panning.
+- Associate custom file types with preview covers so design and document assets can appear in the image manager.
+
+## Installation
+
+Install **Imagine** from Obsidian's community plugin directory when it becomes available. For manual installation, download `main.js`, `manifest.json`, and `styles.css` from the latest GitHub release and place them in `<vault>/.obsidian/plugins/albus-imagine/`.
+
+Imagine requires Obsidian 1.12.1 or later and is currently desktop-only. It operates locally and does not send vault data to external services.
+
+For usage details, syntax examples, settings, and limitations, see the Chinese documentation below.
+
+---
+
+## 中文文档
+
 # Imagine -- Obsidian 图片综合管理插件
 
 **Imagine** 是一款面向 [Obsidian](https://obsidian.md/) 的桌面端社区插件，提供从图片浏览、筛选、插入、排版、拖拽调整尺寸到全屏查看的完整工作流。插件同时支持对 Vault 中图片资源进行引用分析与批量清理，帮助用户高效管理数量庞大的图片附件。
@@ -41,7 +66,7 @@
 | **图片排版** | 通过 Wiki 链接参数控制图片的居中、左浮动、右浮动、行内显示，以及深色模式反色和标题注释 |
 | **拖拽调整尺寸** | 在编辑器实时预览模式下，通过拖拽图片右下角边缘即可调整宽度，自动回写 Markdown 链接中的尺寸参数 |
 | **图片查看器** | Ctrl + 单击任意图片即可打开全屏 Lightbox 查看器，支持滚轮缩放与拖拽平移 |
-| **右键上下文菜单** | 对编辑器内的 Wiki 链接图片提供对齐调整、反色切换、标题编辑、源文件打开、链接删除等快捷操作 |
+| **右键上下文菜单** | 对编辑器内的 Wiki 链接图片提供位置调整、反色切换、标题编辑和源文件打开等快捷操作 |
 | **自定义文件类型** | 允许将非图片格式（如 PDF、PSD 等）纳入管理器，通过关联封面图片进行可视化展示 |
 
 ---
@@ -148,7 +173,7 @@
 
 | 选项 | 说明 |
 |------|------|
-| **位置** | 居中（center）、左侧环绕（left）、右侧环绕（right）、行内（inline） |
+| **位置** | 居中（center）、左对齐（align-left）、右对齐（align-right）、左侧环绕（left）、右侧环绕（right）、行内（inline） |
 | **深色反色** | 开启后在深色主题下对图片应用反色处理 |
 | **标题** | 在输入框中填写图片标题说明文字 |
 
@@ -186,14 +211,17 @@
 | 参数 | 效果 | 阅读模式行为 | 编辑模式行为 |
 |------|------|-------------|-------------|
 | `center` | 居中显示 | 块级居中 | 块级居中 |
-| `left` | 左侧排列 | 左浮动，文字环绕 | 左对齐（不浮动） |
-| `right` | 右侧排列 | 右浮动，文字环绕 | 右对齐（不浮动） |
+| `align-left` | 左对齐 | 块级左对齐 | 块级左对齐 |
+| `align-right` | 右对齐 | 块级右对齐 | 块级右对齐 |
+| `left` | 左侧环绕 | 左浮动，文字环绕 | 左浮动，文字环绕 |
+| `right` | 右侧环绕 | 右浮动，文字环绕 | 右浮动，文字环绕 |
 | `inline` | 行内显示 | 行内排列 | 行内排列 |
 
 使用示例：
 
 ```markdown
 ![[diagram.svg|center]]
+![[diagram.svg|align-right]]
 ![[photo.jpg|left]]
 ![[icon.png|inline]]
 ```
@@ -293,13 +321,10 @@
 
 | 菜单项 | 说明 |
 |--------|------|
-| **图片对齐** | 子菜单，包含居中、左侧环绕、右侧环绕三个选项；选择后自动修改 Markdown 源代码中的对齐参数 |
+| **图片位置** | 子菜单，包含居中、左对齐、右对齐、左侧环绕和右侧环绕；选择后自动修改 Markdown 源代码中的位置参数 |
 | **深色反色** | 切换图片链接中的 `dark` 参数 |
 | **编辑标题** | 在图片下方弹出行内编辑框，按 Enter 保存，修改结果即时回写到 Markdown |
 | **打开源文件** | 使用 Obsidian 默认方式打开图片文件；对于自定义文件类型，打开的是原始工程文件 |
-| **在文件管理器中显示** | 在 Obsidian 内置文件管理器中定位并高亮该文件 |
-| **在系统资源管理器中显示** | 调用操作系统的文件管理器打开文件所在目录 |
-| **删除链接** | 从 Markdown 源代码中移除该图片的嵌入链接 |
 
 上下文菜单仅在编辑模式下的 Wiki 链接图片上生效，Canvas 视图中不可用。当同一图片在文档中出现多次时，插件通过 CodeMirror 6 的 `posAtDOM` API 精确定位到被右键点击的那一处实例。
 
@@ -311,7 +336,7 @@
 
 #### 配置方式
 
-在 **Settings** → **Imagine** → **图片管理器** → **自定义文件类型** 中，点击 "添加文件类型" 按钮，填写以下三个字段：
+在 **Settings** → **Imagine** → **自定义文件类型** 中，点击 "添加文件类型" 按钮，填写以下三个字段：
 
 | 字段 | 说明 | 示例 |
 |------|------|------|
@@ -331,7 +356,7 @@
 
 ## 设置项参考
 
-插件的设置界面分为三个标签页，以下为全部可配置项。
+插件的设置界面分为四个页面，以下为全部可配置项。
 
 ### 图片管理器
 
@@ -360,6 +385,7 @@
 | 设置项 | 说明 | 默认值 |
 |--------|------|--------|
 | 启用图片查看器 | 是否在所有位置启用 Ctrl + 点击图片查看功能 | 开启 |
+| 禁用内置点击查看图片 | 是否阻止 Obsidian 内置图片灯箱响应普通点击 | 关闭 |
 
 ---
 

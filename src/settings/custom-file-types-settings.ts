@@ -1,23 +1,25 @@
-import { debounce, SettingGroup } from 'obsidian';
-import { NativePluginSettingTab } from './NativePluginSettingTab';
+import { debounce, SettingDefinitionRender, SettingGroup } from 'obsidian';
+import type { NativePluginSettingTab } from './NativePluginSettingTab';
+import type CPlugin from '@src/main';
+import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
 
-export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
-	const { contentEl, plugin } = tab;
+export function getCustomFileTypesSettingDefinitions(
+	plugin: CPlugin,
+	refresh: () => void,
+): SettingDefinitionRender[] {
 	const customTypes = plugin.settings.imageManager?.customFileTypes || [];
-
-	const group = new SettingGroup(contentEl);
+	const definitions: SettingDefinitionRender[] = [];
 
 	if (customTypes.length === 0) {
-		group.addSetting((setting) => {
-			setting
-				.setName('暂无自定义文件类型')
-				.setDesc('添加后可为非图片文件指定预览封面.');
-		});
+		definitions.push(createSettingDefinition(
+			'暂无自定义文件类型',
+			'添加后可为非图片文件指定预览封面.',
+			() => undefined,
+		));
 	} else {
 		customTypes.forEach((type, index) => {
-			group.addSetting((setting) => {
+			definitions.push(createSettingDefinition('类型', '', (setting) => {
 				setting
-					.setName('类型')
 					.addText((text) => {
 						text
 							.setPlaceholder('文件扩展名 (如 PDF)')
@@ -68,17 +70,18 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 								}
 								plugin.settings.imageManager.customFileTypes = customTypes;
 								await plugin.saveSettings();
-								tab.refresh();
+								refresh();
 							});
 					});
-			});
+			}));
 		});
 	}
 
-	group.addSetting((setting) => {
+	definitions.push(createSettingDefinition(
+		'添加文件类型',
+		'设置源文件扩展名, 封面扩展名和可选封面文件夹.',
+		(setting) => {
 		setting
-			.setName('添加文件类型')
-			.setDesc('设置源文件扩展名, 封面扩展名和可选封面文件夹.')
 			.addButton((button) => {
 				button
 					.setButtonText('添加')
@@ -89,8 +92,19 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 							coverExtension: '',
 							coverFolder: ''
 						});
-						tab.refresh();
+						refresh();
 					});
 			});
-	});
+		},
+	));
+
+	return definitions;
+}
+
+export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
+	const group = new SettingGroup(tab.contentEl);
+	renderSettingDefinitions(
+		group,
+		getCustomFileTypesSettingDefinitions(tab.plugin, () => tab.refresh()),
+	);
 }

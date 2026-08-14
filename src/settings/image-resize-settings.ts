@@ -1,15 +1,12 @@
-import { debounce, Notice, SettingGroup } from 'obsidian';
-import { NativePluginSettingTab } from './NativePluginSettingTab';
+import { debounce, Notice, SettingDefinitionRender, SettingGroup } from 'obsidian';
+import type { NativePluginSettingTab } from './NativePluginSettingTab';
+import type CPlugin from '@src/main';
+import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
 
-export function showImageResizeSettings(tab: NativePluginSettingTab): void {
-	const { contentEl, plugin } = tab;
-	const group = new SettingGroup(contentEl);
-
-	// 启用一般图片拖拽调整
-	group.addSetting((setting) => {
-		setting
-			.setName('启用 callout 外图片拖拽调整大小')
-			.setDesc('是否允许通过拖拽 callout 外图片边缘来调整图片大小')
+export function getImageResizeSettingDefinitions(plugin: CPlugin): SettingDefinitionRender[] {
+	return [
+		createSettingDefinition('启用 callout 外图片拖拽调整大小', '是否允许通过拖拽 callout 外图片边缘来调整图片大小', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageResize?.dragResizeGeneral !== false)
@@ -26,13 +23,9 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 启用 Callout 内图片拖拽调整
-	group.addSetting((setting) => {
-		setting
-			.setName('启用 callout 内图片拖拽调整大小')
-			.setDesc('是否允许通过拖拽 callout 内图片边缘来调整图片大小')
+		}),
+		createSettingDefinition('启用 callout 内图片拖拽调整大小', '是否允许通过拖拽 callout 内图片边缘来调整图片大小', (setting) => {
+			setting
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageResize?.dragResizeCallout !== false)
@@ -49,14 +42,10 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					});
 			});
-	});
-
-	// 调整间隔
-	group.addSetting((setting) => {
+		}),
+		createSettingDefinition('调整大小的时间间隔', '拖动调整最小刻度, 0 表示不对齐刻度', (setting) => {
 		const currentValue = plugin.settings.imageResize?.resizeInterval || 0;
 		setting
-			.setName('调整大小的时间间隔')
-			.setDesc('拖动调整最小刻度, 0 表示不对齐刻度')
 			.addText((text) => {
 				text
 					.setPlaceholder('0')
@@ -82,14 +71,10 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 				text.inputEl.min = '0';
 				text.inputEl.step = '1';
 			});
-	});
-
-	// 边缘检测区域
-	group.addSetting((setting) => {
+		}),
+		createSettingDefinition('边缘检测区域大小', '鼠标在图片边缘多少像素内可以触发调整大小', (setting) => {
 		const currentValue = plugin.settings.imageResize?.edgeSize || 20;
 		setting
-			.setName('边缘检测区域大小')
-			.setDesc('鼠标在图片边缘多少像素内可以触发调整大小')
 			.addSlider((slider) => {
 				slider
 					.setLimits(5, 150, 1)
@@ -107,5 +92,11 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 						await plugin.saveSettings();
 					}, 100));
 			});
-	});
+		}),
+	];
+}
+
+export function showImageResizeSettings(tab: NativePluginSettingTab): void {
+	const group = new SettingGroup(tab.contentEl);
+	renderSettingDefinitions(group, getImageResizeSettingDefinitions(tab.plugin));
 }
