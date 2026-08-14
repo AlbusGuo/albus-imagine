@@ -1,408 +1,263 @@
-![](https://socialify.git.ci/AlbusGuo/albus-imagine/image?description=1&font=Raleway&forks=1&issues=1&name=1&owner=1&pattern=Circuit+Board&pulls=1&stargazers=1&theme=Light)
+![Imagine](https://socialify.git.ci/AlbusGuo/albus-imagine/image?description=1&font=Raleway&forks=1&issues=1&name=1&owner=1&pattern=Circuit+Board&pulls=1&stargazers=1&theme=Light)
 
-[![版本](https://img.shields.io/github/v/release/AlbusGuo/albus-imagine)](https://github.com/AlbusGuo/albus-imagine/releases)
-[![下载](https://img.shields.io/github/downloads/AlbusGuo/albus-imagine/total)](https://github.com/AlbusGuo/albus-imagine/releases)
+[![Release](https://img.shields.io/github/v/release/AlbusGuo/albus-imagine)](https://github.com/AlbusGuo/albus-imagine/releases)
+[![Downloads](https://img.shields.io/github/downloads/AlbusGuo/albus-imagine/total)](https://github.com/AlbusGuo/albus-imagine/releases)
 
-# Imagine -- Image management for Obsidian
+# Imagine
 
-Imagine is a desktop community plugin that provides an integrated workflow for browsing, inserting, arranging, resizing, viewing, and cleaning up images in an Obsidian vault.
+Imagine is an all-in-one image workflow plugin for [Obsidian](https://obsidian.md/). It brings image browsing, reference analysis, insertion, layout, caption editing, resizing, previewing, and batch file operations into one local desktop plugin.
 
-## Features
+[English](README.md) | [Chinese](README.zh-CN.md)
 
-- Browse vault images in a responsive manager with folder filters, search, sorting, lazy loading, reference counts, and batch deletion.
-- Insert one or more images from a native-style picker and configure alignment, text wrapping, dark-theme inversion, and captions before insertion.
-- Change an embedded image's position, inversion, or caption from its native Obsidian context menu.
-- Resize images by dragging in Live Preview while keeping changes in the editor undo history.
-- Open images in a full-screen viewer with zooming and panning.
-- Associate custom file types with preview covers so design and document assets can appear in the image manager.
+## Highlights
+
+- Browse vault images in a responsive, virtualized image manager.
+- Search by file name and filter by vault folder or reference status.
+- Sort by modified time, created time, file size, file name, or reference count.
+- Detect links and embeds through Obsidian's metadata cache, including frontmatter links.
+- Rename, move, open, preview, and trash image files without leaving Obsidian.
+- Move or trash multiple selected files, or safely recheck and trash unreferenced images.
+- Insert individual images or generate a responsive Grid Callout from multiple selections.
+- Apply centered, aligned, wrapped, or inline layouts through Wiki link parameters.
+- Add dark-theme inversion and editable captions to image embeds.
+- Resize images by dragging their lower-right edge in Live Preview.
+- Open a full-window image viewer with zoom and pan controls.
+- Manage non-image source files through associated cover images.
+- Work across Obsidian pop-out windows.
+
+## Requirements and privacy
+
+- Obsidian 1.12.1 or later.
+- Desktop platforms only: Windows, macOS, and Linux.
+- Imagine works locally. It does not upload vault data, collect telemetry, or require an external service.
 
 ## Installation
 
-Install **Imagine** from Obsidian's community plugin directory when it becomes available. For manual installation, download `main.js`, `manifest.json`, and `styles.css` from the latest GitHub release and place them in `<vault>/.obsidian/plugins/albus-imagine/`.
+### Community plugins
 
-Imagine requires Obsidian 1.12.1 or later and is currently desktop-only. It operates locally and does not send vault data to external services.
+Once Imagine is available in the Obsidian community plugin directory:
 
-For usage details, syntax examples, settings, and limitations, see the Chinese documentation below.
+1. Open **Settings → Community plugins**.
+2. Select **Browse** and search for `Imagine`.
+3. Install the plugin and enable it.
 
----
+### BRAT
 
-## 中文文档
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+2. In the BRAT settings, select **Add beta plugin**.
+3. Enter `https://github.com/AlbusGuo/albus-imagine`.
+4. Enable **Imagine** under **Settings → Community plugins**.
 
-# Imagine -- Obsidian 图片综合管理插件
+### Manual installation
 
-**Imagine** 是一款面向 [Obsidian](https://obsidian.md/) 的桌面端社区插件，提供从图片浏览、筛选、插入、排版、拖拽调整尺寸到全屏查看的完整工作流。插件同时支持对 Vault 中图片资源进行引用分析与批量清理，帮助用户高效管理数量庞大的图片附件。
+1. Download `main.js`, `manifest.json`, and `styles.css` from the latest [release](https://github.com/AlbusGuo/albus-imagine/releases).
+2. Create `<vault>/.obsidian/plugins/albus-imagine/`.
+3. Place the three files in that folder.
+4. Restart Obsidian and enable **Imagine** under **Settings → Community plugins**.
 
-> 本项目部分功能参考插件 [Image Toolkit](https://github.com/sissilab/obsidian-image-toolkit) 与 [AttachFlow](https://github.com/Yaozhuwa/AttachFlow)，感谢社区插件的开源分享。
+## Quick start
 
----
+1. Open the image manager from the ribbon icon or the command palette.
+2. Open the image picker from the command palette to insert an image at the current editor selection.
+3. In Live Preview, right-click an embedded Wiki link image to change its position, inversion, caption, or open its source file.
+4. Move the pointer near an image's lower-right corner and drag to resize it.
+5. Hold `Ctrl` and select an image to open Imagine's full-window viewer.
 
-## 目录
+## Image manager
 
-- [功能概览](#功能概览)
-- [支持的图片格式](#支持的图片格式)
-- [安装](#安装)
-- [快速上手](#快速上手)
-- [功能详述](#功能详述)
-  - [图片管理器](#图片管理器)
-  - [图片选择器与插入](#图片选择器与插入)
-  - [图片排版语法](#图片排版语法)
-  - [图片拖拽调整尺寸](#图片拖拽调整尺寸)
-  - [图片查看器](#图片查看器)
-  - [右键上下文菜单](#右键上下文菜单)
-  - [自定义文件类型](#自定义文件类型)
-- [设置项参考](#设置项参考)
-- [兼容性与限制](#兼容性与限制)
-- [致谢](#致谢)
-- [许可证](#许可证)
+The image manager opens as a regular workspace tab and keeps its state when Obsidian restores the workspace.
 
----
+### Browse and filter
 
-## 功能概览
+- Filter by vault folder with path suggestions.
+- Search by file name.
+- Switch between all images and unreferenced images.
+- Sort in ascending or descending order by modified time, created time, size, name, or reference count.
+- Exclude configured folders from the catalog.
+- Refresh the current results manually when needed.
 
-| 模块 | 说明 |
-|------|------|
-| **图片管理器** | 以网格视图浏览 Vault 中的全部图片资源；支持文件夹筛选、文件名搜索、多字段排序、引用状态检查及批量删除 |
-| **图片选择器** | 通过命令面板唤起模态框，快速选择并插入图片到编辑器光标处，可同时配置对齐方式、深色反色与标题 |
-| **图片排版** | 通过 Wiki 链接参数控制图片的居中、左浮动、右浮动、行内显示，以及深色模式反色和标题注释 |
-| **拖拽调整尺寸** | 在编辑器实时预览模式下，通过拖拽图片右下角边缘即可调整宽度，自动回写 Markdown 链接中的尺寸参数 |
-| **图片查看器** | Ctrl + 单击任意图片即可打开全屏 Lightbox 查看器，支持滚轮缩放与拖拽平移 |
-| **右键上下文菜单** | 对编辑器内的 Wiki 链接图片提供位置调整、反色切换、标题编辑和源文件打开等快捷操作 |
-| **自定义文件类型** | 允许将非图片格式（如 PDF、PSD 等）纳入管理器，通过关联封面图片进行可视化展示 |
+The grid is virtualized and image media is loaded only for visible cards, keeping large collections responsive.
 
----
+### Reference analysis
 
-## 支持的图片格式
+Imagine uses Obsidian's public metadata cache and resolved link graph. It recognizes regular links, embeds, reference links, frontmatter links, and other references included in Obsidian's resolved counts. Reference results are cached and invalidated when Markdown metadata changes.
 
-插件默认识别以下图片格式：
+Select a card to open its preview and inspect every available referring note. Selecting a reference opens the note and navigates to the recorded location when one is available.
 
-| 分类 | 扩展名 |
-|------|--------|
-| 通用格式 | PNG, JPG, JPEG, GIF, BMP, WebP, SVG |
-| 专业格式 | TIFF, TIF, ICO |
-| 新一代格式 | AVIF, HEIC, HEIF |
+### File operations
 
-如需管理上述格式之外的文件，请参阅 [自定义文件类型](#自定义文件类型) 一节。
+Each card provides actions to:
 
----
+- Open the file.
+- Rename the file.
+- Move the file to another vault folder.
+- Move the file to the system trash through Obsidian's file manager.
 
-## 安装
+Multi-select mode supports batch move and batch trash. The unreferenced-image action performs fresh reference checks before the confirmation step and again before deletion, reducing the risk of removing a newly referenced file.
 
-### 从 Obsidian 社区插件市场安装（尚未上架）
+### Preview
 
-1. 打开 **Settings** → **Community plugins** → **Browse**。
-2. 搜索 "Imagine"。
-3. 选择安装并启用。
+The preview modal includes:
 
-### 通过 BRAT 安装
+- Wheel zoom, pointer drag, and double-click reset.
+- File path, size, created time, and modified time.
+- A list of referring notes.
+- Separate source and cover details for custom file types.
 
-1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件。
-2. 在 BRAT 设置中选择 **Add a plugin repository**。
-3. 输入仓库地址：`https://github.com/AlbusGuo/albus-imagine`。
-4. 等待安装完成后，在 **Community plugins** 列表中启用 "Imagine"。
+## Image picker and insertion
 
-### 手动安装
+The image picker reuses the same catalog, folder filtering, search, sorting, virtualized grid, and lazy media loading as the manager.
 
-1. 从 [Releases](https://github.com/AlbusGuo/albus-imagine/releases) 页面下载最新版本的 `main.js`、`manifest.json` 和 `styles.css`。
-2. 在 Vault 目录下创建文件夹 `.obsidian/plugins/albus-imagine/`，并将上述三个文件放入其中。
-3. 重新启动 Obsidian，在 **Settings** → **Community plugins** 中启用 "Imagine"。
+Before inserting one image, you can choose:
 
----
+- Position: center, align left, align right, wrap left, wrap right, or inline.
+- Dark-theme inversion.
+- An optional caption.
 
-## 快速上手
-
-完成安装并启用插件后，可通过以下方式快速体验核心功能：
-
-1. **打开图片管理器** -- 点击左侧功能区（Ribbon）中的图片图标，或在命令面板中执行 `Imagine: 打开图片管理器`。
-2. **插入图片到文档** -- 在命令面板中执行 `Imagine: 插入图片`，在弹出的选择器中选择目标图片后即可插入到当前光标位置。
-3. **拖拽调整尺寸** -- 在编辑器实时预览模式下，将鼠标移动到图片右下角，当光标变为 `nwse-resize` 形态时按住左键拖拽即可调整宽度。
-4. **全屏查看图片** -- 按住 Ctrl 键并单击编辑器或阅读模式中的任意图片，即可进入全屏 Lightbox 查看器。
-
----
-
-## 功能详述
-
-### 图片管理器
-
-图片管理器以独立标签页的形式存在，提供对 Vault 内图片资源的集中浏览与管理。
-
-#### 布局结构
-
-管理器界面自上而下分为三个区域：
-
-1. **头部** -- 文件夹选择器（带路径自动补全）、图片统计信息、批量操作按钮。
-2. **搜索与排序栏** -- 文件名搜索框、排序字段选择（修改时间 / 创建时间 / 文件大小 / 文件名 / 引用数量）、升降序切换、引用状态筛选（全部 / 仅未引用）。
-3. **图片网格** -- 响应式缩略图网格，支持懒加载与增量渲染（每批 50 张），滚动至底部自动加载更多。
-
-#### 图片卡片
-
-每张图片以卡片形式呈现，根据设置可在缩略图上叠加显示文件大小和修改时间。鼠标悬停时在卡片右上角显示操作按钮：
-
-- **打开** -- 在 Obsidian 中使用默认方式打开文件。
-- **重命名** -- 弹出对话框修改文件名（不含扩展名），自定义文件类型的封面文件会同步重命名。
-- **删除** -- 将文件移至系统回收站（可在设置中关闭删除前确认对话框）。
-
-单击缩略图可打开图片预览模态框，查看完整尺寸图片并浏览引用详情。
-
-#### 引用检查
-
-点击筛选栏中的 "未引用" 按钮后，插件会调用 Obsidian 的元数据缓存 API 扫描所有笔记中的引用关系。扫描结果以引用计数标签的形式显示在每张卡片上，未被任何笔记引用的图片可被批量选中并一次性删除。
-
-#### 批量操作
-
-- **选中删除** -- 进入多选模式，勾选目标图片后执行批量删除，删除过程中显示百分比进度。
-- **删除全部未引用** -- 一键删除当前筛选结果中所有未被引用的图片。
-
-#### 图片预览模态框
-
-在管理器中单击任意缩略图即可打开预览模态框，功能包括：
-
-- 无限画布式图片查看（滚轮缩放、鼠标拖拽平移、双击重置）。
-- 文件元数据展示（路径、文件大小、创建时间、修改时间）。
-- 引用列表 -- 显示引用该图片的所有文档，单击任一条目即可跳转到对应文件并关闭弹窗。
-- 对于自定义文件类型，预览模态框以分栏形式同时展示源文件与封面文件的元数据。
-
----
-
-### 图片选择器与插入
-
-通过命令面板执行 `Imagine: 插入图片` 即可打开图片选择器模态框。
-
-#### 选项面板
-
-模态框顶部提供以下选项：
-
-| 选项 | 说明 |
-|------|------|
-| **位置** | 居中（center）、左对齐（align-left）、右对齐（align-right）、左侧环绕（left）、右侧环绕（right）、行内（inline） |
-| **深色反色** | 开启后在深色主题下对图片应用反色处理 |
-| **标题** | 在输入框中填写图片标题说明文字 |
-
-#### 插入模式
-
-- **单选插入** -- 直接单击某张图片，插件立即将该图片链接插入到编辑器光标处并关闭模态框。
-- **多选插入** -- 切换至多选模式后勾选多张图片，确认后插件以 `[!grid]` callout 格式批量插入，生成自适应网格排列。
-
-#### 生成的链接语法
-
-根据选项面板的组合，插件生成两种不同的 Wiki 链接格式：
-
-**无标题时**（参数置于 `|` 之后）：
-
-```
-![[image.png|center]]
-![[image.png|dark|center]]
-```
-
-**有标题时**（位置与反色参数置于 `#` 之后，标题作为 `|` 后的别名文本）：
-
-```
-![[image.png#center|这是图片标题]]
-![[image.png#center#dark|这是图片标题]]
-```
-
----
-
-### 图片排版语法
-
-插件通过 CSS 规则解析 Wiki 链接中的参数，实现多种图片排版效果。以下为完整的参数说明。
-
-#### 位置控制
-
-| 参数 | 效果 | 阅读模式行为 | 编辑模式行为 |
-|------|------|-------------|-------------|
-| `center` | 居中显示 | 块级居中 | 块级居中 |
-| `align-left` | 左对齐 | 块级左对齐 | 块级左对齐 |
-| `align-right` | 右对齐 | 块级右对齐 | 块级右对齐 |
-| `left` | 左侧环绕 | 左浮动，文字环绕 | 左浮动，文字环绕 |
-| `right` | 右侧环绕 | 右浮动，文字环绕 | 右浮动，文字环绕 |
-| `inline` | 行内显示 | 行内排列 | 行内排列 |
-
-使用示例：
-
-```markdown
-![[diagram.svg|center]]
-![[diagram.svg|align-right]]
-![[photo.jpg|left]]
-![[icon.png|inline]]
-```
-
-#### 深色模式反色
-
-添加 `dark` 参数后，图片在 Obsidian 深色主题下自动应用 `invert(1) hue-rotate(180deg)` 滤镜，适用于在白色背景上绘制的 SVG、线稿或黑白图表：
-
-```markdown
-![[flowchart.svg|dark|center]]
-```
-
-该反色行为仅在深色主题下生效，浅色主题下不受影响。
-
-#### 图片标题
-
-当需要为图片添加标题注释时，使用 `#` 语法将位置和反色参数编码到链接路径中，将标题文本作为链接别名：
-
-```markdown
-![[architecture.png#center|系统架构示意图]]
-![[flowchart.svg#center#dark|数据处理流程]]
-```
-
-标题文本以小字号、弱化颜色显示在图片下方，布局方式为 `table-caption`，不会撑开图片容器宽度。
-
-#### Grid Callout 布局
-
-当通过图片选择器多选插入时，插件生成 `[!grid]` callout 代码块：
+Selecting one card inserts a Wiki embed at the active editor selection. Multi-select mode inserts plain image embeds inside a `[!grid]` callout:
 
 ```markdown
 > [!grid]
-> ![[photo1.jpg]]
-> ![[photo2.jpg]]
-> ![[photo3.jpg]]
+> ![[photo-1.jpg]]
+> ![[photo-2.jpg]]
+> ![[photo-3.jpg]]
 ```
 
-该 callout 的标题栏和图标被隐藏，内部图片以 CSS Grid 自适应网格排列，适合并排展示多张图片。
+## Image layout syntax
 
----
+Imagine stores layout parameters in Wiki links and renders them consistently in Reading View and Live Preview.
 
-### 图片拖拽调整尺寸
+| Parameter | Result |
+| --- | --- |
+| `center` | Centered block image |
+| `align-left` | Left-aligned block image without text wrapping |
+| `align-right` | Right-aligned block image without text wrapping |
+| `left` | Left-floating image with text wrapping |
+| `right` | Right-floating image with text wrapping |
+| `inline` | Inline image |
+| `dark` | Invert the image in a dark theme |
 
-在编辑器的实时预览（Live Preview）模式下，插件为所有图片注入拖拽调整功能。
+### Without a caption
 
-#### 操作方式
+Parameters follow the file path as pipe-separated fields:
 
-1. 将鼠标移至图片的右下角区域（默认 20 像素范围内），光标将变为 `nwse-resize` 形态。
-2. 按住鼠标左键向右下方或左上方拖拽，图片宽度将等比例改变。
-3. 松开鼠标后，插件将新的宽度值回写到 Markdown 源代码中对应的图片链接。
+```markdown
+![[diagram.svg|center]]
+![[diagram.svg|dark|align-right]]
+![[photo.jpg|left|480]]
+```
 
-#### 技术特性
+### With a caption
 
-- 拖拽过程中保持原始宽高比，最小宽度限制为 50 像素。
-- 视觉更新通过 `requestAnimationFrame` 驱动，确保流畅性。
-- Markdown 链接的回写通过 CodeMirror 6 的事务机制（dispatch）实现，确保与编辑器撤销历史的一致性。
-- 支持对 callout 内部和外部的图片分别启用或禁用拖拽。
-- 支持对内部链接（Wiki link）和外部链接（Markdown 标准语法）两种格式的尺寸回写。
-- 可选的调整步长设置，用于将最终宽度对齐到指定的像素间隔。
+Layout and inversion parameters use URL fragments, while the first pipe field contains the caption. An optional size field remains supported:
 
-#### 排除场景
+```markdown
+![[architecture.png#center|System architecture]]
+![[flowchart.svg#align-right#dark|Processing flow|640]]
+```
 
-以下场景中拖拽调整功能不会激活：
+The caption is displayed below the image. Its editor is positioned over the rendered caption, remains transparent in every interaction state, wraps long text automatically, and saves with `Enter` or when focus leaves the field. Press `Escape` to cancel editing.
 
-- 阅读模式（Reading View）和 Canvas 视图。
-- 模态框或图片选择器内部的图片。
+## Image context menu
 
----
+Right-click a Wiki link image in Live Preview to add these actions to Obsidian's native image section:
 
-### 图片查看器
+- **Image position**: center, align left, align right, wrap left, or wrap right.
+- **Dark inversion**: toggle the `dark` parameter.
+- **Edit caption**: edit the rendered caption in place.
+- **Open source file**: open the image or the source file represented by a custom cover.
 
-图片查看器提供全屏 Lightbox 式的图片浏览体验。
+Obsidian's own menu continues to provide standard file, link, and deletion actions.
 
-#### 打开方式
+## Drag resizing
 
-按住 **Ctrl** 键（不按 Alt 或 Shift）并单击编辑器、阅读模式或社区插件详情页中的任意 `<img>` 元素。触发时插件会在事件捕获阶段拦截鼠标事件，阻止 Obsidian 默认的图片查看行为。
+Drag resizing is available for images in Live Preview:
 
-#### 交互操作
+1. Move the pointer into the configurable detection area near the lower-right edge.
+2. Drag horizontally to adjust the width while preserving the aspect ratio.
+3. Release the pointer to store the final width in the Markdown link.
 
-| 操作 | 效果 |
-|------|------|
-| 鼠标滚轮 | 以鼠标位置为锚点缩放图片，最小宽度 50 像素 |
-| 鼠标左键拖拽 | 平移图片位置 |
-| 单击图片外背景区域 | 关闭查看器 |
-| 按下 Esc 键 | 关闭查看器 |
+Imagine writes the change through the CodeMirror transaction system, so normal editor undo and redo remain available. Callout and non-callout images can be enabled independently. The minimum width is 50 pixels, and an optional step value can snap the final width to a chosen interval.
 
-透明背景的图片在查看器中自动添加棋盘格底色，便于辨识边界。
+Drag resizing does not run in Reading View, Canvas, plugin modals, or the image picker.
 
-#### 多窗口支持
+## Full-window image viewer
 
-插件会监听 Obsidian 的 `window-open` 事件，在新打开的弹出窗口中自动注册查看器的事件监听，确保多窗口环境下功能一致。
+When the viewer is enabled, hold `Ctrl` and select an image to open it. The viewer supports:
 
----
+- Wheel zoom around the pointer position.
+- Pointer drag to pan.
+- Double-click to reset the image.
+- Selecting the background or pressing `Escape` to close.
+- A checkerboard background for images with transparency.
 
-### 右键上下文菜单
+An optional setting disables Obsidian's built-in single-click image viewer while preserving normal image selection, context menus, resizing, and Imagine's `Ctrl`-click viewer.
 
-在编辑器中对通过 Wiki 链接嵌入的图片（`.internal-embed`）右键单击时，插件会在 Obsidian 原生右键菜单的顶部注入以下操作项：
+## Custom file types
 
-| 菜单项 | 说明 |
-|--------|------|
-| **图片位置** | 子菜单，包含居中、左对齐、右对齐、左侧环绕和右侧环绕；选择后自动修改 Markdown 源代码中的位置参数 |
-| **深色反色** | 切换图片链接中的 `dark` 参数 |
-| **编辑标题** | 在图片下方弹出行内编辑框，按 Enter 保存，修改结果即时回写到 Markdown |
-| **打开源文件** | 使用 Obsidian 默认方式打开图片文件；对于自定义文件类型，打开的是原始工程文件 |
+Imagine can represent a non-image source file with a related cover image. Each custom type defines:
 
-上下文菜单仅在编辑模式下的 Wiki 链接图片上生效，Canvas 视图中不可用。当同一图片在文档中出现多次时，插件通过 CodeMirror 6 的 `posAtDOM` API 精确定位到被右键点击的那一处实例。
+- The source file extension, such as `pdf`, `psd`, `ai`, or `blend`.
+- The cover image extension, such as `png` or `jpg`.
+- An optional cover folder. When empty, the cover is expected next to the source file.
 
----
+For example, `Designs/model.blend` can use `Covers/model.png` as its visible card. Rename, move, and trash operations keep the source and cover together. A missing cover is shown explicitly instead of silently hiding the source file.
 
-### 自定义文件类型
+## Supported image formats
 
-对于 Vault 中存放的非图片格式文件（如 `.pdf`、`.psd`、`.ai`、`.blend` 等），插件支持通过关联封面图片将其纳入图片管理器进行可视化管理。
+Imagine recognizes these image extensions by default:
 
-#### 配置方式
+`png`, `jpg`, `jpeg`, `gif`, `bmp`, `webp`, `svg`, `ico`, `tif`, `tiff`, `avif`, `heic`, and `heif`.
 
-在 **Settings** → **Imagine** → **自定义文件类型** 中，点击 "添加文件类型" 按钮，填写以下三个字段：
+Additional source formats can be added through the custom file type settings.
 
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| **文件扩展名** | 需要管理的文件的扩展名（不含点号） | `pdf` |
-| **封面扩展名** | 对应封面图片的扩展名 | `png` |
-| **封面文件夹** | 封面图片所在的文件夹路径（相对路径；留空表示与源文件同级目录） | `covers` |
+## Settings reference
 
-#### 工作原理
+Obsidian 1.13 and later expose Imagine's settings as searchable native pages. Obsidian 1.12 uses the compatible tabbed fallback.
 
-- 插件在加载图片列表时，会同时扫描符合自定义扩展名的文件，并尝试在指定位置查找同名封面图片。
-- 在管理器中，这些文件以封面图片作为缩略图展示，并带有特殊的格式标签以示区分。
-- 重命名、删除操作会同时处理源文件和封面文件。
-- 引用检查针对封面文件执行（因为 Markdown 中嵌入的是封面图片链接）。
-- 如果封面文件缺失，卡片上会显示缺失提示。
+### Image manager
 
----
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| Show file size | On | Display file size on image cards |
+| Show modified time | On | Display the last modified date on image cards |
+| Default sort field | Modified time | Choose the initial manager sort field |
+| Default sort order | Descending | Choose the initial manager sort direction |
+| Excluded folders | Empty | Omit one vault folder path per line |
+| Confirm deletion | On | Ask for confirmation before trashing files |
+| Invert SVG images in dark mode | On | Control the plugin's dark-theme SVG inversion behavior and picker default |
 
-## 设置项参考
+### Image resizing
 
-插件的设置界面分为四个页面，以下为全部可配置项。
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| Resize images outside callouts | On | Enable drag resizing outside callouts |
+| Resize images inside callouts | On | Enable drag resizing inside callouts |
+| Resize step | `0` | Snap to a pixel interval; `0` disables snapping |
+| Edge detection area | `20` | Set the activation area from 5 to 150 pixels |
 
-### 图片管理器
+### Image viewer
 
-| 设置项 | 说明 | 默认值 |
-|--------|------|--------|
-| 显示文件大小 | 在图片卡片上叠加显示文件大小 | 开启 |
-| 显示修改时间 | 在图片卡片上叠加显示最后修改时间 | 开启 |
-| 默认排序字段 | 打开管理器时的初始排序方式 | 修改时间 |
-| 默认排序顺序 | 打开管理器时的初始排序方向 | 降序 |
-| 排除文件夹 | 不在管理器中显示的文件夹列表（每行一个路径） | 空 |
-| 删除确认 | 删除文件前是否弹出确认对话框 | 开启 |
-| 深色模式下 SVG 图片反色 | 在深色主题下对 SVG 图片全局应用反色处理 | 开启 |
-| 自定义文件类型 | 配置非图片格式文件与封面图片的关联关系 | 空 |
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| Enable image viewer | On | Enable Imagine's `Ctrl`-click viewer |
+| Disable built-in click viewer | Off | Block Obsidian's ordinary single-click image viewer |
 
-### 图片拖拽
+### Custom file types
 
-| 设置项 | 说明 | 默认值 |
-|--------|------|--------|
-| 启用 callout 外图片拖拽调整大小 | 是否允许对 callout 外部的图片进行拖拽调整 | 开启 |
-| 启用 callout 内图片拖拽调整大小 | 是否允许对 callout 内部的图片进行拖拽调整 | 开启 |
-| 调整大小的时间间隔 | 拖拽调整的最小刻度（0 表示不对齐刻度），单位为像素 | 0 |
-| 边缘检测区域大小 | 鼠标在图片右下角多少像素范围内可触发调整，范围 5 - 150 | 20 |
+Add, edit, or remove source extension, cover extension, and cover folder mappings.
 
-### 图片查看器
+## Limitations
 
-| 设置项 | 说明 | 默认值 |
-|--------|------|--------|
-| 启用图片查看器 | 是否在所有位置启用 Ctrl + 点击图片查看功能 | 开启 |
-| 禁用内置点击查看图片 | 是否阻止 Obsidian 内置图片灯箱响应普通点击 | 关闭 |
+- The plugin is desktop-only.
+- Drag resizing and the custom image context menu require Live Preview.
+- Context-menu link editing currently supports Wiki link image embeds, not standard Markdown image syntax.
+- The custom viewer uses `Ctrl` on all desktop platforms.
 
----
+## Credits
 
-## 兼容性与限制
+The image viewer was inspired by [Image Toolkit](https://github.com/sissilab/obsidian-image-toolkit), and drag resizing was inspired by [AttachFlow](https://github.com/Yaozhuwa/AttachFlow). Thank you to their authors and the Obsidian community.
 
-- **平台支持**：本插件标记为 `isDesktopOnly: true`，仅在桌面端（Windows / macOS / Linux）可用。
-- **最低版本**：要求 Obsidian 1.12.1 或更高版本。
-- **编辑模式**：拖拽调整尺寸和右键上下文菜单仅在编辑器的实时预览模式下可用。
-- **链接格式**：右键上下文菜单仅对 Wiki 链接格式（`![[...]]`）的图片嵌入生效，标准 Markdown 图片语法（`![]()`）不受支持。
-- **多窗口**：图片查看器和拖拽调整功能均支持 Obsidian 的多窗口弹出。
+## License
 
----
-
-## 致谢
-
-本项目的图片查看器功能参考了 [Image Toolkit](https://github.com/sissilab/obsidian-image-toolkit) 插件的实现思路，图片拖拽调整尺寸功能借鉴了 [AttachFlow](https://github.com/Yaozhuwa/AttachFlow) 插件的设计。在此对上述开源项目的作者及 Obsidian 社区表示感谢。
-
-## 许可证
-
-本项目基于 [AGPL-3.0](LICENSE) 许可证发布。
+Imagine is released under the [GNU Affero General Public License v3.0](LICENSE).
