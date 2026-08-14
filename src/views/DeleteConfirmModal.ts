@@ -4,6 +4,7 @@
 
 import { App, ButtonComponent, Modal, Setting } from "obsidian";
 import { ImageItem } from "../types/image-manager.types";
+import { setDestructiveButton } from "../utils/obsidianCompatibility";
 
 export class DeleteConfirmModal extends Modal {
 	private image: ImageItem;
@@ -45,9 +46,7 @@ export class DeleteConfirmModal extends Modal {
 				cancelButton = button.setButtonText("取消").onClick(() => this.close());
 			})
 			.addButton((button) => {
-				this.confirmButton = button
-					.setButtonText("删除")
-					.setWarning()
+				this.confirmButton = setDestructiveButton(button.setButtonText("删除"))
 					.onClick(() => void this.handleConfirm());
 			});
 

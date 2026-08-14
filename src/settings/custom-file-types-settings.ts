@@ -68,7 +68,7 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 								}
 								plugin.settings.imageManager.customFileTypes = customTypes;
 								await plugin.saveSettings();
-								tab.display();
+								tab.refresh();
 							});
 					});
 			});
@@ -89,7 +89,7 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 							coverExtension: '',
 							coverFolder: ''
 						});
-						tab.display();
+						tab.refresh();
 					});
 			});
 	});

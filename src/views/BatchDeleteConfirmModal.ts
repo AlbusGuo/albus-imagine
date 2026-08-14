@@ -1,5 +1,6 @@
 import { App, ButtonComponent, Modal, ProgressBarComponent, Setting } from "obsidian";
 import { ImageItem } from "../types/image-manager.types";
+import { setDestructiveButton } from "../utils/obsidianCompatibility";
 
 export class BatchDeleteConfirmModal extends Modal {
 	private progressBar: ProgressBarComponent | null = null;
@@ -53,9 +54,7 @@ export class BatchDeleteConfirmModal extends Modal {
 				this.cancelButton = button.setButtonText("取消").onClick(() => this.close());
 			})
 			.addButton((button) => {
-				this.confirmButton = button
-					.setButtonText("删除全部")
-					.setWarning()
+				this.confirmButton = setDestructiveButton(button.setButtonText("删除全部"))
 					.onClick(() => void this.handleConfirm());
 			});
 

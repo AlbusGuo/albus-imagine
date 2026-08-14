@@ -9,7 +9,6 @@ const typescriptOverrides = {
 	"no-prototype-builtins": "off",
 	"@typescript-eslint/no-empty-function": "off",
 	"@typescript-eslint/no-explicit-any": "off",
-	"@typescript-eslint/no-deprecated": "off",
 	"@typescript-eslint/no-inferrable-types": "off",
 	"no-mixed-spaces-and-tabs": "off",
 	"sort-imports": [
@@ -36,12 +35,6 @@ export default [
 		],
 	},
 	...obsidianmd.configs.recommended,
-	{
-		files: ["package.json"],
-		rules: {
-			"depend/ban-dependencies": "off",
-		},
-	},
 	{
 		files: ["**/*.ts", "**/*.tsx"],
 		languageOptions: {

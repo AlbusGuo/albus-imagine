@@ -1,13 +1,13 @@
-import dotenv from "dotenv";
 import { existsSync } from "fs";
 import { copyFile, mkdir, readFile } from "fs/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { loadProjectEnv } from "./load-env.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 
-dotenv.config({ quiet: true });
+loadProjectEnv(projectRoot);
 const VAULT_PATH = process.env.VAULT_PATH;
 if (!VAULT_PATH) {
 	throw new Error(

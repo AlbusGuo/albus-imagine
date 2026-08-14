@@ -37,6 +37,14 @@ export class NativePluginSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
+		this.renderSettings();
+	}
+
+	refresh(): void {
+		this.renderSettings();
+	}
+
+	private renderSettings(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 		containerEl.addClass('afm-settings-root');
@@ -56,7 +64,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 			tabEl.addEventListener('click', () => {
 				this.plugin.settings.settingsTab = tab.key;
 				void this.plugin.saveSettings();
-				this.display();
+				this.refresh();
 			});
 		}
 

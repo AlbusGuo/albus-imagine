@@ -94,7 +94,6 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 				slider
 					.setLimits(5, 150, 1)
 					.setValue(currentValue)
-					.setDynamicTooltip()
 					.onChange(debounce(async (value) => {
 						if (!plugin.settings.imageResize) {
 							plugin.settings.imageResize = {
