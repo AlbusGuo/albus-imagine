@@ -45,7 +45,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		const activeTabKey = this.plugin.settings.settingsTab || "IMAGE_MANAGER";
 
 		// 固定顶部标签栏
-		const tabsEl = containerEl.createEl('div', { cls: 'afm-settings-tabs' });
+		const tabsEl = containerEl.createDiv({ cls: 'afm-settings-tabs' });
 
 		for (const tab of SETTINGS_TABS) {
 			const tabEl = tabsEl.createDiv({ cls: 'afm-settings-tab' });

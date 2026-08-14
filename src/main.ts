@@ -249,8 +249,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 */
 	private updateSvgInvertClass(targetDocument?: Document): void {
 		const shouldInvert = this.settings.imageManager?.invertSvgInDarkMode !== false;
-		const documents = targetDocument ? [targetDocument] : this.workspaceDocuments;
-		documents.forEach((doc) => doc.body.toggleClass("afm-no-svg-invert", !shouldInvert));
+		const documents: Iterable<Document> = targetDocument ? [targetDocument] : this.workspaceDocuments;
+		for (const doc of documents) {
+			doc.body.toggleClass("afm-no-svg-invert", !shouldInvert);
+		}
 	}
 
 	private disposeResizeHandler(): void {

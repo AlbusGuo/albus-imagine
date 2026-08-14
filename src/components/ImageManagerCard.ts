@@ -24,7 +24,7 @@ export function createImageManagerCard(
 	settings: ImageManagerSettings,
 	actions: ImageManagerCardActions,
 ): ImageManagerCardController {
-	const itemEl = document.createElement("div");
+	const itemEl = document.win.createDiv();
 	itemEl.addClass("image-manager-grid-item");
 	itemEl.dataset.path = image.path;
 	itemEl.toggleClass("image-manager-item-selected", actions.isSelected(image.path));

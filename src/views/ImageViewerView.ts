@@ -77,19 +77,23 @@ export class ImageViewerView {
 	private ensureContainer(ownerDocument: Document): void {
 		if (this.containerEl) return;
 		this.ownerDocument = ownerDocument;
-		this.containerEl = ownerDocument.createElement("div");
-		this.containerEl.addClass(IMAGE_VIEWER_CLASS.CONTAINER);
-		ownerDocument.body.appendChild(this.containerEl);
+		const ownerWindow = ownerDocument.win;
+		const containerEl = ownerWindow.createDiv();
+		containerEl.addClass(IMAGE_VIEWER_CLASS.CONTAINER);
+		ownerDocument.body.appendChild(containerEl);
+		this.containerEl = containerEl;
 
-		this.imgContainerEl = ownerDocument.createElement("div");
-		this.imgContainerEl.addClass(IMAGE_VIEWER_CLASS.IMG_CONTAINER);
-		this.containerEl.appendChild(this.imgContainerEl);
+		const imgContainerEl = ownerWindow.createDiv();
+		imgContainerEl.addClass(IMAGE_VIEWER_CLASS.IMG_CONTAINER);
+		containerEl.appendChild(imgContainerEl);
+		this.imgContainerEl = imgContainerEl;
 
-		this.imgViewEl = ownerDocument.createElement("img");
-		this.imgViewEl.addClass(IMAGE_VIEWER_CLASS.IMG_VIEW);
-		this.imgContainerEl.appendChild(this.imgViewEl);
+		const imgViewEl = ownerWindow.createEl("img");
+		imgViewEl.addClass(IMAGE_VIEWER_CLASS.IMG_VIEW);
+		imgContainerEl.appendChild(imgViewEl);
+		this.imgViewEl = imgViewEl;
 
-		this.containerEl.addEventListener("click", this.handleContainerClick);
+		containerEl.addEventListener("click", this.handleContainerClick);
 		ownerDocument.addEventListener("keydown", this.handleKeydown);
 	}
 

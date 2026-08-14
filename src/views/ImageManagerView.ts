@@ -683,7 +683,7 @@ export class ImageManagerView extends ItemView {
 
 				// 每处理一小批后, 给 UI 线程一些时间
 				if (i + miniBatchSize < needCheckImages.length) {
-					await new Promise(resolve => setTimeout(resolve, 10));
+					await new Promise(resolve => (this.containerEl.ownerDocument.defaultView ?? window).setTimeout(resolve, 10));
 				}
 			}
 		} catch (error) {
@@ -1024,7 +1024,7 @@ export class ImageManagerView extends ItemView {
 				}
 			}
 			onProgress(successCount + errorCount, images.length);
-			await new Promise<void>((resolve) => setTimeout(resolve, 0));
+			await new Promise<void>((resolve) => (this.containerEl.ownerDocument.defaultView ?? window).setTimeout(resolve, 0));
 		}
 
 		new Notice(errorCount === 0

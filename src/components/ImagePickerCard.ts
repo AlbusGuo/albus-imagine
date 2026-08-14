@@ -14,7 +14,7 @@ export function createImagePickerCard(
 	isSelected: boolean,
 	onActivate: (element: HTMLElement) => void,
 ): ImagePickerCardController {
-	const itemEl = document.createElement("div");
+	const itemEl = document.win.createDiv();
 	itemEl.addClass("image-manager-grid-item");
 	itemEl.toggleClass("image-manager-item-selected", isSelected);
 	const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");

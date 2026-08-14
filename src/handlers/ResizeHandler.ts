@@ -271,7 +271,7 @@ export class ResizeHandler extends Component {
 
 		const ownerDocument = img.ownerDocument;
 		const onMouseUp = (e: MouseEvent) => {
-			setTimeout(allowOtherEvent, 100);
+			(ownerDocument.defaultView ?? window).setTimeout(allowOtherEvent, 100);
 			e.preventDefault();
 			this.dragCleanup?.();
 			this.endDrag(img, target_pos);

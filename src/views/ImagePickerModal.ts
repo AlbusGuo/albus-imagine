@@ -399,7 +399,8 @@ export class ImagePickerModal extends Modal {
 			this.applyFilters();
 			this.renderHeader();
 		} catch (error) {
-			new Notice(`加载图片失败: ${error.message}`);
+			const message = error instanceof Error ? error.message : String(error);
+			new Notice(`加载图片失败: ${message}`);
 		} finally {
 			this.isLoading = false;
 			this.renderGrid();

@@ -67,7 +67,7 @@ export class ImagePreviewModal extends Modal {
 		const imageContainer = imageSection.createDiv({
 			cls: "image-manager-preview-image-container image-manager-canvas",
 		});
-		const img = this.contentEl.ownerDocument.createElement("img");
+		const img = this.contentEl.ownerDocument.win.createEl("img");
 		img.addClass("image-manager-preview-image");
 		img.src = this.getImagePath(this.image);
 		img.alt = this.image.name;
@@ -91,11 +91,11 @@ export class ImagePreviewModal extends Modal {
 			});
 			const errorIcon = errorDiv.createDiv({ cls: "image-manager-preview-error-icon" });
 			setIcon(errorIcon, "alert-triangle");
-			errorDiv.createEl("div", {
+			errorDiv.createDiv({
 				text: "图片加载失败",
 				cls: "image-manager-preview-error-text",
 			});
-			errorDiv.createEl("div", {
+			errorDiv.createDiv({
 				text: "文件可能已损坏, 过大或格式不支持",
 				cls: "image-manager-preview-error-hint",
 			});

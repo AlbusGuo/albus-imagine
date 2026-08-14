@@ -220,7 +220,7 @@ export class ViewportGrid<
 	}
 
 	private createSpacer(position: string): HTMLElement {
-		const spacer = this.options.gridEl.ownerDocument.createElement("div");
+		const spacer = this.options.gridEl.ownerDocument.win.createDiv();
 		spacer.addClass("afm-viewport-spacer", position);
 		return spacer;
 	}
@@ -230,7 +230,7 @@ export class ViewportGrid<
 		if (!OwnerHTMLElement) return;
 		const heights = Array.from(this.options.gridEl.children)
 			.filter((child): child is HTMLElement =>
-				child instanceof OwnerHTMLElement && Boolean((child as HTMLElement).dataset.afmViewportKey),
+				child.instanceOf(OwnerHTMLElement) && Boolean(child.dataset.afmViewportKey),
 			)
 			.map((element) => element.offsetHeight)
 			.filter((height) => height > 0);

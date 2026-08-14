@@ -29,10 +29,11 @@ export class ImageCaptionEditor extends Component {
 		const ownerWindow = this.ownerDocument.defaultView;
 		if (!ownerWindow) throw new Error("图片所在窗口不可用");
 		this.ownerWindow = ownerWindow;
+		const obsidianWindow = this.ownerDocument.win;
 
-		this.overlayEl = this.ownerDocument.createElement("div");
+		this.overlayEl = obsidianWindow.createDiv();
 		this.overlayEl.addClass("afm-caption-editor-overlay");
-		this.inputEl = this.ownerDocument.createElement("textarea");
+		this.inputEl = obsidianWindow.createEl("textarea");
 		this.inputEl.addClass("afm-caption-input");
 		this.inputEl.rows = 1;
 		this.inputEl.placeholder = options.placeholder;
