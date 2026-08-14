@@ -4,9 +4,9 @@ import { ImageManagerSettings } from "./image-manager.types";
  * 图片调整大小插件的设置接口
  */
 export interface ImageResizeSettings {
-	/** 调整大小的时间间隔（像素） */
+	/** 调整大小的时间间隔 (像素) */
 	resizeInterval: number;
-	/** 边缘检测区域大小（像素） */
+	/** 边缘检测区域大小 (像素) */
 	edgeSize: number;
 	/** 是否启用一般图片拖拽调整大小 */
 	dragResizeGeneral: boolean;
@@ -20,6 +20,8 @@ export interface ImageResizeSettings {
 export interface ImageViewerSettings {
 	/** 是否启用图片查看器 */
 	enabled: boolean;
+	/** 是否阻止 Obsidian 内置的点击图片查看器 */
+	disableNativeImageViewer: boolean;
 }
 
 export interface IPluginSettings {
@@ -29,15 +31,16 @@ export interface IPluginSettings {
 	settingsTab?: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER" | "CUSTOM_FILE_TYPES";
 }
 
-export const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
+const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
 	resizeInterval: 0,
 	edgeSize: 20,
 	dragResizeGeneral: true,
 	dragResizeCallout: true,
 };
 
-export const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {
+const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {
 	enabled: true,
+	disableNativeImageViewer: false,
 };
 
 export const DEFAULT_SETTINGS: IPluginSettings = {

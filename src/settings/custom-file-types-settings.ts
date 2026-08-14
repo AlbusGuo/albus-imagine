@@ -1,29 +1,26 @@
-import { Setting, SettingGroup, debounce } from 'obsidian';
+import { debounce, SettingGroup } from 'obsidian';
 import { NativePluginSettingTab } from './NativePluginSettingTab';
 
 export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 	const { contentEl, plugin } = tab;
 	const customTypes = plugin.settings.imageManager?.customFileTypes || [];
 
-	// 外层卡片容器（与参考插件 .basic-vault-button-group 结构一致）
-	const groupEl = contentEl.createDiv('afm-custom-type-group');
-
-	// 列表区域
-	const listContainer = groupEl.createDiv('afm-custom-type-list-container');
+	const group = new SettingGroup(contentEl);
 
 	if (customTypes.length === 0) {
-		new Setting(listContainer)
-			.setName('暂无自定义文件类型')
-			.setDesc('点击下方按钮开始创建');
+		group.addSetting((setting) => {
+			setting
+				.setName('暂无自定义文件类型')
+				.setDesc('添加后可为非图片文件指定预览封面.');
+		});
 	} else {
-		const group = new SettingGroup(listContainer);
 		customTypes.forEach((type, index) => {
 			group.addSetting((setting) => {
 				setting
 					.setName('类型')
 					.addText((text) => {
 						text
-							.setPlaceholder('文件扩展名（如 PDF）')
+							.setPlaceholder('文件扩展名 (如 PDF)')
 							.setValue(type.fileExtension)
 							.onChange(debounce(async (value) => {
 								type.fileExtension = value;
@@ -36,7 +33,7 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 					})
 					.addText((text) => {
 						text
-							.setPlaceholder('封面扩展名（如 JPG）')
+							.setPlaceholder('封面扩展名 (如 JPG)')
 							.setValue(type.coverExtension)
 							.onChange(debounce(async (value) => {
 								type.coverExtension = value;
@@ -78,18 +75,22 @@ export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
 		});
 	}
 
-	// 添加按钮（与参考插件完全一致的原生 DOM 结构）
-	const addContainer = groupEl.createDiv('afm-add-container');
-	const addBtn = addContainer.createEl('button', {
-		text: '添加文件类型',
-		cls: 'afm-add-btn',
-	});
-	addBtn.addEventListener('click', () => {
-		customTypes.push({
-			fileExtension: '',
-			coverExtension: '',
-			coverFolder: ''
-		});
-		tab.display();
+	group.addSetting((setting) => {
+		setting
+			.setName('添加文件类型')
+			.setDesc('设置源文件扩展名, 封面扩展名和可选封面文件夹.')
+			.addButton((button) => {
+				button
+					.setButtonText('添加')
+					.setCta()
+					.onClick(() => {
+						customTypes.push({
+							fileExtension: '',
+							coverExtension: '',
+							coverFolder: ''
+						});
+						tab.display();
+					});
+			});
 	});
 }

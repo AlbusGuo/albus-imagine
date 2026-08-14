@@ -29,13 +29,6 @@ export class ReferenceCache {
 	}
 
 	/**
-	 * 删除缓存
-	 */
-	delete(key: string): void {
-		this.cache.delete(key);
-	}
-
-	/**
 	 * 清空缓存
 	 */
 	clear(): void {
@@ -43,14 +36,7 @@ export class ReferenceCache {
 	}
 
 	/**
-	 * 获取缓存大小
-	 */
-	get size(): number {
-		return this.cache.size;
-	}
-
-	/**
-	 * 更新缓存键（用于文件重命名）
+	 * 更新缓存键 (用于文件重命名)
 	 */
 	updateKey(oldKey: string, newKey: string): void {
 		const value = this.cache.get(oldKey);
@@ -58,5 +44,9 @@ export class ReferenceCache {
 			this.cache.delete(oldKey);
 			this.cache.set(newKey, value);
 		}
+	}
+
+	delete(key: string): void {
+		this.cache.delete(key);
 	}
 }

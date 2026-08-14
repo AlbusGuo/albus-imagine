@@ -1,5 +1,5 @@
 /**
- * 文件夹选择Modal - 用于选择目标文件夹
+ * 文件夹选择 Modal - 用于选择目标文件夹
  */
 
 import { App, SuggestModal, TFolder } from "obsidian";

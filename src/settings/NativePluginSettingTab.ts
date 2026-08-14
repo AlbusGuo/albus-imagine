@@ -1,7 +1,6 @@
 /**
  * 原生 Obsidian 设置界面
- * 完全复刻 mathcraft 插件的固定标签页结构
- * 标签页固定顶部，内容区域独立滚动
+ * 使用 Obsidian 设置容器, 仅补充轻量标签页导航.
  */
 
 import CPlugin from "@src/main";
@@ -29,7 +28,6 @@ const SETTINGS_TABS: SettingsTab[] = [
 export class NativePluginSettingTab extends PluginSettingTab {
 	plugin: CPlugin;
 	contentEl!: HTMLElement;
-	private lastScrollPosition: number = 0;
 
 	icon: string = 'image';
 
@@ -62,9 +60,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 			});
 		}
 
-		// 可滚动内容区域
-		const scrollEl = containerEl.createDiv({ cls: 'afm-settings-scroll' });
-		this.contentEl = scrollEl.createDiv({ cls: 'afm-settings-content' });
+		this.contentEl = containerEl.createDiv({ cls: 'afm-settings-content' });
 
 		// 渲染当前标签页内容
 		const activeTab = SETTINGS_TABS.find(t => t.key === activeTabKey);
@@ -72,32 +68,6 @@ export class NativePluginSettingTab extends PluginSettingTab {
 			activeTab.render(this);
 		}
 
-		// 恢复滚动位置
-		this.restoreScrollPosition();
 	}
 
-	hide() {
-		// 保存滚动位置
-		this.lastScrollPosition = this.containerEl.scrollTop;
-	}
-
-	private restoreScrollPosition() {
-		if (this.lastScrollPosition > 0) {
-			requestAnimationFrame(() => {
-				this.containerEl.scrollTo({ top: this.lastScrollPosition, behavior: "auto" });
-			});
-		}
-	}
-
-	/**
-	 * 更新SVG反色CSS类（供 image-manager-settings 调用）
-	 */
-	updateSvgInvertClass(): void {
-		const shouldInvert = this.plugin.settings.imageManager?.invertSvgInDarkMode !== false;
-		if (shouldInvert) {
-			document.body.removeClass('afm-no-svg-invert');
-		} else {
-			document.body.addClass('afm-no-svg-invert');
-		}
-	}
 }

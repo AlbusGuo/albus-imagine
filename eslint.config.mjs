@@ -24,7 +24,7 @@ export default [
 			...tseslint.configs.recommended.rules,
 
 			// ==================== TypeScript Official Rules ====================
-			// 禁止未使用的变量，但允许未使用的参数
+			// 禁止未使用的变量, 但允许未使用的参数
 			'no-unused-vars': 'off',
 			'@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
 			// 允许使用 @ts-ignore 等注释
@@ -75,9 +75,9 @@ export default [
 			// ====== 代码质量规则 ======
 			// 禁止使用模板中的示例代码
 			'obsidianmd/no-sample-code': 'error',
-			// 禁止直接在 DOM 元素上设置样式，建议使用 CSS 类
+			// 禁止直接在 DOM 元素上设置样式, 建议使用 CSS 类
 			'obsidianmd/no-static-styles-assignment': 'error',
-			// 禁止类型转换为 TFile 或 TFolder，建议使用 instanceof 检查
+			// 禁止类型转换为 TFile 或 TFolder, 建议使用 instanceof 检查
 			'obsidianmd/no-tfile-tfolder-cast': 'error',
 			// 禁止在 Obsidian 插件中向 DOM 附加禁止的元素
 			'obsidianmd/no-forbidden-elements': 'error',
@@ -93,9 +93,9 @@ export default [
 			// ====== 平台兼容性规则 ======
 			// 禁止使用 navigator API 进行操作系统检测
 			'obsidianmd/platform': 'error',
-			// 禁止在正则表达式中使用后行断言（某些 iOS 版本不支持）
+			// 禁止在正则表达式中使用后行断言 (某些 iOS 版本不支持)
 			'obsidianmd/regex-lookbehind': 'error',
-			
+
 			// ====== 其他规则 ======
 			// 不建议使用带有两个参数的 Object.assign
 			'obsidianmd/object-assign': 'warn',

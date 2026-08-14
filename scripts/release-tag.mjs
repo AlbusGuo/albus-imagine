@@ -9,10 +9,10 @@ const version = process.env.npm_package_version;
 console.log(`📦 Preparing to release version: ${version}`);
 
 /**
- * 安全执行命令，带有重试机制
+ * 安全执行命令, 带有重试机制
  * @param {string} command 要执行的命令
  * @param {string} description 命令描述
- * @param {boolean} canSkip 是否可以跳过（用于处理重复执行的情况）
+ * @param {boolean} canSkip 是否可以跳过 (用于处理重复执行的情况)
  */
 function safeExec(command, description, canSkip = false) {
 	try {
@@ -81,7 +81,7 @@ try {
 		// 执行 git commit 操作
 		safeExec(`git commit -m "build: ${version}"`, "💾 创建提交...");
 	} else {
-		console.log("ℹ️ 没有需要提交的更改，跳过提交步骤");
+		console.log("ℹ️ 没有需要提交的更改, 跳过提交步骤");
 	}
 
 	// 执行 git push 操作
@@ -92,7 +92,7 @@ try {
 		// 创建版本标签
 		safeExec(`git tag ${version}`, `🏷️ 创建标签: ${version}`);
 	} else {
-		console.log(`ℹ️ 标签 ${version} 已存在，跳过创建标签步骤`);
+		console.log(`ℹ️ 标签 ${version} 已存在, 跳过创建标签步骤`);
 	}
 
 	// 检查远程标签是否已存在
@@ -100,7 +100,7 @@ try {
 		// 推送标签到远程
 		safeExec("git push --tags", "📤 推送标签到远程...");
 	} else {
-		console.log(`ℹ️ 远程标签 ${version} 已存在，跳过推送标签步骤`);
+		console.log(`ℹ️ 远程标签 ${version} 已存在, 跳过推送标签步骤`);
 	}
 
 	console.log(`✅ 成功发布版本 ${version}!`);

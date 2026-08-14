@@ -1,10 +1,6 @@
-﻿/* 通用指针样式类 */
-.cursor-pointer {
-	cursor: pointer;
-}
 /**
  * 图片管理器样式 - Obsidian 原生风格重构版
- * 设计原则：简洁、原生、功能清晰
+ * 设计原则: 简洁, 原生, 功能清晰
  */
 
 /* ==================== 主容器 ==================== */
@@ -45,18 +41,6 @@
 	align-items: center;
 	gap: 6px;
 	flex-shrink: 0;
-}
-
-/* 检查状态提示 */
-.image-manager-checking-status {
-	font-size: 12px;
-	color: var(--text-muted);
-	animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-	0%, 100% { opacity: 0.6; }
-	50% { opacity: 1; }
 }
 
 /* ==================== 文件夹筛选输入框 ==================== */
@@ -104,7 +88,7 @@
 }
 
 /* ==================== 操作按钮 ==================== */
-/* 破坏性操作图标按钮（红色） */
+/* 破坏性操作图标按钮 (红色) */
 .image-manager-destructive-icon {
 	color: var(--text-error) !important;
 }
@@ -114,32 +98,7 @@
 	background: var(--color-red) !important;
 }
 
-/* 图标按钮上的数量角标 */
-.image-manager-header-right .clickable-icon {
-	position: relative;
-}
-
-.image-manager-icon-badge {
-	position: absolute;
-	top: -4px;
-	right: -4px;
-	min-width: 14px;
-	height: 14px;
-	padding: 0 3px;
-	font-size: 10px;
-	font-weight: 600;
-	line-height: 14px;
-	text-align: center;
-	color: var(--text-on-accent);
-	background: var(--interactive-accent);
-	border-radius: 7px;
-}
-
-.image-manager-badge-destructive {
-	background: var(--color-red);
-}
-
-/* 激活态图标按钮（筛选、多选等） */
+/* 激活态图标按钮 (筛选, 多选等) */
 .image-manager-header-right .clickable-icon.is-active,
 .image-manager-sort-controls .clickable-icon.is-active {
 	background: var(--interactive-accent);
@@ -214,26 +173,6 @@
 	color: var(--text-faint);
 }
 
-.image-manager-clear-search-button {
-	position: absolute;
-	right: 6px;
-	top: 50%;
-	transform: translateY(-50%);
-	background: none;
-	border: none;
-	color: var(--text-faint);
-	cursor: pointer;
-	padding: 2px;
-	border-radius: var(--radius-s);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.image-manager-clear-search-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-muted);
-}
 
 .image-manager-sort-controls {
 	display: flex;
@@ -249,6 +188,10 @@
 	overflow-x: hidden;
 	background: var(--background-primary);
 	min-height: 0;
+}
+
+.image-manager-grid-state:empty {
+	display: none;
 }
 
 /* 加载状态 */
@@ -272,12 +215,7 @@
 }
 
 @keyframes spin {
-	to { transform: rotate(360deg); }
-}
-
-@keyframes afm-fade-in {
-	from { opacity: 0; }
-	to { opacity: 1; }
+	to { transform: rotate(360deg);}
 }
 
 /* 空状态 */
@@ -298,22 +236,20 @@
 	color: var(--text-faint);
 }
 
-/* 加载更多指示器 */
-.image-manager-load-more {
-	padding: 16px;
-	text-align: center;
-	color: var(--text-faint);
-	font-size: 12px;
-	border-top: 1px solid var(--background-modifier-border);
-}
-
 /* ==================== 图片网格 ==================== */
 .image-manager-grid {
 	padding: 16px;
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	grid-template-columns: repeat(var(--afm-viewport-columns, 1), minmax(0, 1fr));
 	gap: 12px;
 	align-content: start;
+}
+
+.afm-viewport-spacer {
+	grid-column: 1 / -1;
+	height: var(--afm-viewport-spacer-height, 0);
+	margin: 0;
+	pointer-events: none;
 }
 
 /* 图片卡片 */
@@ -343,7 +279,7 @@
 }
 
 .image-manager-grid-item.image-manager-item-selected::before {
-	content: "✓";
+	content:"✓";
 	position: absolute;
 	top: 8px;
 	left: 8px;
@@ -372,10 +308,6 @@
 	flex-shrink: 0;
 }
 
-.image-manager-thumbnail.cursor-pointer {
-	cursor: pointer;
-}
-
 .image-manager-thumbnail-image,
 .image-manager-svg-image {
 	width: 100%;
@@ -396,7 +328,7 @@
 	opacity: 0.9;
 }
 
-/* 禁用SVG反色 */
+/* 禁用 SVG 反色 */
 .theme-dark.afm-no-svg-invert .image-manager-svg-image.is-loaded {
 	filter: none !important;
 	opacity: 1 !important;
@@ -500,18 +432,17 @@
 	position: absolute;
 	top: 4px;
 	left: 4px;
-	background: rgba(239, 68, 68, 0.9); /* 红色表示未引用 */
-	color: white;
+	background: var(--color-red);
+	color: var(--text-on-accent);
 	font-size: 10px;
 	padding: 3px 6px;
 	border-radius: var(--radius-s);
 	font-weight: 600;
 	z-index: 2;
-	animation: afm-fade-in 0.3s ease;
 }
 
 .image-manager-reference-badge-has-refs {
-	background: rgba(34, 197, 94, 0.9); /* 绿色表示有引用 */
+	background: var(--color-green);
 }
 
 /* 信息区域 */
@@ -566,7 +497,7 @@
 	flex-direction: row;
 	opacity: 0;
 	transition: opacity 0.2s ease;
-	z-index: 3; /* 确保在最上层，高于格式和引用标签 */
+	z-index: 3; /* 确保在最上层, 高于格式和引用标签 */
 	background: var(--background-secondary-alt);
 	padding: 4px;
 	border-radius: var(--radius-s);

@@ -6,13 +6,13 @@ import readline from "readline";
 const directVersion = process.argv[2];
 const isDirectMode = !!directVersion;
 
-// 如果是直接调用模式，直接更新版本
+// 如果是直接调用模式, 直接更新版本
 if (isDirectMode) {
 	updateAllFiles(directVersion);
 	process.exit(0);
 }
 
-// 否则，启动交互式模式
+// 否则, 启动交互式模式
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
@@ -23,7 +23,7 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const currentVersion = packageJson.version;
 console.log(`当前版本: ${currentVersion}`);
 
-// 解析版本号 - 支持beta版本
+// 解析版本号 - 支持 beta 版本
 function parseVersion(version) {
 	const betaRegex = /^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/;
 	const match = version.match(betaRegex);
@@ -44,14 +44,14 @@ function parseVersion(version) {
 const versionInfo = parseVersion(currentVersion);
 const { major, minor, patch, betaNumber, isBeta } = versionInfo;
 
-// 构建基础版本号（不包含beta后缀）
+// 构建基础版本号 (不包含 beta 后缀)
 const baseVersion = `${major}.${minor}.${patch}`;
 
 // 检查是否为第一次发布版本 (1.0.0)
 const isFirstRelease = currentVersion === "1.0.0";
 
 // 显示选项
-console.log("\n请选择版本更新类型:");
+console.log("\n 请选择版本更新类型:");
 
 if (isFirstRelease) {
 	// 第一次发布版本的特殊选项
@@ -68,17 +68,17 @@ if (isFirstRelease) {
 	console.log(`3. 补丁版本 (${major}.${minor}.${patch + 1})`);
 	console.log(`4. 自定义版本`);
 
-	// Beta版本选项显示逻辑
+	// Beta 版本选项显示逻辑
 	if (isBeta) {
-		// 当前是beta版本，显示下一个beta版本
+		// 当前是 beta 版本, 显示下一个 beta 版本
 		console.log(`5. Beta 版本 (${baseVersion}-beta.${betaNumber + 1})`);
 	} else {
-		// 当前是正式版本，显示第一个beta版本
+		// 当前是正式版本, 显示第一个 beta 版本
 		console.log(`5. Beta 版本 (${baseVersion}-beta.1)`);
 	}
 }
 
-rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) => {
+rl.question(`\n 请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) => {
 	let newVersion;
 	let isNewBeta = false;
 
@@ -86,9 +86,9 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 		// 第一次发布版本的选项处理
 		switch (answer) {
 			case "1":
-				// 第一次发布，保持当前版本
+				// 第一次发布, 保持当前版本
 				newVersion = currentVersion;
-				console.log(`\n选择第一次发布，保持版本 ${currentVersion}`);
+				console.log(`\n 选择第一次发布, 保持版本 ${currentVersion}`);
 				break;
 			case "2":
 				newVersion = `${major + 1}.0.0`;
@@ -101,7 +101,7 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 				break;
 			case "5":
 				rl.question(
-					"请输入自定义版本号 (x.y.z 或 x.y.z-beta.n): ",
+					"请输入自定义版本号 (x.y.z 或 x.y.z-beta.n):",
 					(customVersion) => {
 						try {
 							const customVersionInfo =
@@ -121,7 +121,7 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 				isNewBeta = true;
 				break;
 			default:
-				console.log("无效选项，使用第一次发布选项");
+				console.log("无效选项, 使用第一次发布选项");
 				newVersion = currentVersion;
 		}
 	} else {
@@ -138,7 +138,7 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 				break;
 			case "4":
 				rl.question(
-					"请输入自定义版本号 (x.y.z 或 x.y.z-beta.n): ",
+					"请输入自定义版本号 (x.y.z 或 x.y.z-beta.n):",
 					(customVersion) => {
 						try {
 							const customVersionInfo =
@@ -155,16 +155,16 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 				return;
 			case "5":
 				if (isBeta) {
-					// 当前是beta版本，只增加beta数字
+					// 当前是 beta 版本, 只增加 beta 数字
 					newVersion = `${baseVersion}-beta.${betaNumber + 1}`;
 				} else {
-					// 当前是正式版本，创建第一个beta版本
+					// 当前是正式版本, 创建第一个 beta 版本
 					newVersion = `${baseVersion}-beta.1`;
 				}
 				isNewBeta = true;
 				break;
 			default:
-				console.log("无效选项，使用补丁版本更新");
+				console.log("无效选项, 使用补丁版本更新");
 				newVersion = `${major}.${minor}.${patch + 1}`;
 		}
 	}
@@ -176,16 +176,16 @@ rl.question(`\n请输入选项 (1-${isFirstRelease ? "6" : "5"}): `, (answer) =>
 /**
  * 更新所有相关文件的版本号
  * @param {string} version 新版本号
- * @param {boolean} isBeta 是否为Beta版本
+ * @param {boolean} isBeta 是否为 Beta 版本
  */
 function updateAllFiles(version, isBeta = false) {
 	try {
 		const isFirstRelease = version === "1.0.0";
 
 		if (isFirstRelease) {
-			console.log(`\n正在准备第一次发布版本 ${version}...`);
+			console.log(`\n 正在准备第一次发布版本 ${version}...`);
 		} else {
-			console.log(`\n正在更新至版本 ${version}...`);
+			console.log(`\n 正在更新至版本 ${version}...`);
 		}
 
 		// 1. 更新 package.json
@@ -199,9 +199,9 @@ function updateAllFiles(version, isBeta = false) {
 
 		// 提示提交更改
 		if (isFirstRelease) {
-			console.log("\n🎉 第一次发布准备完成！建议执行以下命令:");
+			console.log("\n🎉 第一次发布准备完成! 建议执行以下命令:");
 		} else {
-			console.log("\n版本已更新。建议执行以下命令:");
+			console.log("\n 版本已更新. 建议执行以下命令:");
 		}
 
 		if (isBeta) {
@@ -221,9 +221,9 @@ function updateAllFiles(version, isBeta = false) {
 		console.log(`git tag ${version}`);
 
 		if (isFirstRelease) {
-			console.log("\n🎊 第一次发布版本准备完成！");
+			console.log("\n🎊 第一次发布版本准备完成!");
 		} else {
-			console.log("\n版本更新完成！");
+			console.log("\n 版本更新完成!");
 		}
 	} catch (error) {
 		console.error("更新版本时出错:", error);
@@ -253,7 +253,7 @@ function updatePackageJson(version) {
 /**
  * 更新 manifest.json 或 manifest-beta.json 文件
  * @param {string} version 新版本号
- * @param {boolean} isBeta 是否为Beta版本
+ * @param {boolean} isBeta 是否为 Beta 版本
  * @returns {string} 最低应用版本
  */
 function updateManifestJson(version, isBeta = false) {
@@ -262,7 +262,7 @@ function updateManifestJson(version, isBeta = false) {
 
 		// 检查文件是否存在
 		if (!existsSync(manifestFile) && isBeta) {
-			// 如果manifest-beta.json不存在，则从manifest.json复制一份
+			// 如果 manifest-beta.json 不存在, 则从 manifest.json 复制一份
 			if (existsSync("manifest.json")) {
 				const manifest = JSON.parse(
 					readFileSync("manifest.json", "utf8")
@@ -319,7 +319,7 @@ function updateVersionsJson(version, minAppVersion) {
 			JSON.stringify(versions, null, "\t") + "\n"
 		);
 		console.log(
-			`已更新 versions.json，添加版本 ${version} -> ${minAppVersion}`
+			`已更新 versions.json, 添加版本 ${version} -> ${minAppVersion}`
 		);
 	} catch (error) {
 		console.error("更新 versions.json 时出错:", error);

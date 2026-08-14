@@ -1,112 +1,82 @@
-/**
- * 重命名Modal
- */
-
-import { App, Modal } from "obsidian";
+import { App, ButtonComponent, Modal, Notice, Setting, TextComponent } from "obsidian";
 import { ImageItem } from "../types/image-manager.types";
 
 export class RenameModal extends Modal {
-	private image: ImageItem;
-	private onConfirm: (newName: string) => Promise<void>;
-	private inputEl: HTMLInputElement;
+	private input: TextComponent | null = null;
+	private confirmButton: ButtonComponent | null = null;
+	private isSubmitting = false;
 
 	constructor(
 		app: App,
-		image: ImageItem,
-		onConfirm: (newName: string) => Promise<void>
+		private readonly image: ImageItem,
+		private readonly onConfirm: (newName: string) => Promise<void>
 	) {
 		super(app);
-		this.image = image;
-		this.onConfirm = onConfirm;
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
-		contentEl.addClass("image-manager-rename-modal");
-
-		contentEl.createEl("h3", { text: "重命名文件" });
-
-		// 表单
-		const form = contentEl.createDiv({
-			cls: "image-manager-rename-form",
-		});
-
-		// 获取文件名（不含扩展名）
-		const fileName = this.image.name;
+		this.setTitle("重命名文件");
 		const extension = this.image.originalFile.extension;
-		const nameWithoutExt = fileName.replace(new RegExp(`\\.${extension}$`), "");
+		const suffix = `.${extension}`;
+		const initialName = this.image.name.endsWith(suffix)
+			? this.image.name.slice(0, -suffix.length)
+			: this.image.name;
 
-		// 输入框
-		this.inputEl = form.createEl("input", {
-			cls: "image-manager-rename-input",
-			attr: {
-				type: "text",
-				value: nameWithoutExt,
-			},
+		const nameSetting = new Setting(this.contentEl).setName("文件名");
+		nameSetting.addText((input) => {
+			this.input = input
+				.setValue(initialName)
+				.setPlaceholder("输入文件名")
+				.onChange((value) => this.confirmButton?.setDisabled(value.trim().length === 0));
+			input.inputEl.addEventListener("keydown", (event) => {
+				if (event.key === "Enter") {
+					event.preventDefault();
+					void this.handleConfirm();
+				}
+			});
 		});
+		nameSetting.controlEl.createSpan({ cls: "setting-item-description", text: suffix });
 
-		// 扩展名显示
-		form.createDiv({
-			cls: "image-manager-file-extension",
-			text: `.${extension}`,
+		new Setting(this.contentEl)
+			.addButton((button) => button.setButtonText("取消").onClick(() => this.close()))
+			.addButton((button) => {
+				this.confirmButton = button
+					.setButtonText("重命名")
+					.setCta()
+					.onClick(() => void this.handleConfirm());
+			});
+
+		this.contentEl.ownerDocument.defaultView?.requestAnimationFrame(() => {
+			this.input?.inputEl.focus();
+			this.input?.inputEl.select();
 		});
-
-		// 按钮
-		const actions = contentEl.createDiv({
-			cls: "image-manager-modal-actions",
-		});
-
-		const cancelBtn = actions.createEl("button", {
-			cls: "image-manager-cancel-button",
-			text: "取消",
-		});
-
-		cancelBtn.addEventListener("click", () => {
-			this.close();
-		});
-
-		const confirmBtn = actions.createEl("button", {
-			cls: "image-manager-confirm-button",
-			text: "确定",
-		});
-
-		confirmBtn.addEventListener("click", () => {
-			void this.handleConfirm();
-		});
-
-		// 回车确认
-		this.inputEl.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				void this.handleConfirm();
-			} else if (e.key === "Escape") {
-				this.close();
-			}
-		});
-
-		// 聚焦并选中
-		this.inputEl.focus();
-		this.inputEl.select();
 	}
 
-	/**
-	 * 处理确认
-	 */
 	private async handleConfirm(): Promise<void> {
-		const newNameWithoutExt = this.inputEl.value.trim();
-
-		if (!newNameWithoutExt) {
+		if (this.isSubmitting) return;
+		const baseName = this.input?.getValue().trim() ?? "";
+		if (!baseName) {
+			new Notice("文件名不能为空");
 			return;
 		}
 
-		const extension = this.image.originalFile.extension;
-		const newName = `${newNameWithoutExt}.${extension}`;
-
-		await this.onConfirm(newName);
-		this.close();
+		this.isSubmitting = true;
+		this.input?.setDisabled(true);
+		this.confirmButton?.setDisabled(true).setButtonText("正在重命名...");
+		try {
+			await this.onConfirm(`${baseName}.${this.image.originalFile.extension}`);
+			this.close();
+		} catch {
+			this.isSubmitting = false;
+			this.input?.setDisabled(false);
+			this.confirmButton?.setDisabled(false).setButtonText("重命名");
+		}
 	}
 
 	onClose(): void {
-		const { contentEl } = this;
-		contentEl.empty();
+		this.contentEl.empty();
+		this.input = null;
+		this.confirmButton = null;
+		this.isSubmitting = false;
 	}
 }

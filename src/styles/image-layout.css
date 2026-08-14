@@ -2,7 +2,7 @@
 图片添加 dark 参数可在深色模式下反色
 ======================================== */
 
-.theme-dark img[alt*="dark"] {
+.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]) {
   filter: invert(1) hue-rotate(180deg) !important;
 }
 
@@ -10,119 +10,154 @@
   filter: invert(1) hue-rotate(180deg) !important;
 }
 
-/* 禁用SVG反色时，不对dark参数生效 */
-.afm-no-svg-invert.theme-dark img[alt*="dark"] {
-  filter: none !important;
-}
-
+/* 禁用 SVG 反色时, 不对 dark 参数生效 */
+.afm-no-svg-invert.theme-dark :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt~="dark"],[alt^="dark|"],[alt*="|dark|"]),
 .afm-no-svg-invert.theme-dark .image-embed[src*="#dark"] img {
   filter: none !important;
 }
-
 
 /* ========================================
 图片排版位置
 ======================================== */
 .markdown-source-view.mod-cm6 .image-embed[alt$="center"],
-img[alt$="center"],
-.markdown-source-view.mod-cm6 img[alt$="center"],
-.internal-embed.image-embed.is-loaded[alt$="center"] img[alt$="right"],
-body:not(.image-zoom) .view-content img[alt$="center"] {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="center"],[alt$="|center"],[alt*="|center|"]) {
   margin: auto !important;
   display: block;
 }
 
-/* 容器对齐样式 */
-.image-resize-container.afm-align-center {
-  clear: both;
-  margin: 0 auto !important;
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-left"],[alt$="|align-left"],[alt*="|align-left|"]) {
   display: block;
+  margin-left: 0 !important;
+  margin-right: auto !important;
 }
 
-.image-resize-container.afm-align-left {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="align-right"],[alt$="|align-right"],[alt*="|align-right|"]) {
+  display: block;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+/* 无标题语法的排版参数位于 img.alt; 必须对 Obsidian 的 embed 容器对齐,
+ * 否则实时预览中的 shrink-to-fit 容器会让右对齐视觉上仍停留在左侧. */
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed:has(
+  img:is([alt="align-left"],[alt$="|align-left"],[alt*="|align-left|"])
+) {
+  clear: both;
+  display: table;
   margin: 0.5rem auto 0.5rem 0 !important;
 }
 
-.image-resize-container.afm-align-right {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed:has(
+  img:is([alt="align-right"],[alt$="|align-right"],[alt*="|align-right|"])
+) {
+  clear: both;
+  display: table;
   margin: 0.5rem 0 0.5rem auto !important;
 }
 
-img[alt$="inline"] {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="inline"],[alt$="|inline"],[alt*="|inline|"]) {
   display: inline !important;
   padding: 0.05em 0.05em !important;
   vertical-align: bottom;
 }
 
-/* 左右对齐（无标题，| 语法） */
-/* 阅读模式：float 环绕 */
-:is(.markdown-preview-view,.markdown-rendered) img[alt$="left"] {
+/* 左右环绕 (无标题, | 语法): 阅读模式使用真实文档流. */
+:is(.markdown-preview-view,.markdown-rendered) img:is([alt="left"],[alt$="|left"],[alt*="|left|"]) {
   float: left !important;
-  padding: 0.5em !important;
+  margin: 0.5rem 1rem 0.5rem 0 !important;
 }
 
-:is(.markdown-preview-view,.markdown-rendered) img[alt$="right"] {
+:is(.markdown-preview-view,.markdown-rendered) img:is([alt="right"],[alt$="|right"],[alt*="|right|"]) {
   float: right !important;
-  padding: 0.5em !important;
+  margin: 0.5rem 0 0.5rem 1rem !important;
 }
 
-/* 实时预览：margin 对齐 */
-.markdown-source-view.mod-cm6.is-live-preview img[alt$="left"] {
-  display: block;
-  margin-right: auto !important;
-  padding: 0.5em !important;
+/*
+ * 实时预览中只让图片本体参与真实 float, 保留 .cm-line 供 CodeMirror 测量.
+ * 图片所属空行盒允许鼠标穿透, 避免它覆盖后续文字的点击区域; 图片本体恢复
+ * pointer-events, 因此右键菜单, 查看和拖拽缩放仍然可用.
+ */
+.markdown-source-view.mod-cm6.is-live-preview .cm-line:is(
+  :has(> .image-embed[src*="#left"]),
+  :has(> .image-embed[src*="#right"]),
+  :has(> .image-embed img:is([alt="left"],[alt$="|left"],[alt*="|left|"])),
+  :has(> .image-embed img:is([alt="right"],[alt$="|right"],[alt*="|right|"]))
+):not(:has(> :not(.image-embed):not(br))) {
+	pointer-events: none;
 }
 
-.markdown-source-view.mod-cm6.is-live-preview img[alt$="right"] {
+.markdown-source-view.mod-cm6.is-live-preview .image-embed:is(
+  [src*="#left"],
+  :has(img:is([alt="left"],[alt$="|left"],[alt*="|left|"]))
+) {
+  position: relative;
+  float: left;
+  clear: both;
+  display: table;
+  margin: 0.5rem 1rem 0.5rem 0 !important;
+  pointer-events: auto;
+}
+
+.markdown-source-view.mod-cm6.is-live-preview .cm-content:has(
+  .image-embed[src*="#left"],
+  .image-embed[src*="#right"],
+  .image-embed img:is([alt="left"],[alt$="|left"],[alt*="|left|"],[alt="right"],[alt$="|right"],[alt*="|right|"])
+)::after {
+  content:"";
   display: block;
-  margin-left: auto !important;
-  margin-right: 0 !important;
-  padding: 0.5em !important;
+  clear: both;
+}
+
+.markdown-source-view.mod-cm6.is-live-preview .image-embed:is(
+  [src*="#right"],
+  :has(img:is([alt="right"],[alt$="|right"],[alt*="|right|"]))
+) {
+  position: relative;
+  float: right;
+  clear: both;
+  display: table;
+  margin: 0.5rem 0 0.5rem 1rem !important;
+  pointer-events: auto;
 }
 
 
 /* ========================================
-图片标题 — 带标题图片使用 # 语法：![[image#position|caption|size]]
-容器 .image-embed 的 src 属性含 #position，alt 属性为 caption
+图片标题 - 带标题图片使用 # 语法: ![[image#position|caption|size]]
+容器 .image-embed 的 src 属性含 #position, alt 属性为 caption
 使用 display:table + table-caption 使标题不影响容器宽度
 ======================================== */
 
-/* --- 居中 --- */
-/* 编辑模式（实时预览） */
-.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="center"] {
+/* 居中与非环绕对齐在阅读, 编辑模式下使用同一几何模型. */
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#center"] {
   clear: both;
   margin: 0 auto !important;
   display: table;
 }
 
-/* 阅读模式 */
-:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="center"] {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-left"] {
   clear: both;
-  margin: 0 auto !important;
+  margin: 0.5rem auto 0.5rem 0 !important;
   display: table;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"]::after {
-  content: attr(alt);
-  padding: 0 0.5rem;
-  margin: 0.5rem 0;
-  display: table-caption;
-  caption-side: bottom;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-right"] {
+  clear: both;
+  margin: 0.5rem 0 0.5rem auto !important;
+  display: table;
 }
 
 /* --- 确保 table 布局内的图片不超出容器 --- */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="center"] img,
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"] img,
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"] img {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#center"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-left"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#align-right"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#left"] img,
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#right"] img {
   max-width: 100%;
   height: auto;
 }
 
-/* --- 左对齐 --- */
-/* 阅读模式：float 环绕 */
-:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="left"] {
+/* 左右环绕: 阅读模式使用真实 float. */
+:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#left"] {
   position: relative;
   float: left;
   margin: 0.5rem 1rem 0.5rem 0 !important;
@@ -130,27 +165,7 @@ img[alt$="inline"] {
   display: table;
 }
 
-/* 实时预览：margin 对齐 */
-.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="left"] {
-  position: relative;
-  margin: 0.5rem auto 0.5rem 0 !important;
-  display: table;
-}
-
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"]::after {
-  content: attr(alt);
-  padding: 0 0.5rem;
-  margin: 0.5rem 0 1rem;
-  display: table-caption;
-  caption-side: bottom;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-/* --- 右对齐 --- */
-/* 阅读模式：float 环绕 */
-:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="right"] {
+:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#right"] {
   position: relative;
   float: right;
   margin: 0.5rem 0 0.5rem 1rem !important;
@@ -158,41 +173,34 @@ img[alt$="inline"] {
   display: table;
 }
 
-/* 实时预览：margin 对齐 */
-.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="right"] {
-  position: relative;
-  margin: 0.5rem 0 0.5rem auto !important;
-  display: table;
-}
-
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"]::after {
+/* 所有标题共用同一份排版参数, 编辑控件也复用这些参数. */
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed:is(
+  [src*="#center"],
+  [src*="#align-left"],
+  [src*="#align-right"],
+  [src*="#left"],
+  [src*="#right"],
+  [src*="#inline"]
+)::after {
   content: attr(alt);
   padding: 0 0.5rem;
-  margin: 0.5rem 0 1rem;
+  margin: 0.5rem 0;
   display: table-caption;
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
   color: var(--text-muted);
+  font-family: inherit;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 /* --- 行内 --- */
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="inline"] {
+:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#inline"] {
   clear: both;
   margin: 0 auto !important;
   width: fit-content;
   display: inline-table;
-}
-
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="inline"]::after {
-  content: attr(alt);
-  padding: 0 0.7em;
-  margin: 0.5rem 0;
-  display: block;
-  caption-side: bottom;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
 }
 
 /* --- 标题编辑 --- */
@@ -201,33 +209,71 @@ img[alt$="inline"] {
   display: none !important;
 }
 
-/* 标题输入框 — 与渲染后的 ::after 标题外观一致 */
-.afm-caption-input {
-  display: block;
-  width: 100%;
-  height: var(--caption-height, auto);
-  margin: 0.5rem 0;
-  padding: 0 0.5rem;
-  font-size: 0.85rem;
-  text-align: center;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  outline: none;
-  box-shadow: none !important;
-  box-sizing: border-box;
-  transition: opacity 0.15s ease-in-out;
-  resize: none;
-  overflow: hidden;
-  font-family: inherit;
-  line-height: 1.5;
-}
-
-.afm-caption-input::placeholder {
-  color: var(--text-faint);
-}
-
-/* 编辑状态平滑过渡 */
+/* 编辑控件在 document.body 的独立浮层中; 原容器只保留与标题一致的空间,
+ * 不改变 CodeMirror 图片装饰节点的 display, 宽度或选中状态. */
 .image-embed.afm-editing-caption {
-  transition: none;
+	padding-bottom: var(--afm-caption-editor-space, 0);
+	transition: none;
+}
+
+.afm-caption-editor-overlay {
+	position: fixed;
+	left: var(--afm-caption-editor-left);
+	top: var(--afm-caption-editor-top);
+	width: var(--afm-caption-editor-width);
+	z-index: var(--layer-popover, 30);
+	pointer-events: auto;
+}
+
+/* 标题输入框 - 所有状态使用完全相同的几何和透明外观. */
+.afm-caption-editor-overlay .afm-caption-input {
+	display: block !important;
+	width: 100% !important;
+	height: var(--afm-caption-height, auto) !important;
+	min-height: 24px !important;
+	margin: 0.5rem 0 !important;
+	padding: 0 0.5rem !important;
+	box-sizing: border-box !important;
+	resize: none !important;
+	overflow: hidden !important;
+	font-family: var(--afm-caption-font-family, var(--font-text)) !important;
+	font-style: var(--afm-caption-font-style, normal) !important;
+	font-weight: var(--afm-caption-font-weight, normal) !important;
+	font-size: 0.85rem !important;
+	line-height: 1.5 !important;
+	letter-spacing: var(--afm-caption-letter-spacing, normal) !important;
+	text-align: center !important;
+	white-space: pre-wrap !important;
+	overflow-wrap: anywhere !important;
+	word-break: break-word !important;
+	color: var(--text-muted) !important;
+	-webkit-text-fill-color: var(--text-muted) !important;
+	caret-color: var(--text-normal) !important;
+	background: transparent !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	outline: 0 !important;
+	box-shadow: none !important;
+	opacity: 1 !important;
+	appearance: none !important;
+	cursor: text !important;
+	user-select: text !important;
+}
+
+.afm-caption-editor-overlay .afm-caption-input:hover,
+.afm-caption-editor-overlay .afm-caption-input:focus,
+.afm-caption-editor-overlay .afm-caption-input:focus-visible,
+.afm-caption-editor-overlay .afm-caption-input:active {
+	color: var(--text-muted) !important;
+	-webkit-text-fill-color: var(--text-muted) !important;
+	caret-color: var(--text-normal) !important;
+	background: transparent !important;
+	border: 0 !important;
+	outline: 0 !important;
+	box-shadow: none !important;
+}
+
+.afm-caption-editor-overlay .afm-caption-input::placeholder {
+	color: var(--text-faint) !important;
+	opacity: 1;
 }

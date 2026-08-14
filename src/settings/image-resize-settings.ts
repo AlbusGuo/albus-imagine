@@ -1,4 +1,4 @@
-import { SettingGroup, debounce, Notice } from 'obsidian';
+import { debounce, Notice, SettingGroup } from 'obsidian';
 import { NativePluginSettingTab } from './NativePluginSettingTab';
 
 export function showImageResizeSettings(tab: NativePluginSettingTab): void {
@@ -56,7 +56,7 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 		const currentValue = plugin.settings.imageResize?.resizeInterval || 0;
 		setting
 			.setName('调整大小的时间间隔')
-			.setDesc(`拖动调整最小刻度（当前: ${currentValue} px，0 表示不对齐刻度）`)
+			.setDesc('拖动调整最小刻度, 0 表示不对齐刻度')
 			.addText((text) => {
 				text
 					.setPlaceholder('0')
@@ -74,7 +74,6 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 							}
 							plugin.settings.imageResize.resizeInterval = numValue;
 							await plugin.saveSettings();
-							setting.setDesc(`拖动调整最小刻度（当前: ${numValue} px，0 表示不对齐刻度）`);
 						} else {
 							new Notice('请输入非负整数');
 						}
@@ -90,7 +89,7 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 		const currentValue = plugin.settings.imageResize?.edgeSize || 20;
 		setting
 			.setName('边缘检测区域大小')
-			.setDesc(`鼠标在图片边缘多少像素内可以触发调整大小（当前: ${currentValue} px）`)
+			.setDesc('鼠标在图片边缘多少像素内可以触发调整大小')
 			.addSlider((slider) => {
 				slider
 					.setLimits(5, 150, 1)
@@ -107,7 +106,6 @@ export function showImageResizeSettings(tab: NativePluginSettingTab): void {
 						}
 						plugin.settings.imageResize.edgeSize = value;
 						await plugin.saveSettings();
-						setting.setDesc(`鼠标在图片边缘多少像素内可以触发调整大小（当前: ${value} px）`);
 					}, 100));
 			});
 	});

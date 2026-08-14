@@ -4,7 +4,7 @@ module.exports = {
 			// 创建一个新对象而不是修改原对象
 			const transformedCommit = { ...commit };
 
-			// 定义完整的commit类型映射
+			// 定义完整的 commit 类型映射
 			const typeMap = {
 				feat: "✨ Features",
 				fix: "🐛 Bug Fixes",
@@ -24,12 +24,12 @@ module.exports = {
 				transformedCommit.type = typeMap[transformedCommit.type];
 			}
 
-			// 如果没有匹配的类型，跳过
+			// 如果没有匹配的类型, 跳过
 			if (transformedCommit.type === commit.type) {
 				return false;
 			}
 
-			// 保留URL链接等信息
+			// 保留 URL 链接等信息
 			if (commit.scope === "*") {
 				transformedCommit.scope = "";
 			}

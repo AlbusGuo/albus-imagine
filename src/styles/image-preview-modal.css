@@ -1,27 +1,19 @@
 /**
- * 图片预览Modal样式
+ * 图片预览 Modal 样式
  */
 
-/* 彻底移除 modal-header 的影响 */
 .modal.image-manager-preview-modal-container {
 	padding: 0 !important;
-	max-width: 1200px !important;
-	width: 75vw !important;
-	height: 85vh !important;
+	width: var(--modal-width);
+	height: var(--modal-height);
+	max-width: var(--modal-max-width);
+	max-height: var(--modal-max-height);
 	display: flex !important;
 	flex-direction: column !important;
 }
 
 .modal.image-manager-preview-modal-container .modal-header {
-	display: none !important;
-	margin: 0 !important;
-	padding: 0 !important;
-	height: 0 !important;
-	min-height: 0 !important;
-}
-
-.modal.image-manager-preview-modal-container .modal-close-button {
-	display: none !important;
+	padding: var(--size-4-4);
 }
 
 /* 预览弹窗内容 */
@@ -42,71 +34,6 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-}
-
-.image-manager-preview-toolbar {
-	padding: 16px 20px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.image-manager-preview-title {
-	font-size: 16px;
-	font-weight: 600;
-	color: var(--text-normal);
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-/* 预览弹窗中的格式标签 */
-.image-manager-format-tag {
-	font-size: 10px;
-	padding: 2px 6px;
-	border-radius: var(--radius-s);
-	font-weight: 600;
-	color: white;
-}
-
-.image-manager-agx-format-tag {
-	background: var(--interactive-accent);
-}
-
-.image-manager-other-format-tag {
-	background: var(--text-muted);
-}
-
-.image-manager-reference-tag {
-	background: rgba(var(--interactive-accent-rgb), 0.1);
-	color: var(--interactive-accent);
-	font-size: 10px;
-	padding: 2px 6px;
-	border-radius: var(--radius-s);
-	font-weight: 600;
-}
-
-.image-manager-preview-controls {
-	display: flex;
-	gap: 8px;
-}
-
-.image-manager-close-button {
-	padding: 8px 12px;
-	border: none;
-	border-radius: var(--radius-s);
-	background: var(--background-modifier-border);
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	font-size: 14px;
-}
-
-.image-manager-close-button:hover {
-	background: var(--interactive-danger);
-	color: white;
 }
 
 /* 预览内容区域 - 左右布局 */
@@ -149,7 +76,7 @@
 	-webkit-user-drag: none;
 }
 
-/* 预览画布中的 SVG 图片：覆盖网格缩略图的 100% 尺寸，使 JS 缩放/拖拽生效 */
+/* 预览画布中的 SVG 图片: 覆盖网格缩略图的 100% 尺寸, 使 JS 缩放/拖拽生效 */
 .image-manager-canvas .image-manager-svg-image {
 	width: auto;
 	height: auto;
@@ -283,45 +210,7 @@
 	padding: 16px;
 }
 
-.image-manager-backlink-hint {
-	font-size: 11px;
-	opacity: 0.7;
-	margin-top: 8px;
-	line-height: 1.4;
-}
-
-.image-manager-backlink-hint code {
-	background: rgba(var(--interactive-accent-rgb), 0.1);
-	padding: 2px 4px;
-	border-radius: 4px;
-	font-family: monospace;
-	margin: 1px 0;
-	display: inline-block;
-	color: var(--interactive-accent);
-	font-weight: 500;
-	font-size: 10px;
-}
-
-/* 滚动条样式 */
-.image-manager-backlinks-list::-webkit-scrollbar {
-	width: 8px;
-}
-
-.image-manager-backlinks-list::-webkit-scrollbar-track {
-	background: var(--background-secondary);
-	border-radius: 4px;
-}
-
-.image-manager-backlinks-list::-webkit-scrollbar-thumb {
-	background: var(--background-modifier-border);
-	border-radius: 4px;
-}
-
-.image-manager-backlinks-list::-webkit-scrollbar-thumb:hover {
-	background: var(--interactive-accent);
-}
-
-/* 双栏详细信息（自定义文件类型） */
+/* 双栏详细信息 (自定义文件类型) */
 .image-manager-detail-dual-columns {
 	display: flex;
 	gap: 16px;
@@ -348,4 +237,10 @@
 
 .image-manager-detail-column .image-manager-detail-label {
 	min-width: 50px;
+}
+.image-manager-preview-image {
+	width: var(--afm-panzoom-width) !important;
+	height: auto !important;
+	margin-left: var(--afm-panzoom-left) !important;
+	margin-top: var(--afm-panzoom-top) !important;
 }

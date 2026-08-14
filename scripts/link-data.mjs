@@ -1,4 +1,4 @@
-import { spawn } from "child_process";
+import { execFileSync, spawn } from "child_process";
 import dotenv from "dotenv";
 import { existsSync } from "fs";
 import { lstat, readFile, symlink, unlink } from "fs/promises";
@@ -23,8 +23,7 @@ function isAdmin() {
 	if (process.platform !== "win32") return true;
 
 	try {
-		const { execSync } = require("child_process");
-		execSync("net session >nul 2>&1", { stdio: "ignore" });
+		execFileSync("net", ["session"], { stdio: "ignore" });
 		return true;
 	} catch {
 		return false;
@@ -77,7 +76,7 @@ async function linkDataJson() {
 			pluginId
 		);
 		const sourceDataPath = join(vaultPluginDir, "data.json");
-		const targetDataPath = join(rootDir, "data.json");
+		const targetDataPath = join(projectRoot, "data.json");
 
 		// 检查源文件是否存在
 		if (!existsSync(sourceDataPath)) {
@@ -95,7 +94,7 @@ async function linkDataJson() {
 					await unlink(targetDataPath);
 				} else {
 					console.log(
-						"警告: 目标位置已存在普通文件，请手动处理后重试"
+						"警告: 目标位置已存在普通文件, 请手动处理后重试"
 					);
 					console.log(`文件路径: ${targetDataPath}`);
 					return;
@@ -114,11 +113,11 @@ async function linkDataJson() {
 			console.log(`  目标位置: ${targetDataPath}`);
 			console.log("");
 			console.log(
-				"现在项目根目录的 data.json 将实时反映测试库中的插件配置！"
+				"现在项目根目录的 data.json 将实时反映测试库中的插件配置!"
 			);
 		} catch (symlinkError) {
 			if (symlinkError.code === "EPERM") {
-				console.log("软链接创建失败，权限不足。");
+				console.log("软链接创建失败, 权限不足.");
 
 				// 检查是否以管理员身份运行
 				if (!isAdmin()) {

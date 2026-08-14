@@ -1,146 +1,6 @@
 /**
- * 额外的组件样式 - 头部、文件夹选择、文件打开配置等
+ * 额外的组件样式 - 头部, 文件夹选择, 文件打开配置等
  */
-
-/* ==================== 右键菜单 ==================== */
-
-/* 子菜单箭头推到行尾 */
-.afm-submenu-flair {
-	margin-left: auto;
-	margin-right: 0;
-}
-
-/* ==================== 头部扩展样式 ==================== */
-
-/* 批量删除按钮容器 - 固定宽度防止布局跳动 */
-.image-manager-batch-delete-container {
-	width: 88px;
-	flex-shrink: 0;
-}
-
-/* ==================== 文件夹选择按钮 ==================== */
-.image-manager-folder-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 4px 10px;
-	background: transparent;
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	cursor: pointer;
-	font-size: 13px;
-	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-	flex-shrink: 0;
-	max-width: 300px;
-}
-
-.image-manager-folder-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-	border-color: var(--text-muted);
-}
-
-.image-manager-folder-button.is-hidden {
-	display: none;
-}
-
-.image-manager-folder-icon {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.image-manager-folder-icon svg {
-	width: 14px;
-	height: 14px;
-}
-
-.image-manager-folder-text {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* 内联文件夹输入 */
-.image-manager-folder-input-container {
-	display: inline-block;
-	position: relative;
-	min-width: 200px;
-}
-
-.image-manager-folder-input-inline {
-	width: 100%;
-	padding: 4px 10px;
-	background: var(--background-primary);
-	color: var(--text-normal);
-	border: 1px solid var(--interactive-accent);
-	border-radius: var(--input-radius);
-	font-size: 13px;
-	outline: none;
-}
-
-.image-manager-folder-input-inline:focus {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px var(--background-modifier-border);
-}
-
-/* 文件夹建议列表 */
-.image-manager-suggestion-container {
-	position: fixed;
-	z-index: 10000;
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-	max-height: 300px;
-	overflow-y: auto;
-}
-
-.image-manager-suggestion-item {
-	padding: 8px 12px;
-	cursor: pointer;
-	user-select: none;
-	font-size: 13px;
-	color: var(--text-normal);
-}
-
-.image-manager-suggestion-item.is-selected {
-	background: var(--background-modifier-hover);
-}
-
-.image-manager-suggestion-item:hover {
-	background: var(--background-modifier-hover);
-}
-
-/* ==================== 排序按钮 ==================== */
-.image-manager-sort-order-button {
-	padding: 4px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	background: var(--background-primary);
-	color: var(--text-muted);
-	font-size: 12px;
-	cursor: pointer;
-	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 28px;
-}
-
-.image-manager-sort-order-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-	border-color: var(--text-muted);
-}
-
-/* ==================== 预览模态框扩展 ==================== */
-.image-manager-preview-title > span:first-child {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
 
 /* ==================== 滚动条样式 ==================== */
 .image-manager-grid-panel::-webkit-scrollbar,
@@ -175,15 +35,14 @@
 /* ==================== 响应式调整 ==================== */
 @media (max-width: 768px) {
 	.image-manager-grid {
-		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 		padding: 12px;
 		gap: 10px;
 	}
-	
+
 	.image-manager-preview-content {
 		flex-direction: column;
 	}
-	
+
 	.image-manager-preview-info-section {
 		width: 100%;
 		border-right: none;
@@ -195,8 +54,4 @@
 /* --- Utility classes --- */
 .afm-textarea-full-width {
 	width: 100%;
-}
-
-.afm-fade-out {
-	opacity: 0;
 }

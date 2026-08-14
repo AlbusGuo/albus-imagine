@@ -32,7 +32,7 @@ const fileConfig = [
 
 async function copyToVault() {
 	try {
-		// 获取 manifest.json 配置，从 fileConfig 中找到对应文件
+		// 获取 manifest.json 配置, 从 fileConfig 中找到对应文件
 		const manifestConfig = fileConfig.find(
 			(file) => file.name === "manifest.json"
 		);

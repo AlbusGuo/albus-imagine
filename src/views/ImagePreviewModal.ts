@@ -1,39 +1,26 @@
 /**
- * 图片预览Modal
+ * 图片预览 Modal
  */
 
 import { App, Modal, setIcon } from "obsidian";
+import { ImagePanZoomController } from "../components/ImagePanZoomController";
 import { ImageItem, ReferenceInfo } from "../types/image-manager.types";
 
 export class ImagePreviewModal extends Modal {
 	private image: ImageItem;
 	private references: ReferenceInfo[];
 	private getImagePath: (image: ImageItem) => string;
-	private onOpenReference?: (filePath: string, position?: { start: { line: number; col: number } }) => void;
+	private onOpenReference?: (filePath: string, position?: { start: { line: number; col: number; }; }) => void;
 
-	// 图片查看器状态（参照 ImageViewerView）
-	private imgStatus: {
-		realWidth: number;
-		realHeight: number;
-		curWidth: number;
-		curHeight: number;
-		left: number;
-		top: number;
-		moveX: number;
-		moveY: number;
-	} | null = null;
-	private isDragging = false;
-	private imageElement: HTMLImageElement | null = null;
-	private imageContainer: HTMLElement | null = null;
-	private boundMouseMove: ((e: MouseEvent) => void) | null = null;
-	private boundMouseUp: (() => void) | null = null;
+	private panZoom: ImagePanZoomController | null = null;
+	private loadTimeout: number | null = null;
 
 	constructor(
 		app: App,
 		image: ImageItem,
 		references: ReferenceInfo[],
 		getImagePath: (image: ImageItem) => string,
-		onOpenReference?: (filePath: string, position?: { start: { line: number; col: number } }) => void
+		onOpenReference?: (filePath: string, position?: { start: { line: number; col: number; }; }) => void
 	) {
 		super(app);
 		this.image = image;
@@ -44,51 +31,13 @@ export class ImagePreviewModal extends Modal {
 
 	onOpen(): void {
 		const { contentEl, modalEl } = this;
-		
+
 		modalEl.addClass("image-manager-preview-modal-container");
 		contentEl.addClass("image-manager-preview-modal");
 		contentEl.empty();
+		this.setTitle(this.image.name);
 
-		this.renderToolbar();
 		this.renderContent();
-	}
-
-	/**
-	 * 渲染工具栏
-	 */
-	private renderToolbar(): void {
-		const toolbar = this.contentEl.createDiv({
-			cls: "image-manager-preview-toolbar",
-		});
-
-		const titleEl = toolbar.createDiv({
-			cls: "image-manager-preview-title",
-		});
-
-		titleEl.createSpan({ text: this.image.name });
-
-		// 格式标签
-		const extension = this.image.originalFile.extension.toUpperCase();
-		const formatTag = titleEl.createSpan({
-			cls: "image-manager-format-tag",
-			text: extension,
-		});
-		formatTag.addClass(
-			this.image.isCustomType
-				? "image-manager-agx-format-tag"
-				: "image-manager-other-format-tag"
-		);
-
-		// 引用标签
-		if (
-			this.image.referenceCount !== undefined &&
-			this.image.referenceCount > 0
-		) {
-			titleEl.createSpan({
-				cls: "image-manager-reference-tag",
-				text: `${this.image.referenceCount} 个引用`,
-			});
-		}
 	}
 
 	/**
@@ -99,15 +48,15 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-preview-content",
 		});
 
-		// 左侧：图片预览（无限画布）+ 详细信息
+		// 左侧: 图片预览 (无限画布) + 详细信息
 		this.renderImageSection(content);
 
-		// 右侧：引用列表
+		// 右侧: 引用列表
 		this.renderInfoSection(content);
 	}
 
 	/**
-	 * 渲染图片区域（参照 ImageViewerView 实现）
+	 * 渲染图片区域 (参照 ImageViewerView 实现)
 	 */
 	private renderImageSection(container: HTMLElement): void {
 		const imageSection = container.createDiv({
@@ -118,15 +67,11 @@ export class ImagePreviewModal extends Modal {
 		const imageContainer = imageSection.createDiv({
 			cls: "image-manager-preview-image-container image-manager-canvas",
 		});
-		this.imageContainer = imageContainer;
-
-		const img = document.createElement("img");
+		const img = this.contentEl.ownerDocument.createElement("img");
 		img.addClass("image-manager-preview-image");
 		img.src = this.getImagePath(this.image);
 		img.alt = this.image.name;
 		imageContainer.appendChild(img);
-
-		this.imageElement = img;
 
 		// SVG 特殊处理
 		if (this.image.displayFile.extension.toLowerCase() === "svg") {
@@ -138,6 +83,7 @@ export class ImagePreviewModal extends Modal {
 		img.onerror = () => {
 			if (loadFailed) return;
 			loadFailed = true;
+			this.clearLoadTimeout();
 			img.src = "";
 			img.addClass("image-manager-cover-hidden");
 			const errorDiv = imageContainer.createDiv({
@@ -150,150 +96,33 @@ export class ImagePreviewModal extends Modal {
 				cls: "image-manager-preview-error-text",
 			});
 			errorDiv.createEl("div", {
-				text: "文件可能已损坏、过大或格式不支持",
+				text: "文件可能已损坏, 过大或格式不支持",
 				cls: "image-manager-preview-error-hint",
 			});
 		};
 
-		const loadTimeout = setTimeout(() => {
+		this.loadTimeout = this.contentEl.ownerDocument.defaultView?.setTimeout(() => {
 			if (!img.complete && !loadFailed) {
 				img.onerror?.(new Event("error"));
 			}
-		}, 15000);
+		}, 15000) ?? null;
 
 		img.onload = () => {
-			clearTimeout(loadTimeout);
+			this.clearLoadTimeout();
 			img.addClass("is-loaded");
-			this.initImageStatus(img, imageContainer);
+			this.panZoom?.destroy();
+			this.panZoom = new ImagePanZoomController(img, imageContainer, {
+				draggingClass: "image-manager-canvas-dragging",
+			});
+			this.panZoom.reset();
 		};
-
-		// 滚轮缩放（参照 ImageViewerView —— 绑在 img 元素上）
-		img.addEventListener("wheel", (e: WheelEvent) => {
-			e.stopPropagation();
-			e.preventDefault();
-			if (!this.imgStatus || !this.imageElement) return;
-			const ratio = e.deltaY < 0 ? 0.1 : -0.1;
-			this.zoomImage(ratio, e.offsetX, e.offsetY);
-		}, { passive: false });
-
-		// 鼠标拖拽（参照 ImageViewerView —— 绑在 img 元素上）
-		img.addEventListener("mousedown", (e: MouseEvent) => {
-			if (e.button !== 0 || !this.imgStatus) return;
-			e.stopPropagation();
-			e.preventDefault();
-			this.isDragging = true;
-			this.imgStatus.moveX = this.imgStatus.left - e.clientX;
-			this.imgStatus.moveY = this.imgStatus.top - e.clientY;
-			imageContainer.addClass("image-manager-canvas-dragging");
-		});
-
-		const onMouseMove = (e: MouseEvent) => {
-			if (!this.isDragging || !this.imgStatus) return;
-			this.imgStatus.left = e.clientX + this.imgStatus.moveX;
-			this.imgStatus.top = e.clientY + this.imgStatus.moveY;
-			this.applyTransform();
-		};
-
-		const onMouseUp = () => {
-			if (!this.isDragging) return;
-			this.isDragging = false;
-			imageContainer.removeClass("image-manager-canvas-dragging");
-		};
-
-		this.boundMouseMove = onMouseMove;
-		this.boundMouseUp = onMouseUp;
-		document.addEventListener("mousemove", onMouseMove);
-		document.addEventListener("mouseup", onMouseUp);
-
-		// 双击重置视图
-		imageContainer.addEventListener("dblclick", () => {
-			if (this.imageElement && this.imageContainer) {
-				this.initImageStatus(this.imageElement, this.imageContainer);
-			}
-		});
 
 		// 详细信息
 		this.renderDetails(imageSection);
 	}
 
 	/**
-	 * 初始化图片状态（参照 ImageViewerView.calculateImgSize）
-	 */
-	private initImageStatus(img: HTMLImageElement, container: HTMLElement): void {
-		const ZOOM_FACTOR = 0.9;
-		const containerWidth = container.clientWidth;
-		const containerHeight = container.clientHeight;
-
-		const realWidth = img.naturalWidth;
-		const realHeight = img.naturalHeight;
-
-		let curWidth = realWidth;
-		let curHeight = realHeight;
-
-		const maxWidth = containerWidth * ZOOM_FACTOR;
-		const maxHeight = containerHeight * ZOOM_FACTOR;
-
-		if (curHeight > maxHeight) {
-			curHeight = maxHeight;
-			curWidth = curHeight / realHeight * realWidth;
-			if (curWidth > maxWidth) {
-				curWidth = maxWidth;
-			}
-		} else if (curWidth > maxWidth) {
-			curWidth = maxWidth;
-		}
-		curHeight = curWidth * realHeight / realWidth;
-
-		const left = (containerWidth - curWidth) / 2;
-		const top = (containerHeight - curHeight) / 2;
-
-		this.imgStatus = {
-			realWidth,
-			realHeight,
-			curWidth,
-			curHeight,
-			left,
-			top,
-			moveX: 0,
-			moveY: 0,
-		};
-
-		this.applyTransform();
-	}
-
-	/**
-	 * 缩放图片（参照 ImageViewerView.zoomImage）
-	 */
-	private zoomImage(ratio: number, offsetX: number, offsetY: number): void {
-		if (!this.imgStatus || !this.imageElement) return;
-
-		const zoomRatio = ratio > 0 ? 1 + ratio : 1 / (1 - ratio);
-		const newWidth = this.imgStatus.curWidth * zoomRatio;
-		const newHeight = this.imgStatus.curHeight * zoomRatio;
-
-		if (newWidth < 50 || newHeight < 50) return;
-
-		this.imgStatus.left = this.imgStatus.left + offsetX * (1 - zoomRatio);
-		this.imgStatus.top = this.imgStatus.top + offsetY * (1 - zoomRatio);
-		this.imgStatus.curWidth = newWidth;
-		this.imgStatus.curHeight = newHeight;
-
-		this.applyTransform();
-	}
-
-	/**
-	 * 应用图片变换（参照 ImageViewerView 渲染）
-	 */
-	private applyTransform(): void {
-		if (!this.imgStatus || !this.imageElement) return;
-		this.imageElement.style.setProperty('width', this.imgStatus.curWidth + 'px', 'important');
-		this.imageElement.style.setProperty('height', 'auto', 'important');
-		this.imageElement.style.setProperty('margin-left', this.imgStatus.left + 'px', 'important');
-		this.imageElement.style.setProperty('margin-top', this.imgStatus.top + 'px', 'important');
-	}
-
-	/**
-	 * 渲染信息区域（仅引用列表）
+	 * 渲染信息区域 (仅引用列表)
 	 */
 	private renderInfoSection(container: HTMLElement): void {
 		const infoSection = container.createDiv({
@@ -314,16 +143,16 @@ export class ImagePreviewModal extends Modal {
 		detailSection.createEl("h4", { text: "详细信息" });
 
 		if (this.image.isCustomType) {
-			// 自定义文件类型 — 双栏布局显示源文件和封面信息
+			// 自定义文件类型 - 双栏布局显示源文件和封面信息
 			this.renderDualColumnDetails(detailSection);
 		} else {
-			// 普通图片 — 单栏布局
+			// 普通图片 - 单栏布局
 			this.renderSingleColumnDetails(detailSection);
 		}
 	}
 
 	/**
-	 * 渲染单栏详细信息（普通图片）
+	 * 渲染单栏详细信息 (普通图片)
 	 */
 	private renderSingleColumnDetails(container: HTMLElement): void {
 		const detailList = container.createDiv({
@@ -343,14 +172,14 @@ export class ImagePreviewModal extends Modal {
 	}
 
 	/**
-	 * 渲染双栏详细信息（自定义文件类型）
+	 * 渲染双栏详细信息 (自定义文件类型)
 	 */
 	private renderDualColumnDetails(container: HTMLElement): void {
 		const dualColumns = container.createDiv({
 			cls: "image-manager-detail-dual-columns",
 		});
 
-		// 左列 — 源文件信息
+		// 左列 - 源文件信息
 		const leftColumn = dualColumns.createDiv({
 			cls: "image-manager-detail-column",
 		});
@@ -372,7 +201,7 @@ export class ImagePreviewModal extends Modal {
 			this.createDetailItem(leftList, "类型", this.image.customTypeConfig.fileExtension.toUpperCase());
 		}
 
-		// 右列 — 封面/显示文件信息
+		// 右列 - 封面/显示文件信息
 		const rightColumn = dualColumns.createDiv({
 			cls: "image-manager-detail-column",
 		});
@@ -487,22 +316,17 @@ export class ImagePreviewModal extends Modal {
 	}
 
 	onClose(): void {
-		// 清理全局事件监听器
-		if (this.boundMouseMove) {
-			document.removeEventListener("mousemove", this.boundMouseMove);
-			this.boundMouseMove = null;
-		}
-		if (this.boundMouseUp) {
-			document.removeEventListener("mouseup", this.boundMouseUp);
-			this.boundMouseUp = null;
-		}
-
-		this.imageElement = null;
-		this.imageContainer = null;
-		this.imgStatus = null;
-		this.isDragging = false;
+		this.clearLoadTimeout();
+		this.panZoom?.destroy();
+		this.panZoom = null;
 
 		const { contentEl } = this;
 		contentEl.empty();
+	}
+
+	private clearLoadTimeout(): void {
+		if (this.loadTimeout === null) return;
+		this.contentEl.ownerDocument.defaultView?.clearTimeout(this.loadTimeout);
+		this.loadTimeout = null;
 	}
 }

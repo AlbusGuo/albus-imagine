@@ -9,25 +9,37 @@ import {
 	ImageItem,
 	SUPPORTED_IMAGE_EXTENSIONS,
 } from "../types/image-manager.types";
+import { getCoverPath, normalizeExtension, normalizeVaultFolder } from "../utils/vaultPaths";
+import { ImageCatalogService } from "./ImageCatalogService";
 
 export class ImageLoaderService {
 	private customFileTypes: CustomFileTypeConfig[] = [];
 	private excludedFolders: string[] = [];
 
-	constructor(private app: App) {}
+	constructor(
+		private app: App,
+		private readonly catalog = new ImageCatalogService(app),
+	) { }
 
 	/**
 	 * 设置自定义文件类型配置
 	 */
 	setCustomFileTypes(types: CustomFileTypeConfig[]): void {
-		this.customFileTypes = types.filter(t => t.fileExtension && t.coverExtension);
+		const seenExtensions = new Set<string>();
+		this.customFileTypes = types.flatMap((type) => {
+			const fileExtension = normalizeExtension(type.fileExtension);
+			const coverExtension = normalizeExtension(type.coverExtension);
+			if (!fileExtension || !coverExtension || seenExtensions.has(fileExtension)) return [];
+			seenExtensions.add(fileExtension);
+			return [{ ...type, fileExtension, coverExtension }];
+		});
 	}
 
 	/**
 	 * 设置排除的文件夹列表
 	 */
 	setExcludedFolders(folders: string[]): void {
-		this.excludedFolders = folders.map(f => f.trim()).filter(f => f.length > 0);
+		this.excludedFolders = Array.from(new Set(folders.map(normalizeVaultFolder).filter(Boolean)));
 	}
 
 	/**
@@ -36,19 +48,21 @@ export class ImageLoaderService {
 	loadImages(
 		folderPath: string
 	): ImageItem[] {
-		const allFiles = this.app.vault.getFiles();
+		const normalizedFolderPath = normalizeVaultFolder(folderPath);
+		const customTypeByExtension = new Map(this.customFileTypes.map((config) => [config.fileExtension, config]));
+		const candidateExtensions = new Set<string>(SUPPORTED_IMAGE_EXTENSIONS);
+		for (const config of this.customFileTypes) {
+			candidateExtensions.add(config.fileExtension);
+			candidateExtensions.add(config.coverExtension);
+		}
+		const allFiles = this.catalog.getFilesByExtensions(candidateExtensions);
 
 		// 找出所有自定义文件类型及其对应的封面文件
 		const usedCoverPaths = new Set<string>();
-		this.customFileTypes.forEach((config) => {
-			const customFiles = allFiles.filter(
-				(file) => file.extension.toLowerCase() === config.fileExtension.toLowerCase()
-			);
-			customFiles.forEach((customFile) => {
-				const coverPath = this.getCoverPath(customFile.path, config);
-				usedCoverPaths.add(coverPath);
-			});
-		});
+		for (const file of allFiles) {
+			const config = customTypeByExtension.get(file.extension.toLowerCase());
+			if (config) usedCoverPaths.add(getCoverPath(file.path, config));
+		}
 
 		// 筛选图片文件
 		const imageFiles = allFiles.filter((file) => {
@@ -61,10 +75,10 @@ export class ImageLoaderService {
 
 			// 文件夹筛选逻辑
 			let inFolder = true;
-			if (folderPath && folderPath.trim() !== "") {
+			if (normalizedFolderPath) {
 				inFolder =
-					file.path.startsWith(folderPath + "/") ||
-					file.path === folderPath;
+					file.path.startsWith(normalizedFolderPath + "/") ||
+					file.path === normalizedFolderPath;
 			}
 
 			// 文件类型筛选
@@ -74,11 +88,9 @@ export class ImageLoaderService {
 			);
 
 			// 检查是否为自定义文件类型
-			const isCustomType = this.customFileTypes.some(
-				(config) => config.fileExtension.toLowerCase() === extension
-			);
+			const isCustomType = customTypeByExtension.has(extension);
 
-			// 如果是封面文件且已被自定义类型使用，则跳过
+			// 如果是封面文件且已被自定义类型使用, 则跳过
 			if (usedCoverPaths.has(file.path)) {
 				return false;
 			}
@@ -86,10 +98,10 @@ export class ImageLoaderService {
 			return inFolder && (isImage || isCustomType);
 		});
 
-		// 处理AGX文件和自定义文件类型的封面
-		const processedImages = imageFiles.map((file) => this.processImageFile(file));
-
-		return processedImages;
+		// 处理 AGX 文件和自定义文件类型的封面
+		return Array.from(
+			new Map(imageFiles.map((file) => [file.path, this.processImageFile(file)])).values()
+		);
 	}
 
 	/**
@@ -109,7 +121,7 @@ export class ImageLoaderService {
 		if (matchedConfig) {
 			isCustomType = true;
 			customTypeConfig = matchedConfig;
-			const coverPath = this.getCoverPath(file.path, matchedConfig);
+			const coverPath = getCoverPath(file.path, matchedConfig);
 			const coverFile = this.app.vault.getAbstractFileByPath(coverPath);
 			if (coverFile instanceof TFile) {
 				displayFile = coverFile;
@@ -134,29 +146,4 @@ export class ImageLoaderService {
 		};
 	}
 
-	/**
-	 * 获取封面文件路径
-	 */
-	private getCoverPath(filePath: string, config: CustomFileTypeConfig): string {
-		const directory = filePath.substring(0, filePath.lastIndexOf("/"));
-		const fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-		const baseName = fileName.substring(0, fileName.lastIndexOf("."));
-		
-		let coverDir = directory;
-		if (config.coverFolder && config.coverFolder.trim() !== "") {
-			// 如果指定了封面文件夹，则使用该文件夹
-			coverDir = config.coverFolder.startsWith("/")
-				? config.coverFolder.substring(1)
-				: directory + "/" + config.coverFolder;
-		}
-		
-		return `${coverDir}/${baseName}.${config.coverExtension}`;
-	}
-
-	/**
-	 * 获取图片的资源URL
-	 */
-	getImageResourcePath(file: TFile): string {
-		return this.app.vault.getResourcePath(file);
-	}
 }

@@ -9,47 +9,12 @@
 	height: 100%;
 }
 
-/* 头部 */
-.image-picker-header {
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	flex-shrink: 0;
-}
-
-.image-picker-header-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-/* 文件夹选择器 */
-.image-picker-folder-container {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex: 1;
-	min-width: 0;
-}
-
-.image-picker-folder-label {
-	font-size: 13px;
-	color: var(--text-muted);
-	white-space: nowrap;
-}
-
-/* 统计信息 */
-.image-picker-stats {
-	font-size: 13px;
-	color: var(--text-muted);
-	white-space: nowrap;
-}
-
-/* 模态框尺寸 - 直接控制 .modal 元素 */
+/* 与 Obsidian 设置窗口及 Export PDF 的导出窗口使用同一组原生尺寸变量. */
 .modal.mod-image-picker {
-	width: 85vw;
-	height: 80vh;
+	width: var(--modal-width);
+	height: var(--modal-height);
+	max-width: var(--modal-max-width);
+	max-height: var(--modal-max-height);
 }
 
 /* 防止模态框本身出现滚动条 */
@@ -58,9 +23,9 @@
 	overflow: hidden;
 }
 
-/* 图片网格 - 响应式布局，最小宽度150px，自动调节每行数量 */
+/* 图片网格 - 响应式布局, 最小宽度 150px, 自动调节每行数量 */
 .image-picker-container .image-manager-grid {
-	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	grid-template-columns: repeat(var(--afm-viewport-columns, 1), minmax(0, 1fr));
 }
 
 /* 插图选项面板 */
@@ -86,33 +51,6 @@
 	color: var(--text-normal);
 	font-weight: 500;
 	white-space: nowrap;
-}
-
-.option-buttons {
-	display: flex;
-	gap: 4px;
-}
-
-.option-button.is-active {
-	background-color: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
-}
-
-.option-input {
-	padding: 4px 8px;
-	font-size: 13px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	border-radius: var(--button-radius);
-	min-width: 200px;
-	box-shadow: none !important;
-}
-
-.option-input:focus {
-	outline: none;
-	border-color: var(--interactive-accent);
 }
 
 .image-picker-options.is-hidden {

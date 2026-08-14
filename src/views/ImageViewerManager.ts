@@ -1,4 +1,3 @@
-import { App } from 'obsidian';
 import { ImageViewerView } from './ImageViewerView';
 import { ImageViewerSettings } from '../types/types';
 
@@ -6,14 +5,11 @@ import { ImageViewerSettings } from '../types/types';
  * 图片查看器管理器
  */
 export class ImageViewerManager {
-	private app: App;
 	private settings: ImageViewerSettings;
 	private viewer: ImageViewerView | null = null;
-	private imgSelector: string = '';
 	private registeredDocs: Set<Document> = new Set();
 
-	constructor(app: App, settings: ImageViewerSettings) {
-		this.app = app;
+	constructor(settings: ImageViewerSettings) {
 		this.settings = settings;
 	}
 
@@ -22,13 +18,8 @@ export class ImageViewerManager {
 	 */
 	updateSettings(settings: ImageViewerSettings): void {
 		this.settings = settings;
-		if (this.viewer) {
-			this.viewer.updateSettings(settings);
-		}
-		// 重新应用所有窗口的事件监听
-		this.registeredDocs.forEach(doc => {
-			this.refreshViewTrigger(doc);
-		});
+		this.viewer?.updateSettings(settings);
+		this.registeredDocs.forEach((doc) => this.refreshViewTrigger(doc));
 	}
 
 	/**
@@ -36,30 +27,40 @@ export class ImageViewerManager {
 	 */
 	initialize(): void {
 		if (!this.viewer) {
-			this.viewer = new ImageViewerView(this.app, this.settings);
+			this.viewer = new ImageViewerView(this.settings);
 		}
 		this.refreshViewTrigger();
 	}
 
 	/**
-	 * 检查是否可点击（必须按住 Ctrl 键且查看器已启用）
+	 * 检查是否可点击 (必须按住 Ctrl 键且查看器已启用)
 	 */
 	private isClickable(targetEl: HTMLImageElement, event: MouseEvent): boolean {
 		if (!targetEl || targetEl.tagName !== 'IMG') {
 			return false;
 		}
-		
+
 		// 必须按住 Ctrl 键
 		if (!event.ctrlKey || event.altKey || event.shiftKey) {
 			return false;
 		}
-		
+
 		// 检查查看器是否启用
 		return this.settings.enabled;
 	}
 
+	private isMarkdownImage(target: EventTarget | null, doc: Document): target is HTMLImageElement {
+		const ownerWindow = doc.defaultView;
+		return Boolean(
+			ownerWindow &&
+			target instanceof ownerWindow.HTMLImageElement &&
+			target.closest(".image-embed, .internal-embed") &&
+			target.closest(".markdown-source-view, .markdown-preview-view, .markdown-rendered"),
+		);
+	}
+
 	/**
-	 * 刷新视图触发器（设置事件监听）
+	 * 刷新视图触发器 (设置事件监听)
 	 */
 	refreshViewTrigger(doc?: Document): void {
 		if (!doc) {
@@ -69,37 +70,24 @@ export class ImageViewerManager {
 		// 记录此文档
 		this.registeredDocs.add(doc);
 
-		// 移除旧的事件监听
-		if (this.imgSelector) {
-			doc.off('click', this.imgSelector, this.clickImage);
-			doc.off('mouseover', this.imgSelector, this.mouseoverImg);
-			doc.off('mouseout', this.imgSelector, this.mouseoutImg);
-		}
-		// 移除捕获阶段的监听
 		doc.removeEventListener('click', this.clickImageCapture, true);
+		doc.removeEventListener('click', this.disableNativeViewerCapture, true);
+		doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 
-		// 如果禁用，不添加监听
-		if (!this.settings.enabled) {
-			this.imgSelector = '';
-			return;
+		if (this.settings.enabled) doc.addEventListener('click', this.clickImageCapture, true);
+		if (this.settings.disableNativeImageViewer) {
+			doc.addEventListener('mousedown', this.preserveSelectedImageFocus, true);
+			doc.addEventListener('click', this.disableNativeViewerCapture, true);
 		}
-
-		// 监听所有img元素
-		this.imgSelector = 'img';
-		// 在捕获阶段监听点击事件，优先阻止默认行为
-		doc.addEventListener('click', this.clickImageCapture, true);
-		doc.on('click', this.imgSelector, this.clickImage);
-		doc.on('mouseover', this.imgSelector, this.mouseoverImg);
-		doc.on('mouseout', this.imgSelector, this.mouseoutImg);
 	}
 
 	/**
-	 * 捕获阶段的点击事件处理（在事件传播早期阻止）
+	 * 捕获阶段的点击事件处理 (在事件传播早期阻止)
 	 */
 	private clickImageCapture = (event: MouseEvent): void => {
 		const targetEl = event.target as HTMLElement;
 		if (targetEl && targetEl.tagName === 'IMG' && this.isClickable(targetEl as HTMLImageElement, event)) {
-			// 在捕获阶段就阻止事件，防止 Obsidian 的默认图片查看器
+			// 在捕获阶段就阻止事件, 防止 Obsidian 的默认图片查看器
 			event.stopPropagation();
 			event.stopImmediatePropagation();
 			event.preventDefault();
@@ -110,53 +98,58 @@ export class ImageViewerManager {
 		}
 	};
 
-	/**
-	 * 点击图片事件（冒泡阶段的备用处理器）
-	 */
-	private clickImage = (event: MouseEvent): void => {
-		const targetEl = event.target as HTMLImageElement;
-		if (this.isClickable(targetEl, event) && this.viewer) {
-			this.viewer.open(targetEl);
-		}
-	};
+	/** Obsidian's image click handler explicitly skips default-prevented clicks. */
+	private disableNativeViewerCapture = (event: MouseEvent): void => {
+		const document = event.currentTarget as Document;
+		const image = this.isMarkdownImage(event.target, document) ? event.target : null;
+		if (
+			!image ||
+			event.button !== 0 ||
+			event.ctrlKey ||
+			event.metaKey ||
+			event.altKey ||
+			event.shiftKey
+		) return;
 
-	/**
-	 * 鼠标悬停图片事件
-	 */
-	private mouseoverImg = (event: MouseEvent): void => {
-		const targetEl = event.target as HTMLImageElement;
-		if (!this.isClickable(targetEl, event)) {
+		if (image.closest(".markdown-source-view")) {
+			// 实时预览首次点击仍可选择图片; 仅阻止选中后的再次点击打开灯箱.
+			if (!image.closest(".image-embed")?.hasClass("is-selected")) return;
+			event.preventDefault();
 			return;
 		}
 
-		targetEl.addClass('afm-cursor-zoom-in');
+		// 阅读模式的媒体委托不检查 defaultPrevented, 必须阻断事件传播.
+		event.preventDefault();
+		event.stopPropagation();
+		event.stopImmediatePropagation();
 	};
 
-	/**
-	 * 鼠标离开图片事件
-	 */
-	private mouseoutImg = (event: MouseEvent): void => {
-		const targetEl = event.target as HTMLImageElement;
-		if (!this.isClickable(targetEl, event)) {
-			return;
+	/** Prevent the browser's mousedown focus transfer before the blocked click. */
+	private preserveSelectedImageFocus = (event: MouseEvent): void => {
+		const document = event.currentTarget as Document;
+		const image = this.isMarkdownImage(event.target, document) ? event.target : null;
+		if (
+			image &&
+			event.button === 0 &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey &&
+			image.closest(".markdown-source-view") &&
+			image.closest(".image-embed")?.hasClass("is-selected")
+		) {
+			event.preventDefault();
 		}
-
-		// 恢复原始光标样式
-		targetEl.removeClass('afm-cursor-zoom-in');
 	};
 
 	/**
 	 * 卸载
 	 */
 	cleanup(): void {
-		// 移除所有文档的事件监听
 		this.registeredDocs.forEach(doc => {
-			if (this.imgSelector) {
-				doc.removeEventListener('click', this.clickImageCapture, true);
-				doc.off('click', this.imgSelector, this.clickImage);
-				doc.off('mouseover', this.imgSelector, this.mouseoverImg);
-				doc.off('mouseout', this.imgSelector, this.mouseoutImg);
-			}
+			doc.removeEventListener('click', this.clickImageCapture, true);
+			doc.removeEventListener('click', this.disableNativeViewerCapture, true);
+			doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 		});
 		this.registeredDocs.clear();
 

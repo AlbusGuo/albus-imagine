@@ -2,7 +2,7 @@
  * 引用检查服务
  */
 
-import { App, TFile } from "obsidian";
+import { App } from "obsidian";
 import { ImageItem, ReferenceInfo } from "../types/image-manager.types";
 import { ReferenceCache } from "../models/ReferenceCache";
 
@@ -20,21 +20,26 @@ export class ReferenceCheckService {
 	 */
 	async checkReferences(
 		images: ImageItem[],
-		onProgress?: (current: number, total: number) => void
+		onProgress?: (current: number, total: number) => void,
+		force = false
 	): Promise<ImageItem[]> {
 		if (images.length === 0) return images;
 
 		try {
 			const updatedImages = [...images];
+			const uncachedImages = images.filter(
+				(image) => force || !this.referenceCache.has(image.path),
+			);
+			const scannedReferences = this.findReferences(uncachedImages);
 			let processedCount = 0;
 
-			// 同步处理所有图片（引用检查本身很快，不需要分批）
+			// 同步处理所有图片 (引用检查本身很快, 不需要分批)
 			for (let i = 0; i < updatedImages.length; i++) {
 				const imageItem = updatedImages[i];
 				const cacheKey = imageItem.path;
 
 				// 检查缓存
-				if (this.referenceCache.has(cacheKey)) {
+				if (!force && this.referenceCache.has(cacheKey)) {
 					const cachedResult = this.referenceCache.get(cacheKey)!;
 					updatedImages[i] = {
 						...imageItem,
@@ -42,8 +47,7 @@ export class ReferenceCheckService {
 						referenceCount: cachedResult.referenceCount,
 					};
 				} else {
-					// 使用新的反向链接API查找引用
-					const references = this.findReferencesUsingBacklinks(imageItem);
+					const references = scannedReferences.get(cacheKey) ?? [];
 
 					const result = {
 						references: references,
@@ -58,17 +62,17 @@ export class ReferenceCheckService {
 						...result,
 					};
 				}
-				
+
 				processedCount++;
-				
-				// 调用进度回调（每10张更新一次）
+
+				// 调用进度回调 (每 10 张更新一次)
 				if (onProgress && processedCount % 10 === 0) {
 					onProgress(processedCount, updatedImages.length);
-					// 每处理10张图片，给UI线程一些时间
+					// 每处理 10 张图片, 给 UI 线程一些时间
 					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 			}
-			
+
 			// 最后更新一次进度
 			if (onProgress && processedCount > 0) {
 				onProgress(processedCount, updatedImages.length);
@@ -82,54 +86,102 @@ export class ReferenceCheckService {
 	}
 
 	/**
-	 * 使用 Obsidian 反向链接 API 查找引用
+	 * 使用公开 MetadataCache API 查找引用及其精确位置
 	 */
-	private findReferencesUsingBacklinks(
-		imageItem: ImageItem
-	): ReferenceInfo[] {
-		const references: ReferenceInfo[] = [];
-
-		// 对于自定义文件类型，使用对应的封面文件来检查引用
-		let targetFile = imageItem.originalFile;
-		if (imageItem.isCustomType && imageItem.displayFile !== imageItem.originalFile) {
-			// 对于自定义文件类型，使用displayFile（封面文件）来检查引用
-			targetFile = imageItem.displayFile;
+	private findReferences(images: ImageItem[]): Map<string, ReferenceInfo[]> {
+		const referencesByCacheKey = new Map<string, ReferenceInfo[]>();
+		const cacheKeysByTargetPath = new Map<string, string[]>();
+		for (const image of images) {
+			referencesByCacheKey.set(image.path, []);
+			const targetPaths = new Set([image.originalFile.path, image.displayFile.path]);
+			for (const targetPath of targetPaths) {
+				const cacheKeys = cacheKeysByTargetPath.get(targetPath);
+				if (cacheKeys) cacheKeys.push(image.path);
+				else cacheKeysByTargetPath.set(targetPath, [image.path]);
+			}
 		}
+		if (cacheKeysByTargetPath.size === 0) return referencesByCacheKey;
 
-		// 使用 Obsidian 的反向链接 API
-		const metadataCache = this.app.metadataCache as {
-			getBacklinksForFile?: (file: TFile) => { data?: Map<string, unknown> } | undefined;
-		};
-		const backlinks = metadataCache.getBacklinksForFile?.(targetFile);
-		
-		if (!backlinks || !backlinks.data) {
-			return references;
-		}
-
-		// 遍历所有反向链接
-		for (const [sourcePath, linkOccurrences] of backlinks.data) {
-			const sourceFile = this.app.vault.getAbstractFileByPath(sourcePath);
-			
-			if (!(sourceFile instanceof TFile)) {
-				continue;
+		for (const [sourcePath, destinations] of Object.entries(this.app.metadataCache.resolvedLinks)) {
+			const requestedTargets = Object.entries(destinations).filter(
+				([targetPath, count]) => count > 0 && cacheKeysByTargetPath.has(targetPath),
+			);
+			if (requestedTargets.length === 0) continue;
+			const sourceFile = this.app.vault.getFileByPath(sourcePath);
+			if (!sourceFile) continue;
+			const cache = this.app.metadataCache.getFileCache(sourceFile);
+			const sourceReferencesByTarget = new Map<string, ReferenceInfo[]>();
+			const occurrenceKeysByTarget = new Map<string, Set<string>>();
+			const addReference = (targetPath: string, reference: ReferenceInfo, key: string): void => {
+				if (!cacheKeysByTargetPath.has(targetPath)) return;
+				let occurrenceKeys = occurrenceKeysByTarget.get(targetPath);
+				if (!occurrenceKeys) {
+					occurrenceKeys = new Set<string>();
+					occurrenceKeysByTarget.set(targetPath, occurrenceKeys);
+				}
+				if (occurrenceKeys.has(key)) return;
+				occurrenceKeys.add(key);
+				const sourceReferences = sourceReferencesByTarget.get(targetPath);
+				if (sourceReferences) sourceReferences.push(reference);
+				else sourceReferencesByTarget.set(targetPath, [reference]);
+			};
+			for (const embed of cache?.embeds ?? []) {
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(embed.link, sourcePath)?.path;
+				if (targetPath) {
+					addReference(
+						targetPath,
+						{ file: sourceFile, type: "embed", position: embed.position },
+						`embed:${embed.position.start.line}:${embed.position.start.col}`,
+					);
+				}
+			}
+			for (const link of cache?.links ?? []) {
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(link.link, sourcePath)?.path;
+				if (targetPath) {
+					addReference(
+						targetPath,
+						{ file: sourceFile, type: "link", position: link.position },
+						`link:${link.position.start.line}:${link.position.start.col}`,
+					);
+				}
+			}
+			for (const referenceLink of cache?.referenceLinks ?? []) {
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(referenceLink.link, sourcePath)?.path;
+				if (targetPath) {
+					addReference(
+						targetPath,
+						{ file: sourceFile, type: "link", position: referenceLink.position },
+						`link:${referenceLink.position.start.line}:${referenceLink.position.start.col}`,
+					);
+				}
+			}
+			for (const frontmatterLink of cache?.frontmatterLinks ?? []) {
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(frontmatterLink.link, sourcePath)?.path;
+				if (targetPath) {
+					addReference(
+						targetPath,
+						{ file: sourceFile, type: "link" },
+						`frontmatter:${frontmatterLink.key}:${frontmatterLink.link}`,
+					);
+				}
 			}
 
-			// 检查每个引用位置
-			if (Array.isArray(linkOccurrences)) {
-				for (const occurrence of linkOccurrences) {
-					// 判断是嵌入还是链接
-					const isEmbed = occurrence.link?.startsWith("!");
-					
-					references.push({
-						file: sourceFile,
-						type: isEmbed ? "embed" : "link",
-						position: occurrence.position,
-					});
+			for (const [targetPath] of requestedTargets) {
+				const resolvedCount = destinations[targetPath] ?? 0;
+				// resolvedLinks 是 Obsidian 对所有已解析链接的官方计数. Canvas 或未来新增的
+				// 缓存形态可能没有可用位置, 此时仍按官方计数补齐, 避免把已引用图片误判为未引用.
+				const detailed = sourceReferencesByTarget.get(targetPath) ?? [];
+				const exactReferences = detailed.slice(0, resolvedCount);
+				while (exactReferences.length < resolvedCount) {
+					exactReferences.push({ file: sourceFile, type: "link" });
+				}
+				for (const cacheKey of cacheKeysByTargetPath.get(targetPath) ?? []) {
+					referencesByCacheKey.get(cacheKey)?.push(...exactReferences);
 				}
 			}
 		}
 
-		return references;
+		return referencesByCacheKey;
 	}
 
 	/**
@@ -139,10 +191,12 @@ export class ReferenceCheckService {
 		this.referenceCache.clear();
 	}
 
-	/**
-	 * 获取缓存
-	 */
-	getCache(): ReferenceCache {
-		return this.referenceCache;
+	updateCacheKey(oldKey: string, newKey: string): void {
+		this.referenceCache.updateKey(oldKey, newKey);
 	}
+
+	removeCacheKey(key: string): void {
+		this.referenceCache.delete(key);
+	}
+
 }

@@ -1,4 +1,4 @@
-import { SettingGroup, debounce } from 'obsidian';
+import { debounce, SettingGroup } from 'obsidian';
 import { NativePluginSettingTab } from './NativePluginSettingTab';
 import { SortField, SortOrder } from '../types/image-manager.types';
 
@@ -128,11 +128,11 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 			});
 	});
 
-	// SVG图片反色处理
+	// SVG 图片反色处理
 	group.addSetting((setting) => {
 		setting
 			.setName('深色模式下 SVG 图片反色')
-			.setDesc('在深色主题下对 SVG 图片进行反色处理，使其更适配深色背景')
+			.setDesc('在深色主题下对 SVG 图片进行反色处理, 使其更适配深色背景')
 			.addToggle((toggle) => {
 				toggle
 					.setValue(plugin.settings.imageManager?.invertSvgInDarkMode !== false)
@@ -142,7 +142,6 @@ export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 						}
 						plugin.settings.imageManager.invertSvgInDarkMode = value;
 						await plugin.saveSettings();
-						tab.updateSvgInvertClass();
 					});
 			});
 	});

@@ -1,26 +1,35 @@
-import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
 import { IMAGE_MANAGER_VIEW_TYPE, ImageManagerView } from "./views/ImageManagerView";
 import { ImagePickerModal } from "./views/ImagePickerModal";
-import { ResizeHandler } from "./handlers";
+import { ResizeHandler } from "./handlers/ResizeHandler";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
 import { SUPPORTED_IMAGE_EXTENSIONS } from "./types/image-manager.types";
+import { ImageCatalogService } from "./services/ImageCatalogService";
+import { ReferenceCheckService } from "./services/ReferenceCheckService";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
 	settings: IPluginSettings;
 	readonly settingsStore = new SettingsStore(this);
+	private readonly imageCatalog = new ImageCatalogService(this.app);
+	private readonly referenceIndex = new ReferenceCheckService(this.app);
 	private resizeHandler: ResizeHandler | null = null;
 	private imageViewerManager: ImageViewerManager | null = null;
-	private imageContextMenu: ImageContextMenu | null = null;
+	private workspaceDocuments = new Set<Document>();
+	private referenceInvalidationTimer: number | null = null;
 
 	async onload() {
 		await this.settingsStore.loadSettings();
+		this.workspaceDocuments.add(document);
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			this.workspaceDocuments.add(leaf.view.containerEl.ownerDocument);
+		});
 
-		// 初始化SVG反色CSS类
+		// 初始化 SVG 反色 CSS 类
 		this.updateSvgInvertClass();
 
 		// 初始化图片调整大小处理器
@@ -29,7 +38,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		}
 
 		// 初始化图片查看器
-		if (this.settings.imageViewer?.enabled) {
+		if (
+			this.settings.imageViewer?.enabled ||
+			this.settings.imageViewer?.disableNativeImageViewer
+		) {
 			this.initializeImageViewer();
 		}
 
@@ -39,14 +51,20 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 注册视图
 		this.registerView(
 			IMAGE_MANAGER_VIEW_TYPE,
-			(leaf) => new ImageManagerView(leaf, this.settings.imageManager || {})
+			(leaf) => new ImageManagerView(
+				leaf,
+				this.settings.imageManager || {},
+				(folder) => this.saveLastSelectedFolder(folder),
+				this.imageCatalog,
+				this.referenceIndex,
+			)
 		);
 
 		// 添加功能区图标 - 打开图片管理器
 		const ribbonIconEl = this.addRibbonIcon(
 			"images",
 			"图片管理器",
-			(evt: MouseEvent) => {
+			() => {
 				void this.openImageManager();
 			}
 		);
@@ -73,16 +91,17 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 添加设置选项卡
 		this.addSettingTab(new NativePluginSettingTab(this));
 
-		// 监听新窗口打开事件（用于图片查看器）
-		this.registerEvent(
-			this.app.workspace.on('window-open', (workspaceWindow, window) => {
-				if (this.imageViewerManager) {
-					this.imageViewerManager.refreshViewTrigger(window.document);
-				}
-			})
-		);
+		this.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, win) => {
+			this.workspaceDocuments.add(win.document);
+			this.resizeHandler?.registerDocument(win.document);
+			this.imageViewerManager?.refreshViewTrigger(win.document);
+			this.updateSvgInvertClass(win.document);
+		}));
+		this.registerEvent(this.app.workspace.on("window-close", (_workspaceWindow, win) => {
+			this.workspaceDocuments.delete(win.document);
+		}));
 
-		// 监听 Vault 文件变更事件，实时更新图片管理器视图
+		// 监听 Vault 文件变更事件, 实时更新图片管理器视图
 		this.registerVaultChangeListeners();
 	}
 
@@ -90,21 +109,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 * 初始化图片调整大小处理器
 	 */
 	private initializeResizeHandler(): void {
-		if (!this.settings.imageResize) return;
+		if (!this.settings.imageResize || this.resizeHandler) return;
 
 		this.resizeHandler = new ResizeHandler(this, this.settings.imageResize);
-		
-		// 注册主文档事件
-		this.resizeHandler.registerDocument(document);
-
-		// 监听新窗口打开事件
-		this.registerEvent(
-			this.app.workspace.on('window-open', (workspaceWindow, window) => {
-				if (this.resizeHandler) {
-					this.resizeHandler.registerDocument(window.document);
-				}
-			})
-		);
+		this.addChild(this.resizeHandler);
+		this.workspaceDocuments.forEach((doc) => this.resizeHandler?.registerDocument(doc));
 	}
 
 	/**
@@ -113,8 +122,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private initializeImageViewer(): void {
 		if (!this.settings.imageViewer) return;
 
-		this.imageViewerManager = new ImageViewerManager(this.app, this.settings.imageViewer);
+		this.imageViewerManager = new ImageViewerManager(this.settings.imageViewer);
 		this.imageViewerManager.initialize();
+		this.workspaceDocuments.forEach((doc) => this.imageViewerManager?.refreshViewTrigger(doc));
 	}
 
 	/**
@@ -123,13 +133,12 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private initializeContextMenu(): void {
 		if (!this.settings.imageManager) return;
 
-		this.imageContextMenu = new ImageContextMenu(
+		const imageContextMenu = new ImageContextMenu(
 			this.app,
-			this,
 			this.settings.imageManager
 		);
-		this.addChild(this.imageContextMenu);
-		this.imageContextMenu.registerContextMenuListener();
+		this.addChild(imageContextMenu);
+		imageContextMenu.registerContextMenuListener();
 	}
 
 	/**
@@ -143,11 +152,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			// 如果已存在，激活它
+			// 如果已存在, 激活它
 			leaf = leaves[0];
 			await workspace.revealLeaf(leaf);
 		} else {
-			// 在中间窗口创建新的视图（而非侧边栏）
+			// 在中间窗口创建新的视图 (而非侧边栏)
 			leaf = workspace.getLeaf('tab');
 			if (leaf) {
 				await leaf.setViewState({
@@ -163,48 +172,54 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 * 打开图片选择器
 	 */
 	openImagePicker(): void {
-		const modal = new ImagePickerModal(this.app, this.settings.imageManager || {});
+		const modal = new ImagePickerModal(this.app, this.settings.imageManager || {}, this.imageCatalog);
 		modal.open();
 	}
 
 	onunload() {
-		// 清理工作
-		this.resizeHandler = null;
-		
+		this.disposeResizeHandler();
+
 		if (this.imageViewerManager) {
 			this.imageViewerManager.cleanup();
 			this.imageViewerManager = null;
 		}
 
-		if (this.imageContextMenu) {
-			this.imageContextMenu = null;
+		if (this.vaultChangeTimer !== null) {
+			window.clearTimeout(this.vaultChangeTimer);
+			this.vaultChangeTimer = null;
 		}
+		if (this.referenceInvalidationTimer !== null) {
+			window.clearTimeout(this.referenceInvalidationTimer);
+			this.referenceInvalidationTimer = null;
+		}
+		this.workspaceDocuments.forEach((doc) => doc.body.removeClass("afm-no-svg-invert"));
+		this.workspaceDocuments.clear();
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		
-		// 更新SVG反色CSS类
+
+		// 更新 SVG 反色 CSS 类
 		this.updateSvgInvertClass();
-		
+
 		// 更新调整大小处理器设置
 		if (this.settings.imageResize?.dragResizeGeneral || this.settings.imageResize?.dragResizeCallout) {
 			if (!this.resizeHandler) {
-				// 如果启用了拖拽调整但处理器未初始化，则初始化
+				// 如果启用了拖拽调整但处理器未初始化, 则初始化
 				this.initializeResizeHandler();
 			} else {
 				// 更新现有处理器的设置
 				this.resizeHandler.updateSettings(this.settings.imageResize);
 			}
 		} else {
-			// 禁用时清除处理器
-			if (this.resizeHandler) {
-				this.resizeHandler = null;
-			}
+			this.disposeResizeHandler();
 		}
 
 		// 更新图片查看器设置
-		if (this.settings.imageViewer?.enabled) {
+		if (
+			this.settings.imageViewer?.enabled ||
+			this.settings.imageViewer?.disableNativeImageViewer
+		) {
 			if (!this.imageViewerManager) {
 				this.initializeImageViewer();
 			} else {
@@ -218,7 +233,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				this.imageViewerManager = null;
 			}
 		}
-		
+
 		// 通知所有打开的图片管理器视图更新设置
 		const leaves = this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
 		leaves.forEach(leaf => {
@@ -230,20 +245,29 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	}
 
 	/**
-	 * 更新SVG反色CSS类
+	 * 更新 SVG 反色 CSS 类
 	 */
-	private updateSvgInvertClass(): void {
+	private updateSvgInvertClass(targetDocument?: Document): void {
 		const shouldInvert = this.settings.imageManager?.invertSvgInDarkMode !== false;
-		if (shouldInvert) {
-			document.body.removeClass('afm-no-svg-invert');
-		} else {
-			document.body.addClass('afm-no-svg-invert');
-		}
+		const documents = targetDocument ? [targetDocument] : this.workspaceDocuments;
+		documents.forEach((doc) => doc.body.toggleClass("afm-no-svg-invert", !shouldInvert));
+	}
+
+	private disposeResizeHandler(): void {
+		if (!this.resizeHandler) return;
+		this.removeChild(this.resizeHandler);
+		this.resizeHandler = null;
+	}
+
+	private async saveLastSelectedFolder(folder: string): Promise<void> {
+		if (!this.settings.imageManager) return;
+		this.settings.imageManager.lastSelectedFolder = folder ? normalizePath(folder) : "";
+		await this.saveData(this.settings);
 	}
 
 	/**
 	 * 注册 Vault 文件变更事件监听
-	 * 当图片或自定义文件类型发生创建、删除、重命名时，实时更新所有已打开的图片管理器视图
+	 * 当图片或自定义文件类型发生创建, 删除, 重命名时, 实时更新所有已打开的图片管理器视图
 	 */
 	private registerVaultChangeListeners(): void {
 		const handleVaultChange = (file: TFile) => {
@@ -255,6 +279,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on('create', (file) => {
 				if (file instanceof TFile) {
+					this.imageCatalog.upsert(file);
 					handleVaultChange(file);
 				}
 			})
@@ -263,32 +288,64 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
 				if (file instanceof TFile) {
+					this.imageCatalog.remove(file.path);
 					handleVaultChange(file);
 				}
 			})
 		);
 
 		this.registerEvent(
-			this.app.vault.on('rename', (file) => {
-				if (file instanceof TFile) {
-					handleVaultChange(file);
+			this.app.vault.on('rename', (file, oldPath) => {
+				if (file instanceof TFile) this.imageCatalog.rename(file, oldPath);
+				if (file instanceof TFile && (this.isRelevantFile(file) || this.isRelevantPath(oldPath))) {
+					this.scheduleViewRefresh();
 				}
 			})
 		);
+		this.registerEvent(
+			this.app.vault.on('modify', (file) => {
+				if (file instanceof TFile && this.isRelevantFile(file)) {
+					this.imageCatalog.upsert(file);
+					this.scheduleViewRefresh();
+				}
+			})
+		);
+
+		// 启动恢复工作区时, 视图可能先于全库链接图完成初始化.
+		// 只监听全局 `resolved`, 避免索引期间每个文件的 `resolve` 都触发重绘.
+		this.registerEvent(this.app.metadataCache.on("resolved", () => {
+			this.scheduleReferenceInvalidation();
+		}));
+		this.registerEvent(this.app.metadataCache.on("changed", (file) => {
+			if (file.extension === "md") this.scheduleReferenceInvalidation();
+		}));
+		this.registerEvent(this.app.metadataCache.on("deleted", (file) => {
+			if (file.extension === "md") this.scheduleReferenceInvalidation();
+		}));
 	}
 
 	/**
-	 * 判断文件是否为插件关注的文件类型（标准图片格式 + 用户自定义文件类型）
+	 * 判断文件是否为插件关注的文件类型 (标准图片格式 + 用户自定义文件类型)
 	 */
 	private isRelevantFile(file: TFile): boolean {
-		const ext = file.extension.toLowerCase();
+		return this.isRelevantExtension(file.extension);
+	}
+
+	private isRelevantPath(path: string): boolean {
+		const fileName = path.substring(path.lastIndexOf("/") + 1);
+		const extensionIndex = fileName.lastIndexOf(".");
+		return extensionIndex >= 0 && this.isRelevantExtension(fileName.substring(extensionIndex + 1));
+	}
+
+	private isRelevantExtension(extension: string): boolean {
+		const ext = extension.toLowerCase();
 
 		// 标准图片扩展名
 		if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
 			return true;
 		}
 
-		// 用户自定义文件类型（含封面文件）
+		// 用户自定义文件类型 (含封面文件)
 		const customTypes = this.settings.imageManager?.customFileTypes || [];
 		for (const ct of customTypes) {
 			if (
@@ -306,7 +363,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private vaultChangeTimer: number | null = null;
 
 	/**
-	 * 防抖调度视图刷新（200ms 内的多次变更合并为一次刷新）
+	 * 防抖调度视图刷新 (200ms 内的多次变更合并为一次刷新)
 	 */
 	private scheduleViewRefresh(): void {
 		if (this.vaultChangeTimer !== null) {
@@ -316,6 +373,19 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			this.vaultChangeTimer = null;
 			this.notifyImageManagerViews();
 		}, 200);
+	}
+
+	private scheduleReferenceInvalidation(): void {
+		if (this.referenceInvalidationTimer !== null) {
+			window.clearTimeout(this.referenceInvalidationTimer);
+		}
+		this.referenceInvalidationTimer = window.setTimeout(() => {
+			this.referenceInvalidationTimer = null;
+			this.referenceIndex.clearCache();
+			for (const leaf of this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE)) {
+				if (leaf.view instanceof ImageManagerView) leaf.view.invalidateReferences(false);
+			}
+		}, 100);
 	}
 
 	/**
