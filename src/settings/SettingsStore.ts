@@ -1,6 +1,6 @@
 import AlbusFigureManagerPlugin from "@src/main";
 import { DEFAULT_SETTINGS, IPluginSettings } from "@src/types/types";
-import { normalizeExtension, normalizeVaultFolder } from "@src/utils/vaultPaths";
+import { normalizeCoverFolder, normalizeExtension, normalizeVaultFolder } from "@src/utils/vaultPaths";
 
 /** Loads persisted settings and validates them against the declared defaults. */
 export default class SettingsStore {
@@ -35,7 +35,7 @@ function sanitizeSettings(settings: IPluginSettings): IPluginSettings {
 			return [{
 				fileExtension,
 				coverExtension,
-				coverFolder: normalizeVaultFolder(config.coverFolder),
+				coverFolder: normalizeCoverFolder(config.coverFolder),
 			}];
 		});
 	}
@@ -47,7 +47,6 @@ function sanitizeSettings(settings: IPluginSettings): IPluginSettings {
 		"IMAGE_MANAGER",
 		"IMAGE_RESIZE",
 		"IMAGE_VIEWER",
-		"CUSTOM_FILE_TYPES",
 	]).has(settings.settingsTab)) {
 		settings.settingsTab = "IMAGE_MANAGER";
 	}

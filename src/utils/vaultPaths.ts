@@ -10,6 +10,14 @@ export function normalizeVaultFolder(folder: string): string {
 	return trimmed ? normalizePath(trimmed) : "";
 }
 
+export function normalizeCoverFolder(folder: string): string {
+	const trimmed = folder.trim();
+	if (!trimmed) return "";
+	const fromVaultRoot = trimmed.startsWith("/");
+	const normalized = normalizeVaultFolder(trimmed);
+	return fromVaultRoot ? `/${normalized}` : normalized;
+}
+
 export function joinVaultPath(...parts: string[]): string {
 	const path = parts.filter(Boolean).join("/");
 	return path ? normalizePath(path) : "";

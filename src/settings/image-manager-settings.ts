@@ -3,6 +3,7 @@ import type { NativePluginSettingTab } from './NativePluginSettingTab';
 import { SortField, SortOrder } from '../types/image-manager.types';
 import type CPlugin from '@src/main';
 import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
+import { showCustomFileTypesSettings } from './custom-file-types-settings';
 
 export function getImageManagerSettingDefinitions(plugin: CPlugin): SettingDefinitionRender[] {
 	return [
@@ -124,4 +125,5 @@ export function getImageManagerSettingDefinitions(plugin: CPlugin): SettingDefin
 export function showImageManagerSettings(tab: NativePluginSettingTab): void {
 	const group = new SettingGroup(tab.contentEl);
 	renderSettingDefinitions(group, getImageManagerSettingDefinitions(tab.plugin));
+	showCustomFileTypesSettings(tab);
 }

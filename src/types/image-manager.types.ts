@@ -57,7 +57,7 @@ export interface CustomFileTypeConfig {
 	fileExtension: string;
 	/** 封面文件的扩展名 (如 "svg","png") */
 	coverExtension: string;
-	/** 封面文件所在的文件夹 (相对路径, 空字符串表示同级目录) */
+	/** 封面文件夹 (相对路径; 以 / 开头表示 Vault 根目录; 空字符串表示同级目录) */
 	coverFolder: string;
 }
 

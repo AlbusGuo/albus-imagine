@@ -1,110 +1,93 @@
-import { debounce, SettingDefinitionRender, SettingGroup } from 'obsidian';
-import type { NativePluginSettingTab } from './NativePluginSettingTab';
-import type CPlugin from '@src/main';
-import { createSettingDefinition, renderSettingDefinitions } from './setting-definitions';
-
-export function getCustomFileTypesSettingDefinitions(
-	plugin: CPlugin,
-	refresh: () => void,
-): SettingDefinitionRender[] {
-	const customTypes = plugin.settings.imageManager?.customFileTypes || [];
-	const definitions: SettingDefinitionRender[] = [];
-
-	if (customTypes.length === 0) {
-		definitions.push(createSettingDefinition(
-			'暂无自定义文件类型',
-			'添加后可为非图片文件指定预览封面.',
-			() => undefined,
-		));
-	} else {
-		customTypes.forEach((type, index) => {
-			definitions.push(createSettingDefinition('类型', '', (setting) => {
-				setting
-					.addText((text) => {
-						text
-							.setPlaceholder('文件扩展名 (如 PDF)')
-							.setValue(type.fileExtension)
-							.onChange(debounce(async (value) => {
-								type.fileExtension = value;
-								if (!plugin.settings.imageManager) {
-									plugin.settings.imageManager = {};
-								}
-								plugin.settings.imageManager.customFileTypes = customTypes;
-								await plugin.saveSettings();
-							}, 500));
-					})
-					.addText((text) => {
-						text
-							.setPlaceholder('封面扩展名 (如 JPG)')
-							.setValue(type.coverExtension)
-							.onChange(debounce(async (value) => {
-								type.coverExtension = value;
-								if (!plugin.settings.imageManager) {
-									plugin.settings.imageManager = {};
-								}
-								plugin.settings.imageManager.customFileTypes = customTypes;
-								await plugin.saveSettings();
-							}, 500));
-					})
-					.addText((text) => {
-						text
-							.setPlaceholder('封面文件夹 (可选)')
-							.setValue(type.coverFolder || '')
-							.onChange(debounce(async (value) => {
-								type.coverFolder = value;
-								if (!plugin.settings.imageManager) {
-									plugin.settings.imageManager = {};
-								}
-								plugin.settings.imageManager.customFileTypes = customTypes;
-								await plugin.saveSettings();
-							}, 500));
-					})
-					.addExtraButton((btn) => {
-						btn
-							.setIcon('trash-2')
-							.setTooltip('删除此类型')
-							.onClick(async () => {
-								customTypes.splice(index, 1);
-								if (!plugin.settings.imageManager) {
-									plugin.settings.imageManager = {};
-								}
-								plugin.settings.imageManager.customFileTypes = customTypes;
-								await plugin.saveSettings();
-								refresh();
-							});
-					});
-			}));
-		});
-	}
-
-	definitions.push(createSettingDefinition(
-		'添加文件类型',
-		'设置源文件扩展名, 封面扩展名和可选封面文件夹.',
-		(setting) => {
-		setting
-			.addButton((button) => {
-				button
-					.setButtonText('添加')
-					.setCta()
-					.onClick(() => {
-						customTypes.push({
-							fileExtension: '',
-							coverExtension: '',
-							coverFolder: ''
-						});
-						refresh();
-					});
-			});
-		},
-	));
-
-	return definitions;
-}
+import { Setting, SettingGroup } from "obsidian";
+import type { NativePluginSettingTab } from "./NativePluginSettingTab";
+import { CustomFileTypeConfig } from "../types/image-manager.types";
+import { normalizeExtension } from "../utils/vaultPaths";
+import { CustomFileTypeModal } from "./CustomFileTypeModal";
 
 export function showCustomFileTypesSettings(tab: NativePluginSettingTab): void {
+	const customTypes = getCustomTypes(tab);
+	const heading = new Setting(tab.contentEl)
+		.setName("自定义文件类型")
+		.setHeading();
+	heading.addExtraButton((button) => button
+		.setIcon("plus")
+		.setTooltip("添加文件类型")
+		.onClick(() => openEditor(tab, null)));
+
 	const group = new SettingGroup(tab.contentEl);
-	renderSettingDefinitions(
-		group,
-		getCustomFileTypesSettingDefinitions(tab.plugin, () => tab.refresh()),
+	if (customTypes.length === 0) {
+		group.addSetting((setting) => {
+			setting
+				.setName("暂无自定义文件类型")
+				.setDesc("点击标题右侧的加号添加文件类型");
+		});
+		return;
+	}
+
+	customTypes.forEach((config, index) => {
+		group.addSetting((setting) => {
+			setting.settingEl.addClass("afm-custom-file-type-setting");
+			setting
+				.setName(config.fileExtension.toUpperCase())
+				.setDesc(getConfigSummary(config))
+				.addExtraButton((button) => button
+					.setIcon("pencil")
+					.setTooltip("编辑文件类型")
+					.onClick(() => openEditor(tab, index)))
+				.addExtraButton((button) => button
+					.setIcon("trash")
+					.setTooltip("删除文件类型")
+					.onClick(() => void removeConfig(tab, index)));
+		});
+	});
+}
+
+function getCustomTypes(tab: NativePluginSettingTab): CustomFileTypeConfig[] {
+	if (!tab.plugin.settings.imageManager) tab.plugin.settings.imageManager = {};
+	if (!tab.plugin.settings.imageManager.customFileTypes) {
+		tab.plugin.settings.imageManager.customFileTypes = [];
+	}
+	return tab.plugin.settings.imageManager.customFileTypes;
+}
+
+function openEditor(tab: NativePluginSettingTab, index: number | null): void {
+	const customTypes = getCustomTypes(tab);
+	const config = index === null ? null : customTypes[index] ?? null;
+	if (index !== null && !config) return;
+	let targetIndex = index;
+	const reservedExtensions = new Set(
+		customTypes
+			.filter((_item, itemIndex) => itemIndex !== index)
+			.map((item) => normalizeExtension(item.fileExtension))
+			.filter(Boolean),
 	);
+
+	new CustomFileTypeModal(tab.plugin.app, config, {
+		reservedExtensions,
+		onChange: async (savedConfig) => {
+			const latestTypes = getCustomTypes(tab);
+			if (targetIndex === null) {
+				latestTypes.push(savedConfig);
+				targetIndex = latestTypes.length - 1;
+			} else if (latestTypes[targetIndex]) {
+				latestTypes[targetIndex] = savedConfig;
+			}
+			await tab.plugin.saveSettings();
+			tab.refresh();
+		},
+		onClose: () => tab.refresh(),
+	}).open();
+}
+
+async function removeConfig(tab: NativePluginSettingTab, index: number): Promise<void> {
+	const customTypes = getCustomTypes(tab);
+	if (!customTypes[index]) return;
+	customTypes.splice(index, 1);
+	await tab.plugin.saveSettings();
+	tab.refresh();
+}
+
+function getConfigSummary(config: CustomFileTypeConfig): string {
+	const folder = config.coverFolder || "与源文件同级";
+	return `封面扩展名: ${config.coverExtension.toUpperCase()}; 文件夹: ${folder}`;
 }

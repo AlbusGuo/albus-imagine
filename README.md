@@ -213,7 +213,7 @@ Additional source formats can be added through the custom file type settings.
 
 ## Settings reference
 
-Obsidian 1.13 and later expose Imagine's settings as searchable native pages. Obsidian 1.12 uses the compatible tabbed fallback.
+Imagine keeps the same tabbed settings interface across supported Obsidian versions. On Obsidian 1.13 and later, its settings are also indexed by the settings search.
 
 ### Image manager
 
@@ -243,9 +243,9 @@ Obsidian 1.13 and later expose Imagine's settings as searchable native pages. Ob
 | Enable image viewer | On | Enable Imagine's `Ctrl`-click viewer |
 | Disable built-in click viewer | Off | Block Obsidian's ordinary single-click image viewer |
 
-### Custom file types
+### Custom file types (Image manager)
 
-Add, edit, or remove source extension, cover extension, and cover folder mappings.
+Use the heading action in the Image manager settings to add a mapping. Existing mappings are summarized in a native SettingGroup and edited in a dedicated modal.
 
 ## Limitations
 
