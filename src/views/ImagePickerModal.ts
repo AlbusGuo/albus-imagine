@@ -4,7 +4,7 @@
  * 基于 ImageManagerView 的简化版本
  */
 
-import { App, DropdownComponent, MarkdownView, Menu, Modal, Notice, setIcon, TextComponent, ToggleComponent } from "obsidian";
+import { App, DropdownComponent, type Editor, Menu, Modal, Notice, setIcon, TextComponent, ToggleComponent } from "obsidian";
 import { ImageItem, ImageManagerSettings, SortField, SortOrder } from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { FolderSuggest } from "../components/FolderSuggest";
@@ -50,7 +50,13 @@ export class ImagePickerModal extends Modal {
 	private viewportGrid: ViewportGrid<ImageItem, PickerImageController> | null = null;
 	private mediaLoader: ViewportMediaLoader<PickerImageController> | null = null;
 
-	constructor(app: App, settings: ImageManagerSettings, imageCatalog: ImageCatalogService) {
+	constructor(
+		app: App,
+		settings: ImageManagerSettings,
+		imageCatalog: ImageCatalogService,
+		private readonly targetEditor: Editor,
+		private readonly sourcePath: string,
+	) {
 		super(app);
 		this.settings = settings;
 		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
@@ -417,19 +423,13 @@ export class ImagePickerModal extends Modal {
 	}
 
 	private handleImageSelect(image: ImageItem): void {
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-
-		const editor = view.editor;
-		if (!editor) return;
-
-		const imageLink = buildImageLink(this.app.metadataCache, image.originalFile, view.file?.path ?? "", {
+		const imageLink = buildImageLink(this.app.metadataCache, image.originalFile, this.sourcePath, {
 			position: this.imagePosition,
 			dark: this.invertColor,
 			caption: this.imageCaption,
 		});
 
-		editor.replaceSelection(imageLink);
+		this.targetEditor.replaceSelection(imageLink);
 		this.close();
 	}
 
@@ -442,22 +442,16 @@ export class ImagePickerModal extends Modal {
 			return;
 		}
 
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-
-		const editor = view.editor;
-		if (!editor) return;
-
 		// 构建 Grid Callout 格式
 		const imageLinks = Array.from(this.selectedImages)
 			.map((path) => this.app.vault.getFileByPath(path))
 			.filter((file): file is import("obsidian").TFile => file !== null)
-			.map((file) => `![[${this.app.metadataCache.fileToLinktext(file, view.file?.path ?? "")}]]`)
+			.map((file) => `![[${this.app.metadataCache.fileToLinktext(file, this.sourcePath)}]]`)
 			.join('\n');
 
 		const gridContent = `> [!grid]\n> ${imageLinks.split('\n').join('\n> ')}`;
 
-		editor.replaceSelection(gridContent);
+		this.targetEditor.replaceSelection(gridContent);
 		this.close();
 	}
 

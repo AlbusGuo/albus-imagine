@@ -1,4 +1,4 @@
-import { normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { type Editor, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -90,8 +90,8 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.addCommand({
 			id: "insert-image",
 			name: "插入图片",
-			callback: () => {
-				this.openImagePicker();
+			editorCallback: (editor, context) => {
+				this.openImagePicker(editor, context.file?.path ?? "");
 			},
 		});
 
@@ -180,8 +180,14 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	/**
 	 * 打开图片选择器
 	 */
-	openImagePicker(): void {
-		const modal = new ImagePickerModal(this.app, this.settings.imageManager || {}, this.imageCatalog);
+	openImagePicker(editor: Editor, sourcePath: string): void {
+		const modal = new ImagePickerModal(
+			this.app,
+			this.settings.imageManager || {},
+			this.imageCatalog,
+			editor,
+			sourcePath,
+		);
 		modal.open();
 	}
 
