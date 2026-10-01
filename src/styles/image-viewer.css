@@ -12,13 +12,21 @@
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background: rgba(0, 0, 0, 0.6);
+	background: transparent;
 	z-index: 9999;
 	display: none;
 }
 
 .afm-img-viewer-container.is-visible {
 	display: block;
+}
+
+.afm-img-viewer-container .afm-img-viewer-background {
+	position: absolute;
+	inset: 0;
+	background: var(--lightbox-background, black);
+	opacity: var(--afm-viewer-opacity, 0.9);
+	pointer-events: none;
 }
 
 /* 图片容器 - 对应 .oit .oit-img-container */
@@ -37,6 +45,14 @@
 	margin-top: var(--afm-panzoom-top);
 	pointer-events: auto;
 	cursor: grab;
+	opacity: var(--afm-viewer-opacity, 1);
+	transform-origin: center center;
+	will-change: transform;
+}
+
+.afm-img-viewer-container.is-animating .afm-img-view {
+	pointer-events: none;
+	cursor: default;
 }
 
 .afm-img-viewer-container .afm-img-container.is-dragging .afm-img-view {

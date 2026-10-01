@@ -23,6 +23,12 @@
 	overflow: hidden;
 }
 
+.image-picker-container .image-manager-grid-panel {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+}
+
 /* 图片网格 - 响应式布局, 最小宽度 150px, 自动调节每行数量 */
 .image-picker-container .image-manager-grid {
 	grid-template-columns: repeat(var(--afm-viewport-columns, 1), minmax(0, 1fr));
@@ -30,26 +36,39 @@
 
 /* 插图选项面板 */
 .image-picker-options {
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	flex-shrink: 0;
 	display: flex;
 	align-items: center;
-	gap: 24px;
-	flex-wrap: wrap;
+	min-width: 0;
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+	gap: var(--size-4-4);
 }
 
 .option-group {
 	display: flex;
+	min-width: 0;
 	align-items: center;
-	gap: 8px;
+	gap: var(--size-4-1);
+}
+
+.option-group.mod-position,
+.option-group.mod-invert {
+	flex: 0 0 auto;
+}
+
+.option-group.mod-caption {
+	flex: 1 1 auto;
+}
+
+.option-group.mod-caption .text-input {
+	width: 100%;
+	min-width: 0;
 }
 
 .option-label {
-	font-size: 13px;
+	font-size: var(--font-ui-small);
 	color: var(--text-normal);
-	font-weight: 500;
+	font-weight: var(--font-medium);
 	white-space: nowrap;
 }
 

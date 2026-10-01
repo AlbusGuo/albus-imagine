@@ -51,19 +51,72 @@ body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6
   margin: 0.5rem 0 0.5rem auto;
 }
 
+/* CodeMirror 将未激活的纯图片行直接渲染为 .cm-content 的子节点,
+ * 此时不存在可承载 auto margin 的 .cm-line. 仅在这种 DOM 形态下
+ * 使用相对位移完成非环绕对齐; 激活行仍使用上面的正常文档流布局. */
+body .markdown-source-view.mod-cm6.is-live-preview .cm-content > .image-embed:is(
+  .afm-align-center,
+  [src*="#center"]
+) {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-left: 0;
+  margin-right: 0;
+}
+
+body .markdown-source-view.mod-cm6.is-live-preview .cm-content > .image-embed:is(
+  .afm-align-left,
+  [src*="#align-left"]
+) {
+  position: relative;
+  left: 0;
+  transform: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+body .markdown-source-view.mod-cm6.is-live-preview .cm-content > .image-embed:is(
+  .afm-align-right,
+  [src*="#align-right"]
+) {
+  position: relative;
+  left: 100%;
+  transform: translateX(-100%);
+  margin-left: 0;
+  margin-right: 0;
+}
+
+body .markdown-source-view.mod-cm6.is-live-preview .cm-content > .image-embed:is(
+  .afm-wrap-left,
+  .afm-wrap-right,
+  .afm-inline,
+  [src*="#left"],
+  [src*="#right"],
+  [src*="#inline"]
+) {
+  left: auto;
+  transform: none;
+}
+
 body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6) img:is([alt="inline"],[alt$="|inline"],[alt*="|inline|"]) {
   display: inline;
   padding: 0.05em;
   vertical-align: bottom;
 }
 
-/* 左右环绕 (无标题, | 语法): 阅读模式使用真实文档流. */
-body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="left"],[alt$="|left"],[alt*="|left|"]) {
+/* 左右环绕共用阅读模式的方向与间距参数. 阅读模式无标题时浮动 img,
+ * 实时预览与带标题语法浮动 image-embed 容器. */
+body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="left"],[alt$="|left"],[alt*="|left|"]),
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#left"],
+body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-left {
   float: left;
   margin: 0.5rem 1rem 0.5rem 0;
 }
 
-body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="right"],[alt$="|right"],[alt*="|right|"]) {
+body :is(.markdown-preview-view,.markdown-rendered) img:is([alt="right"],[alt$="|right"],[alt*="|right|"]),
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#right"],
+body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-right {
   float: right;
   margin: 0.5rem 0 0.5rem 1rem;
 }
@@ -77,12 +130,12 @@ body .markdown-source-view.mod-cm6.is-live-preview .cm-line.afm-wrap-image-only 
 	pointer-events: none;
 }
 
-body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-left {
+body .markdown-source-view.mod-cm6.is-live-preview .image-embed:is(.afm-wrap-left,.afm-wrap-right) {
   position: relative;
-  float: left;
-  clear: both;
-  display: table;
-  margin: 0.5rem 1rem 0.5rem 0;
+  z-index: 1;
+  clear: none;
+  display: block;
+  width: fit-content;
   pointer-events: auto;
 }
 
@@ -91,16 +144,6 @@ body .markdown-source-view.mod-cm6.is-live-preview .cm-content.afm-has-wrapped-i
   display: block;
   clear: both;
 }
-
-body .markdown-source-view.mod-cm6.is-live-preview .image-embed.afm-wrap-right {
-  position: relative;
-  float: right;
-  clear: both;
-  display: table;
-  margin: 0.5rem 0 0.5rem 1rem;
-  pointer-events: auto;
-}
-
 
 /* ========================================
 图片标题 - 带标题图片使用 # 语法: ![[image#position|caption|size]]
@@ -137,21 +180,23 @@ body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6
   height: auto;
 }
 
-/* 左右环绕: 阅读模式使用真实 float. */
-body :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#left"] {
+/* 带标题环绕在阅读和编辑模式下共用阅读模式的 table 几何. */
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#left"] {
   position: relative;
   float: left;
   margin: 0.5rem 1rem 0.5rem 0;
   clear: both;
   display: table;
+  width: auto;
 }
 
-body :is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="#right"] {
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="#right"] {
   position: relative;
   float: right;
   margin: 0.5rem 0 0.5rem 1rem;
   clear: both;
   display: table;
+  width: auto;
 }
 
 /* 所有标题共用同一份排版参数, 编辑控件也复用这些参数. */
@@ -185,8 +230,9 @@ body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6
 }
 
 /* --- 标题编辑 --- */
-/* 编辑标题时隐藏 ::after 伪元素 */
-body .image-embed.afm-editing-caption::after {
+/* 编辑标题时隐藏 ::after 伪元素. 上下文选择器必须高于标题渲染规则,
+ * 否则 display:table-caption 会覆盖这里的 display:none. */
+body :is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed.afm-editing-caption::after {
   display: none;
 }
 

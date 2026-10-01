@@ -10,14 +10,6 @@ export function normalizeVaultFolder(folder: string): string {
 	return trimmed ? normalizePath(trimmed) : "";
 }
 
-export function normalizeCoverFolder(folder: string): string {
-	const trimmed = folder.trim();
-	if (!trimmed) return "";
-	const fromVaultRoot = trimmed.startsWith("/");
-	const normalized = normalizeVaultFolder(trimmed);
-	return fromVaultRoot ? `/${normalized}` : normalized;
-}
-
 export function joinVaultPath(...parts: string[]): string {
 	const path = parts.filter(Boolean).join("/");
 	return path ? normalizePath(path) : "";
@@ -30,9 +22,5 @@ export function getCoverPath(filePath: string, config: CustomFileTypeConfig): st
 	const fileName = separatorIndex >= 0 ? normalizedFilePath.slice(separatorIndex + 1) : normalizedFilePath;
 	const extensionIndex = fileName.lastIndexOf(".");
 	const baseName = extensionIndex > 0 ? fileName.slice(0, extensionIndex) : fileName;
-	const configuredFolder = normalizeVaultFolder(config.coverFolder || "");
-	const coverDirectory = config.coverFolder.trim().startsWith("/")
-		? configuredFolder
-		: joinVaultPath(directory, configuredFolder);
-	return joinVaultPath(coverDirectory, `${baseName}.${normalizeExtension(config.coverExtension)}`);
+	return joinVaultPath(directory, `${baseName}.${normalizeExtension(config.coverExtension)}`);
 }

@@ -3,20 +3,17 @@
  */
 
 /* ==================== 滚动条样式 ==================== */
-.image-manager-grid-panel::-webkit-scrollbar,
 .image-manager-backlinks-list::-webkit-scrollbar,
 .image-manager-preview-image-container::-webkit-scrollbar {
 	width: 10px;
 	height: 10px;
 }
 
-.image-manager-grid-panel::-webkit-scrollbar-track,
 .image-manager-backlinks-list::-webkit-scrollbar-track,
 .image-manager-preview-image-container::-webkit-scrollbar-track {
 	background: transparent;
 }
 
-.image-manager-grid-panel::-webkit-scrollbar-thumb,
 .image-manager-backlinks-list::-webkit-scrollbar-thumb,
 .image-manager-preview-image-container::-webkit-scrollbar-thumb {
 	background: var(--background-modifier-border);
@@ -25,7 +22,6 @@
 	background-clip: padding-box;
 }
 
-.image-manager-grid-panel::-webkit-scrollbar-thumb:hover,
 .image-manager-backlinks-list::-webkit-scrollbar-thumb:hover,
 .image-manager-preview-image-container::-webkit-scrollbar-thumb:hover {
 	background: var(--text-muted);
@@ -34,11 +30,6 @@
 
 /* ==================== 响应式调整 ==================== */
 @media (max-width: 768px) {
-	.image-manager-grid {
-		padding: 12px;
-		gap: 10px;
-	}
-
 	.image-manager-preview-content {
 		flex-direction: column;
 	}

@@ -13,12 +13,15 @@ interface ViewportGridOptions<Item, Controller extends ViewportGridController<It
 	shouldReuse?: (previous: Item, next: Item) => boolean;
 	onVisibleChange?: (controllers: readonly Controller[]) => void;
 	minimumItemWidth: number;
+	minimumColumns?: number;
 	compactItemWidth?: number;
 	compactBreakpoint?: number;
 	estimatedItemHeight: number;
 	gap?: number;
 	padding?: number;
 	overscanRows?: number;
+	/** Maximum number of detached controllers retained for quick reuse. */
+	maxDetachedItems?: number;
 }
 
 interface GridSlot<Item, Controller> {
@@ -91,6 +94,15 @@ export class ViewportGrid<
 		this.notifyVisibleControllers();
 	}
 
+	setMinimumItemWidth(width: number): void {
+		if (this.disposed || this.options.minimumItemWidth === width) return;
+		this.options.minimumItemWidth = width;
+		this.renderedStartRow = -1;
+		this.renderedEndRow = -1;
+		this.renderedColumns = -1;
+		this.scheduleRender();
+	}
+
 	destroy(): void {
 		if (this.disposed) return;
 		this.disposed = true;
@@ -126,12 +138,17 @@ export class ViewportGrid<
 		const gap = this.options.gap ?? 12;
 		const padding = this.options.padding ?? 16;
 		const availableWidth = Math.max(1, this.options.gridEl.clientWidth - padding * 2);
-		const minimumItemWidth =
+		const requestedItemWidth =
 			availableWidth <= (this.options.compactBreakpoint ?? 768)
 				? (this.options.compactItemWidth ?? this.options.minimumItemWidth)
 				: this.options.minimumItemWidth;
+		const minimumColumns = Math.max(1, Math.floor(this.options.minimumColumns ?? 1));
+		const minimumItemWidth = Math.min(
+			requestedItemWidth,
+			Math.max(1, (availableWidth - gap * (minimumColumns - 1)) / minimumColumns),
+		);
 		const columns = Math.max(
-			1,
+			minimumColumns,
 			Math.floor((availableWidth + gap) / (minimumItemWidth + gap)),
 		);
 		const rowStride = Math.max(1, (this.measuredItemHeight ?? this.options.estimatedItemHeight) + gap);
@@ -180,6 +197,11 @@ export class ViewportGrid<
 			desiredChildren.push(this.bottomSpacerEl);
 		}
 		this.reconcileChildren(desiredChildren);
+		this.pruneDetachedSlots(new Set(
+			desiredChildren
+				.map((element) => element.dataset.afmViewportKey)
+				.filter((key): key is string => Boolean(key)),
+		));
 		this.measureRenderedItems();
 		this.notifyVisibleControllers();
 	}
@@ -187,12 +209,30 @@ export class ViewportGrid<
 	private getOrCreateSlot(item: Item): GridSlot<Item, Controller> {
 		const key = this.options.getKey(item);
 		const existing = this.slots.get(key);
-		if (existing) return existing;
+		if (existing) {
+			// Map insertion order doubles as an inexpensive LRU list.
+			this.slots.delete(key);
+			this.slots.set(key, existing);
+			return existing;
+		}
 		const controller = this.options.create(item);
 		controller.element.dataset.afmViewportKey = key;
 		const slot = { key, item, controller };
 		this.slots.set(key, slot);
 		return slot;
+	}
+
+	private pruneDetachedSlots(attachedKeys: ReadonlySet<string>): void {
+		const limit = Math.max(0, Math.floor(this.options.maxDetachedItems ?? 20));
+		let detachedCount = this.slots.size - attachedKeys.size;
+		if (detachedCount <= limit) return;
+		for (const [key, slot] of this.slots) {
+			if (attachedKeys.has(key)) continue;
+			this.disposeSlot(slot);
+			this.slots.delete(key);
+			detachedCount -= 1;
+			if (detachedCount <= limit) break;
+		}
 	}
 
 	private reconcileChildren(desiredChildren: readonly HTMLElement[]): void {

@@ -1,18 +1,24 @@
-/**
- * 图片选择器模态框 (简化版)
- * 用于在编辑器中快速插入图片
- * 基于 ImageManagerView 的简化版本
- */
-
-import { App, DropdownComponent, type Editor, Menu, Modal, Notice, setIcon, TextComponent, ToggleComponent } from "obsidian";
-import { ImageItem, ImageManagerSettings, SortField, SortOrder } from "../types/image-manager.types";
+import { App, DropdownComponent, type Editor, Modal, Notice, TextComponent, ToggleComponent } from "obsidian";
+import {
+	IMAGE_CARD_PROPERTY_ORDER,
+	ImageCardProperty,
+	ImageFilterPreset,
+	ImageItem,
+	ImageManagerLayout,
+	ImageManagerSettings,
+	ImageSortRule,
+} from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
-import { FolderSuggest } from "../components/FolderSuggest";
+import { ReferenceCheckService } from "../services/ReferenceCheckService";
+import { ImageThumbnailService } from "../services/ImageThumbnailService";
+import { ViewIconService } from "../services/ViewIconService";
 import { ViewportGrid, ViewportGridController } from "../components/ViewportGrid";
+import { ViewportMasonry } from "../components/ViewportMasonry";
 import { ViewportMediaController, ViewportMediaLoader } from "../components/ViewportMediaLoader";
 import { ImageCatalogService } from "../services/ImageCatalogService";
 import { buildImageLink, ImagePosition } from "../utils/imageLink";
 import { createImagePickerCard } from "../components/ImagePickerCard";
+import { ImagePickerToolbar } from "../components/ImagePickerToolbar";
 import { filterAndSortImages } from "../utils/imageCollection";
 
 interface PickerImageController extends ViewportGridController<ImageItem>, ViewportMediaController {
@@ -20,287 +26,168 @@ interface PickerImageController extends ViewportGridController<ImageItem>, Viewp
 }
 
 export class ImagePickerModal extends Modal {
-	private settings: ImageManagerSettings;
-	private selectedFolder: string;
+	private readonly views: ImageFilterPreset[];
+	private activeViewId: string;
 	private images: ImageItem[] = [];
 	private filteredImages: ImageItem[] = [];
 	private searchQuery = "";
-	private sortField: SortField = "mtime";
-	private sortOrder: SortOrder = "desc";
+	private cardProperties: ImageCardProperty[] = [];
+	private sortRules: ImageSortRule[] = [];
+	private readonly cardSize = 120;
+	private layoutMode: ImageManagerLayout = "grid";
+	private renderedLayoutMode: ImageManagerLayout | null = null;
 	private isLoading = false;
-	private folderSuggest: FolderSuggest | null = null;
-
-	// 插图选项
+	private loadPending = false;
+	private isClosed = false;
 	private imagePosition: ImagePosition = "center";
 	private invertColor = false;
 	private imageCaption = "";
-
-	// 多选模式
 	private isMultiSelectMode = false;
-	private selectedImages: Set<string> = new Set();
-
-	// 虚拟滚动
-	private imageLoader: ImageLoaderService;
-	private headerContainer: HTMLElement;
-	private searchContainer: HTMLElement;
-	private optionsContainer: HTMLElement;
-	private gridContainer: HTMLElement;
-	private gridEl: HTMLElement;
-	private gridStateEl: HTMLElement;
-	private viewportGrid: ViewportGrid<ImageItem, PickerImageController> | null = null;
+	private readonly selectedImages = new Set<string>();
+	private readonly imageLoader: ImageLoaderService;
+	private readonly thumbnailService = new ImageThumbnailService();
+	private toolbar: ImagePickerToolbar | null = null;
+	private optionsContainer!: HTMLElement;
+	private gridContainer!: HTMLElement;
+	private gridEl!: HTMLElement;
+	private gridStateEl!: HTMLElement;
+	private viewport: ViewportGrid<ImageItem, PickerImageController> | ViewportMasonry<ImageItem, PickerImageController> | null = null;
 	private mediaLoader: ViewportMediaLoader<PickerImageController> | null = null;
 
 	constructor(
 		app: App,
 		settings: ImageManagerSettings,
 		imageCatalog: ImageCatalogService,
+		private readonly referenceChecker: ReferenceCheckService,
+		private readonly iconService: ViewIconService,
 		private readonly targetEditor: Editor,
 		private readonly sourcePath: string,
 	) {
 		super(app);
-		this.settings = settings;
-		this.selectedFolder = settings.lastSelectedFolder ?? settings.folderPath ?? "";
+		this.views = (settings.filterPresets ?? []).map((view) => cloneView(view));
+		if (this.views.length === 0) this.views.push(createFallbackView(settings));
+		this.activeViewId = settings.activeFilterId && this.views.some((view) => view.id === settings.activeFilterId)
+			? settings.activeFilterId
+			: this.views[0].id;
 		this.imageLoader = new ImageLoaderService(app, imageCatalog);
-		// 图片选择器不加载自定义文件类型, 只加载纯图片
-		// this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
-		// 保持原有行为: 全局 SVG 深色反色开启时, 插入选项默认同步开启.
 		this.invertColor = settings.invertSvgInDarkMode !== false;
+		this.applyViewState();
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
-		contentEl.addClass("image-picker-container");
-
-		// 为模态框添加自定义类名
+		this.isClosed = false;
+		this.contentEl.addClass("image-picker-container", "image-manager-container");
 		this.modalEl.addClass("mod-image-picker");
-
 		this.titleEl.setText("选择图片");
-
 		this.setupLayout();
-		this.loadImages();
-
-		// 阻止 Modal 自动聚焦到搜索框 (会弹出联想输入法弹窗影响体验)
+		void this.loadImages();
 		this.modalEl.ownerDocument.defaultView?.requestAnimationFrame(() => {
 			const activeElement = this.modalEl.ownerDocument.activeElement;
-			if (activeElement instanceof HTMLElement) {
-				activeElement.blur();
-			}
+			if (activeElement instanceof HTMLElement) activeElement.blur();
 		});
 	}
 
 	private setupLayout(): void {
-		const { contentEl } = this;
-
-		this.headerContainer = contentEl.createDiv("image-manager-header");
-		this.renderHeader();
-
-		this.searchContainer = contentEl.createDiv("image-manager-search");
-		this.renderSearchBar();
-
-		// 插图选项面板
-		this.optionsContainer = contentEl.createDiv("image-picker-options");
+		this.toolbar = new ImagePickerToolbar(this.contentEl, this.iconService, {
+			onSelectView: (id) => this.selectView(id),
+			onSearchChange: (query) => {
+				this.searchQuery = query;
+				this.updateQueryResult();
+			},
+			onToggleMultiSelect: () => this.setMultiSelectMode(!this.isMultiSelectMode),
+			onInsertSelected: () => this.handleGridInsert(),
+		}, this.getToolbarState());
+		this.optionsContainer = this.contentEl.createDiv("bases-search-row image-picker-options");
 		this.renderOptionsPanel();
-
-		const gridPanel = contentEl.createDiv("image-manager-grid-panel");
-		this.gridContainer = gridPanel;
-		this.gridStateEl = gridPanel.createDiv("image-manager-grid-state");
-		this.gridEl = gridPanel.createDiv("image-manager-grid");
+		this.gridContainer = this.contentEl.createDiv("image-manager-grid-panel afm-manager-view");
+		this.gridStateEl = this.gridContainer.createDiv("image-manager-grid-state");
+		this.gridEl = this.gridContainer.createDiv("image-manager-grid afm-manager-cards-container");
 		this.mediaLoader = new ViewportMediaLoader(this.gridEl);
-		this.viewportGrid = new ViewportGrid({
+		this.createViewport();
+	}
+
+	private createViewport(): void {
+		this.viewport?.destroy();
+		this.gridEl.empty();
+		const common = {
 			viewportEl: this.gridContainer,
 			gridEl: this.gridEl,
-			getKey: (image) => image.path,
-			create: (image) => this.createImageController(image),
-			update: (controller, image) => {
+			getKey: (image: ImageItem): string => image.path,
+			create: (image: ImageItem): PickerImageController => this.createImageController(image),
+			update: (controller: PickerImageController, image: ImageItem): void => {
 				controller.item = image;
 				controller.element.toggleClass(
 					"image-manager-item-selected",
 					this.isMultiSelectMode && this.selectedImages.has(image.path),
 				);
 			},
-			onVisibleChange: (controllers) => this.mediaLoader?.sync(controllers),
-			minimumItemWidth: 130,
-			estimatedItemHeight: 205,
+			onVisibleChange: (controllers: readonly PickerImageController[]): void => {
+				this.mediaLoader?.sync(controllers);
+			},
+			minimumItemWidth: this.cardSize,
+			minimumColumns: 6,
 			gap: 12,
-			padding: 16,
-			overscanRows: 4,
-		});
+			padding: 12,
+			maxDetachedItems: 20,
+		};
+		this.viewport = this.layoutMode === "masonry"
+			? new ViewportMasonry({
+				...common,
+				getEstimatedHeight: (_image: ImageItem, width: number, aspectRatio: number): number => {
+					const details = this.cardProperties.filter((property) =>
+						property !== "extension" && property !== "references").length;
+					return width / aspectRatio + (details > 0 ? details * 24 + 16 : 0);
+				},
+				overscanPixels: this.gridContainer.clientHeight,
+			})
+			: new ViewportGrid({ ...common, estimatedItemHeight: 246, overscanRows: 3 });
+		this.renderedLayoutMode = this.layoutMode;
+		this.viewport.setItems(this.filteredImages);
 	}
 
-	private renderHeader(): void {
-		this.headerContainer.empty();
-		const headerRow = this.headerContainer.createDiv("image-manager-header-row");
-		const leftSection = headerRow.createDiv("image-manager-header-left");
-
-		// 文件夹路径输入框 (始终可见, 附带 AbstractInputSuggest)
-		const folderInputContainer = leftSection.createDiv("image-manager-folder-input-container");
-		const folderInput = folderInputContainer.createEl("input", {
-			type: "text",
-			placeholder: "按文件夹筛选...",
-			value: this.selectedFolder,
-			cls: "image-manager-folder-input",
-		});
-
-		// 清空按钮 (只在有路径时显示)
-		if (this.selectedFolder) {
-			const clearBtn = folderInputContainer.createEl("button", {
-				cls: "image-manager-folder-clear clickable-icon",
-				attr: { "aria-label": "清空筛选" },
-			});
-			setIcon(clearBtn, "x");
-			clearBtn.onclick = () => {
-				this.selectedFolder = "";
-				this.refresh();
-			};
-		}
-
-		if (this.folderSuggest) {
-			this.folderSuggest.close();
-		}
-		this.folderSuggest = new FolderSuggest(this.app, folderInput, (value) => {
-			this.selectedFolder = value;
-			this.refresh();
-		});
-
-		folderInput.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				this.selectedFolder = folderInput.value;
-				this.refresh();
-			}
-		});
-
-		const statsEl = leftSection.createDiv("image-manager-stats");
-		statsEl.createSpan({ text: `${this.images.length}`, cls: "image-manager-stats-number" });
-		statsEl.createSpan({ text: " 张图片", cls: "image-manager-stats-label" });
-		if (this.isMultiSelectMode) {
-			statsEl.createSpan({ text: " / ", cls: "image-manager-stats-sep" });
-			statsEl.createSpan({ text: `${this.selectedImages.size}`, cls: "image-manager-stats-number" });
-			statsEl.createSpan({ text: " 张已选", cls: "image-manager-stats-label" });
-		}
-
-		// 右侧: 多选和确认按钮
-		const rightSection = headerRow.createDiv("image-manager-header-right");
-
-		// 多选模式下的确认按钮
-		if (this.isMultiSelectMode) {
-			const confirmBtn = rightSection.createEl("button", {
-				cls: "clickable-icon",
-				attr: { "aria-label": `确认插入 (${this.selectedImages.size})` },
-			});
-			setIcon(confirmBtn, "check");
-			// 没有选中图片时禁用
-			if (this.selectedImages.size === 0) {
-				confirmBtn.disabled = true;
-			}
-			confirmBtn.onclick = () => this.handleGridInsert();
-		}
-
-		// 多选按钮
-		const multiSelectBtn = rightSection.createEl("button", {
-			cls: "clickable-icon",
-			attr: { "aria-label": this.isMultiSelectMode ? "取消多选" : "多选" },
-		});
-		setIcon(multiSelectBtn, this.isMultiSelectMode ? "x-square" : "copy-check");
-		if (this.isMultiSelectMode) {
-			multiSelectBtn.addClass("is-active");
-		}
-		multiSelectBtn.setAttribute("aria-pressed", String(this.isMultiSelectMode));
-		multiSelectBtn.onclick = () => {
-			this.isMultiSelectMode = !this.isMultiSelectMode;
-			if (!this.isMultiSelectMode) {
-				// 退出多选模式时清空选中
-				this.selectedImages.clear();
-			}
-			this.renderHeader();
-			this.renderOptionsPanel();
-			this.renderGrid();
+	private getToolbarState() {
+		return {
+			views: this.views,
+			activeViewId: this.activeViewId,
+			resultCount: this.filteredImages.length,
+			totalCount: this.images.length,
+			searchQuery: this.searchQuery,
+			isMultiSelect: this.isMultiSelectMode,
+			selectedCount: this.selectedImages.size,
 		};
 	}
 
-
-	private renderSearchBar(): void {
-		this.searchContainer.empty();
-		this.searchContainer.addClass("image-manager-search-sort-bar");
-
-		const searchBoxEl = this.searchContainer.createDiv("image-manager-search-box");
-		const searchInput = searchBoxEl.createEl("input", {
-			type: "text",
-			placeholder: "搜索图片...",
-			value: this.searchQuery,
-			cls: "image-manager-search-input",
-		});
-		searchInput.oninput = () => {
-			this.searchQuery = searchInput.value;
-			this.applyFilters();
-			this.renderGrid();
-		};
-
-		const sortControlsEl = this.searchContainer.createDiv("image-manager-sort-controls");
-
-		const sortFieldBtn = sortControlsEl.createEl("button", {
-			cls: "clickable-icon",
-			attr: { "aria-label": "排序方式" },
-		});
-		setIcon(sortFieldBtn, "arrow-up-narrow-wide");
-		sortFieldBtn.onclick = (evt) => {
-			const menu = new Menu();
-			const sortFieldOptions: { value: SortField; text: string; }[] = [
-				{ value: "mtime", text: "修改时间" },
-				{ value: "ctime", text: "创建时间" },
-				{ value: "size", text: "文件大小" },
-				{ value: "name", text: "文件名" },
-			];
-			sortFieldOptions.forEach((opt) => {
-				menu.addItem((item) => {
-					item.setTitle(opt.text)
-						.setChecked(this.sortField === opt.value)
-						.onClick(() => {
-							this.sortField = opt.value;
-							this.applyFilters();
-							this.renderGrid();
-						});
-				});
-			});
-			menu.showAtMouseEvent(evt);
-		};
-
-		const sortOrderBtn = sortControlsEl.createEl("button", {
-			cls: "clickable-icon",
-			attr: { "aria-label": this.sortOrder === "desc" ? "降序" : "升序" },
-		});
-		this.updateSortOrderButton(sortOrderBtn);
-		sortOrderBtn.onclick = () => {
-			this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
-			this.updateSortOrderButton(sortOrderBtn);
-			this.applyFilters();
-			this.renderGrid();
-		};
+	private selectView(id: string): void {
+		if (!this.views.some((view) => view.id === id)) return;
+		const previousMappings = JSON.stringify(this.getActiveView().mappings ?? []);
+		this.activeViewId = id;
+		this.applyViewState();
+		this.viewport?.setItems([]);
+		this.setMultiSelectMode(false);
+		if (previousMappings !== JSON.stringify(this.getActiveView().mappings ?? [])) void this.loadImages();
+		else this.updateQueryResult();
 	}
 
-	private updateSortOrderButton(button: HTMLElement): void {
-		button.empty();
-		if (this.sortOrder === "desc") {
-			setIcon(button, "arrow-down");
-			button.setAttribute("aria-label", "降序");
-		} else {
-			setIcon(button, "arrow-up");
-			button.setAttribute("aria-label", "升序");
-		}
+	private applyViewState(): void {
+		const view = this.getActiveView();
+		this.cardProperties = orderProperties(view.properties ?? ["name", "size", "mtime"]);
+		this.sortRules = (view.sort ?? [{ field: "mtime", order: "desc" }]).map((rule) => ({ ...rule }));
+		this.layoutMode = view.layout === "masonry" ? "masonry" : "grid";
+		this.imageLoader.setCustomFileTypes(view.mappings ?? []);
+		this.contentEl?.toggleClass("afm-manager-no-svg-invert", view.invertSvgInDarkMode === false);
+		if (this.viewport && this.renderedLayoutMode !== this.layoutMode) this.createViewport();
+		else this.viewport?.setMinimumItemWidth(this.cardSize);
+	}
+
+	private getActiveView(): ImageFilterPreset {
+		return this.views.find((view) => view.id === this.activeViewId) ?? this.views[0];
 	}
 
 	private renderOptionsPanel(): void {
 		this.optionsContainer.empty();
-
-		// 多选模式下隐藏所有选项
-		if (this.isMultiSelectMode) {
-			this.optionsContainer.addClass("is-hidden");
-			return;
-		}
-
-		this.optionsContainer.removeClass("is-hidden");
-
-		// 位置选择
-		const positionGroup = this.optionsContainer.createDiv("option-group");
+		this.optionsContainer.toggleClass("is-hidden", this.isMultiSelectMode);
+		if (this.isMultiSelectMode) return;
+		const positionGroup = this.optionsContainer.createDiv("option-group mod-position");
 		positionGroup.createSpan({ text: "位置:", cls: "option-label" });
 		new DropdownComponent(positionGroup)
 			.addOption("center", "居中")
@@ -310,52 +197,83 @@ export class ImagePickerModal extends Modal {
 			.addOption("right", "右侧环绕")
 			.addOption("inline", "行间")
 			.setValue(this.imagePosition)
-			.onChange((value) => {
-				this.imagePosition = value as ImagePosition;
-			});
-
-		// 反色选项
-		const invertGroup = this.optionsContainer.createDiv("option-group");
+			.onChange((value) => { this.imagePosition = value as ImagePosition; });
+		const invertGroup = this.optionsContainer.createDiv("option-group mod-invert");
 		invertGroup.createSpan({ text: "反色:", cls: "option-label" });
-		const toggleContainer = invertGroup.createDiv("option-toggle");
-		new ToggleComponent(toggleContainer)
+		new ToggleComponent(invertGroup.createDiv("option-toggle"))
 			.setValue(this.invertColor)
-			.onChange((value) => {
-				this.invertColor = value;
-			});
-
-		// 标题输入
-		const captionGroup = this.optionsContainer.createDiv("option-group");
+			.onChange((value) => { this.invertColor = value; });
+		const captionGroup = this.optionsContainer.createDiv("option-group mod-caption");
 		captionGroup.createSpan({ text: "标题:", cls: "option-label" });
 		new TextComponent(captionGroup)
 			.setPlaceholder("输入图片标题 (可选)")
 			.setValue(this.imageCaption)
-			.onChange((value) => {
-				this.imageCaption = value;
-			});
+			.onChange((value) => { this.imageCaption = value; });
+	}
+
+	private async loadImages(): Promise<void> {
+		if (this.isLoading) {
+			this.loadPending = true;
+			return;
+		}
+		this.isLoading = true;
+		this.renderGrid();
+		try {
+			this.images = await this.imageLoader.loadImagesTimeSliced("");
+			if (this.isClosed) return;
+			this.images = await this.referenceChecker.checkReferences(this.images);
+			if (this.isClosed) return;
+			this.updateQueryResult();
+		} catch (error) {
+			new Notice(`加载附件失败: ${error instanceof Error ? error.message : String(error)}`);
+		} finally {
+			this.isLoading = false;
+			if (!this.isClosed) {
+				this.renderGrid();
+				if (this.loadPending) {
+					this.loadPending = false;
+					void this.loadImages();
+				}
+			}
+		}
+	}
+
+	private updateQueryResult(): void {
+		const view = this.getActiveView();
+		this.filteredImages = filterAndSortImages(this.images, {
+			query: this.searchQuery,
+			unreferencedOnly: view.unreferencedOnly === true,
+			filter: view,
+			sortField: this.sortRules[0]?.field ?? "name",
+			sortOrder: this.sortRules[0]?.order ?? "asc",
+			sortRules: this.sortRules,
+		});
+		this.toolbar?.update(this.getToolbarState());
+		this.renderGrid();
 	}
 
 	private renderGrid(): void {
-		if (!this.viewportGrid) return;
+		if (!this.viewport) return;
 		this.gridStateEl.empty();
 		if (this.isLoading) {
 			this.gridEl.hide();
-			this.viewportGrid.setItems([]);
-			const loadingEl = this.gridStateEl.createDiv("image-manager-loading-state");
-			loadingEl.createDiv("image-manager-loading-spinner");
-			loadingEl.createSpan({ text: "加载中..." });
+			this.viewport.setItems([]);
+			const loading = this.gridStateEl.createDiv("image-manager-loading-state");
+			loading.createDiv("image-manager-loading-spinner");
+			loading.createSpan({ text: "正在加载附件..." });
 			return;
 		}
-
 		if (this.filteredImages.length === 0) {
 			this.gridEl.hide();
-			this.viewportGrid.setItems([]);
-			const emptyEl = this.gridStateEl.createDiv("image-manager-empty-state");
-			emptyEl.createSpan({ text: this.images.length === 0 ? "没有找到图片" : "没有符合条件的图片" });
+			this.viewport.setItems([]);
+			this.gridStateEl.createDiv({
+				cls: "image-manager-empty-state",
+				text: this.images.length === 0 ? "没有找到附件" : "没有符合条件的附件",
+			});
 			return;
 		}
 		this.gridEl.show();
-		this.viewportGrid.setItems(this.filteredImages);
+		this.viewport.setItems(this.filteredImages);
 	}
 
 	private createImageController(image: ImageItem): PickerImageController {
@@ -364,18 +282,18 @@ export class ImagePickerModal extends Modal {
 			this.app,
 			this.modalEl.ownerDocument,
 			image,
-			this.settings,
+			this.cardProperties,
 			this.isMultiSelectMode && this.selectedImages.has(image.path),
 			(card) => {
-				const currentImage = controller.item;
+				const current = controller.item;
 				if (!this.isMultiSelectMode) {
-					this.handleImageSelect(currentImage);
+					this.insertSingle(current);
 					return;
 				}
-				if (this.selectedImages.has(currentImage.path)) this.selectedImages.delete(currentImage.path);
-				else this.selectedImages.add(currentImage.path);
-				card.toggleClass("image-manager-item-selected", this.selectedImages.has(currentImage.path));
-				this.renderHeader();
+				if (this.selectedImages.has(current.path)) this.selectedImages.delete(current.path);
+				else this.selectedImages.add(current.path);
+				card.toggleClass("image-manager-item-selected", this.selectedImages.has(current.path));
+				this.toolbar?.update(this.getToolbarState());
 			},
 		);
 		controller = {
@@ -386,90 +304,84 @@ export class ImagePickerModal extends Modal {
 			loadMedia: () => {
 				const source = imageEl?.dataset.src;
 				if (!imageEl || !source) return;
-				imageEl.onload = () => imageEl.addClass("is-loaded");
-				imageEl.src = source;
+				imageEl.onload = () => {
+					imageEl.addClass("is-loaded");
+					if (this.viewport instanceof ViewportMasonry && imageEl.naturalHeight > 0) {
+						this.viewport.setItemAspectRatio(controller.item.path, imageEl.naturalWidth / imageEl.naturalHeight);
+					}
+				};
+				this.thumbnailService.load(imageEl, source, controller.item.displayFile.extension.toLowerCase());
 				delete imageEl.dataset.src;
 			},
 		};
 		return controller;
 	}
 
-	private loadImages(): void {
-		if (this.isLoading) return;
-
-		this.isLoading = true;
-		this.renderGrid();
-
-		try {
-			this.images = this.imageLoader.loadImages(this.selectedFolder);
-			this.applyFilters();
-			this.renderHeader();
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			new Notice(`加载图片失败: ${message}`);
-		} finally {
-			this.isLoading = false;
-			this.renderGrid();
-		}
+	private setMultiSelectMode(enabled: boolean): void {
+		this.isMultiSelectMode = enabled;
+		if (!enabled) this.selectedImages.clear();
+		this.contentEl.toggleClass("is-multi-select", enabled);
+		this.renderOptionsPanel();
+		this.toolbar?.update(this.getToolbarState());
+		this.viewport?.refreshVisible();
 	}
 
-	private applyFilters(): void {
-		this.filteredImages = filterAndSortImages(this.images, {
-			query: this.searchQuery,
-			unreferencedOnly: false,
-			sortField: this.sortField,
-			sortOrder: this.sortOrder,
-		});
-	}
-
-	private handleImageSelect(image: ImageItem): void {
-		const imageLink = buildImageLink(this.app.metadataCache, image.originalFile, this.sourcePath, {
+	private insertSingle(image: ImageItem): void {
+		const file = image.isCustomType ? image.displayFile : image.originalFile;
+		const link = buildImageLink(this.app.metadataCache, file, this.sourcePath, {
 			position: this.imagePosition,
 			dark: this.invertColor,
 			caption: this.imageCaption,
 		});
-
-		this.targetEditor.replaceSelection(imageLink);
+		this.targetEditor.replaceSelection(link);
 		this.close();
 	}
 
-	/**
-	 * 处理 Grid 格式插入
-	 */
 	private handleGridInsert(): void {
-		if (this.selectedImages.size === 0) {
-			new Notice("请至少选择一张图片");
-			return;
-		}
-
-		// 构建 Grid Callout 格式
-		const imageLinks = Array.from(this.selectedImages)
-			.map((path) => this.app.vault.getFileByPath(path))
-			.filter((file): file is import("obsidian").TFile => file !== null)
+		if (this.selectedImages.size === 0) return;
+		const links = Array.from(this.selectedImages)
+			.map((path) => this.images.find((image) => image.path === path))
+			.filter((image): image is ImageItem => Boolean(image))
+			.map((image) => image.isCustomType ? image.displayFile : image.originalFile)
 			.map((file) => `![[${this.app.metadataCache.fileToLinktext(file, this.sourcePath)}]]`)
-			.join('\n');
-
-		const gridContent = `> [!grid]\n> ${imageLinks.split('\n').join('\n> ')}`;
-
-		this.targetEditor.replaceSelection(gridContent);
+			.join("\n");
+		this.targetEditor.replaceSelection(`> [!grid]\n> ${links.split("\n").join("\n> ")}`);
 		this.close();
-	}
-
-	private refresh(): void {
-		this.loadImages();
 	}
 
 	onClose(): void {
-		this.viewportGrid?.destroy();
-		this.viewportGrid = null;
+		this.isClosed = true;
+		this.toolbar?.destroy();
+		this.toolbar = null;
+		this.viewport?.destroy();
+		this.viewport = null;
 		this.mediaLoader?.destroy();
 		this.mediaLoader = null;
-		const { contentEl } = this;
-		contentEl.empty();
-
-		if (this.folderSuggest) {
-			this.folderSuggest.close();
-			this.folderSuggest = null;
-		}
+		this.thumbnailService.destroy();
+		this.contentEl.empty();
 	}
+}
+
+function cloneView(view: ImageFilterPreset): ImageFilterPreset {
+	return JSON.parse(JSON.stringify(view)) as ImageFilterPreset;
+}
+
+function createFallbackView(settings: ImageManagerSettings): ImageFilterPreset {
+	return {
+		id: "picker-default",
+		name: "视图",
+		icon: "layout-grid",
+		cardSize: 200,
+		layout: "grid",
+		invertSvgInDarkMode: settings.invertSvgInDarkMode !== false,
+		properties: settings.allViewProperties ?? ["name", "size", "mtime"],
+		sort: settings.allViewSort ?? [{ field: "mtime", order: "desc" }],
+		filter: { id: "picker-filter", match: "all", children: [] },
+		mappings: [],
+	};
+}
+
+function orderProperties(properties: readonly ImageCardProperty[]): ImageCardProperty[] {
+	const selected = new Set(properties);
+	return IMAGE_CARD_PROPERTY_ORDER.filter((property) => selected.has(property));
 }

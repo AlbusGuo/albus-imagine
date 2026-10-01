@@ -3,7 +3,7 @@
  */
 
 import { App, MarkdownView, Notice, TFile } from "obsidian";
-import { ImageItem, SUPPORTED_IMAGE_EXTENSIONS } from "../types/image-manager.types";
+import { ImageItem } from "../types/image-manager.types";
 import { getCoverPath, joinVaultPath, normalizeVaultFolder } from "../utils/vaultPaths";
 import { DesktopIntegrationService } from "./DesktopIntegrationService";
 
@@ -15,16 +15,10 @@ export class FileOperationService {
 	}
 
 	/**
-	 * 打开文件 (图片用系统默认应用, 其他用 Obsidian 内部打开)
+	 * 使用系统默认应用打开源附件.
 	 */
 	openFile(image: ImageItem): void {
-		const ext = image.originalFile.extension.toLowerCase();
-		if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-			this.desktop.openWithDefaultApp(image.originalFile);
-		} else {
-			const leaf = this.app.workspace.getLeaf(false);
-			void leaf.openFile(image.originalFile);
-		}
+		this.desktop.openWithDefaultApp(image.originalFile);
 	}
 
 	/**

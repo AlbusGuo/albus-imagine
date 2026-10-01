@@ -4,6 +4,7 @@
 
 export const IMAGE_VIEWER_CLASS = {
 	CONTAINER: 'afm-img-viewer-container',
+	BACKGROUND: 'afm-img-viewer-background',
 	IMG_CONTAINER: 'afm-img-container',
 	IMG_VIEW: 'afm-img-view',
 };

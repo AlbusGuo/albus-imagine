@@ -17,18 +17,20 @@ export interface ImageResizeSettings {
 /**
  * 图片查看器设置接口
  */
+export type ImageClickBehavior = "obsidian" | "disabled" | "imagine";
+
 export interface ImageViewerSettings {
-	/** 是否启用图片查看器 */
+	/** 是否启用 Ctrl+Click 图片查看器 */
 	enabled: boolean;
-	/** 是否阻止 Obsidian 内置的点击图片查看器 */
-	disableNativeImageViewer: boolean;
+	/** 普通单击 Markdown 图片时的查看行为 */
+	clickBehavior: ImageClickBehavior;
 }
 
 export interface IPluginSettings {
 	imageManager?: ImageManagerSettings;
 	imageResize?: ImageResizeSettings;
 	imageViewer?: ImageViewerSettings;
-	settingsTab?: "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER";
+	settingsTab?: "IMAGE_RESIZE" | "IMAGE_VIEWER";
 }
 
 const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
@@ -40,23 +42,25 @@ const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
 
 const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {
 	enabled: true,
-	disableNativeImageViewer: false,
+	clickBehavior: "obsidian",
 };
 
 export const DEFAULT_SETTINGS: IPluginSettings = {
 	imageManager: {
 		folderPath: "",
 		lastSelectedFolder: "",
-		showFileSize: true,
-		showModifiedTime: true,
-		confirmDelete: true,
 		invertSvgInDarkMode: true,
 		customFileTypes: [],
-		defaultSortField: "mtime",
-		defaultSortOrder: "desc",
-		excludedFolders: [],
+		filterPresets: [],
+		activeFilterId: "view-default",
+		viewsMigrated: false,
+		allViewProperties: ["name", "size", "mtime"],
+		allViewSort: [{ field: "mtime", order: "desc" }],
+		allViewFilterMatch: "all",
+		allViewFilterRules: [],
+		allViewUnreferencedOnly: false,
 	},
 	imageResize: DEFAULT_IMAGE_RESIZE_SETTINGS,
 	imageViewer: DEFAULT_IMAGE_VIEWER_SETTINGS,
-	settingsTab: "IMAGE_MANAGER",
+	settingsTab: "IMAGE_RESIZE",
 };

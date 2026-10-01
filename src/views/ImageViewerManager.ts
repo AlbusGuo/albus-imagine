@@ -32,6 +32,11 @@ export class ImageViewerManager {
 		this.refreshViewTrigger();
 	}
 
+	open(sourceImage: HTMLImageElement, force = false): void {
+		if (!this.viewer) this.viewer = new ImageViewerView(this.settings);
+		this.viewer.open(sourceImage, force);
+	}
+
 	/**
 	 * 检查是否可点击 (必须按住 Ctrl 键且查看器已启用)
 	 */
@@ -59,6 +64,19 @@ export class ImageViewerManager {
 		);
 	}
 
+	private getToolbarViewerImage(target: EventTarget | null, doc: Document): HTMLImageElement | null {
+		if (!target || (target as Node).nodeType !== 1) return null;
+		const targetEl = target as Element;
+		if (targetEl.ownerDocument !== doc) return null;
+		const actionEl = targetEl.closest<HTMLElement>(".embed-actions .embed-action");
+		if (!actionEl || !actionEl.querySelector("svg.lucide-zoom-in")) return null;
+		const embedEl = actionEl.closest<HTMLElement>(".image-embed");
+		if (!embedEl?.closest(".markdown-source-view, .markdown-preview-view, .markdown-rendered")) {
+			return null;
+		}
+		return embedEl.querySelector<HTMLImageElement>(".image-wrapper img, img");
+	}
+
 	/**
 	 * 刷新视图触发器 (设置事件监听)
 	 */
@@ -71,13 +89,13 @@ export class ImageViewerManager {
 		this.registeredDocs.add(doc);
 
 		doc.removeEventListener('click', this.clickImageCapture, true);
-		doc.removeEventListener('click', this.disableNativeViewerCapture, true);
+		doc.removeEventListener('click', this.handleOrdinaryClickCapture, true);
 		doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 
 		if (this.settings.enabled) doc.addEventListener('click', this.clickImageCapture, true);
-		if (this.settings.disableNativeImageViewer) {
+		if (this.settings.clickBehavior !== "obsidian") {
 			doc.addEventListener('mousedown', this.preserveSelectedImageFocus, true);
-			doc.addEventListener('click', this.disableNativeViewerCapture, true);
+			doc.addEventListener('click', this.handleOrdinaryClickCapture, true);
 		}
 	}
 
@@ -98,9 +116,17 @@ export class ImageViewerManager {
 		}
 	};
 
-	/** Obsidian's image click handler explicitly skips default-prevented clicks. */
-	private disableNativeViewerCapture = (event: MouseEvent): void => {
+	/** Apply the configured ordinary-click behavior before Obsidian handles the image. */
+	private handleOrdinaryClickCapture = (event: MouseEvent): void => {
 		const document = event.currentTarget as Document;
+		const toolbarImage = this.getToolbarViewerImage(event.target, document);
+		if (toolbarImage && event.button === 0) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+			if (this.settings.clickBehavior === "imagine") this.viewer?.open(toolbarImage);
+			return;
+		}
 		const image = this.isMarkdownImage(event.target, document) ? event.target : null;
 		if (
 			!image ||
@@ -112,21 +138,29 @@ export class ImageViewerManager {
 		) return;
 
 		if (image.closest(".markdown-source-view")) {
-			// 实时预览首次点击仍可选择图片; 仅阻止选中后的再次点击打开灯箱.
+			// 实时预览首次点击仍用于选择图片; 仅接管选中后的再次点击.
 			if (!image.closest(".image-embed")?.hasClass("is-selected")) return;
 			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+			if (this.settings.clickBehavior === "imagine") this.viewer?.open(image);
 			return;
 		}
 
-		// 阅读模式的媒体委托不检查 defaultPrevented, 必须阻断事件传播.
+		// 阅读模式的媒体委托不检查 defaultPrevented, 因此必须阻断传播.
 		event.preventDefault();
 		event.stopPropagation();
 		event.stopImmediatePropagation();
+		if (this.settings.clickBehavior === "imagine") this.viewer?.open(image);
 	};
 
 	/** Prevent the browser's mousedown focus transfer before the blocked click. */
 	private preserveSelectedImageFocus = (event: MouseEvent): void => {
 		const document = event.currentTarget as Document;
+		if (event.button === 0 && this.getToolbarViewerImage(event.target, document)) {
+			event.preventDefault();
+			return;
+		}
 		const image = this.isMarkdownImage(event.target, document) ? event.target : null;
 		if (
 			image &&
@@ -148,7 +182,7 @@ export class ImageViewerManager {
 	cleanup(): void {
 		this.registeredDocs.forEach(doc => {
 			doc.removeEventListener('click', this.clickImageCapture, true);
-			doc.removeEventListener('click', this.disableNativeViewerCapture, true);
+			doc.removeEventListener('click', this.handleOrdinaryClickCapture, true);
 			doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 		});
 		this.registeredDocs.clear();

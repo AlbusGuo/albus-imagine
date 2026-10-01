@@ -1,13 +1,21 @@
-import { App, setIcon } from "obsidian";
-import { ImageItem, ImageManagerSettings } from "../types/image-manager.types";
+import { App, Menu, setIcon } from "obsidian";
+import { ImageCardProperty, ImageItem } from "../types/image-manager.types";
+import {
+	getImageCardDetailProperties,
+	renderImageCardInfo,
+	renderImageFormatBadge,
+} from "./ImageCardProperties";
 
 interface ImageManagerCardActions {
 	isSelected: (path: string) => boolean;
 	isMultiSelect: () => boolean;
 	onToggleSelection: (image: ImageItem, element: HTMLElement) => void;
-	onPreview: (image: ImageItem) => void;
+	onPreview: (image: ImageItem, sourceImage: HTMLImageElement) => void;
+	onOpenReferences: (image: ImageItem, anchor: HTMLElement) => void;
 	onOpen: (image: ImageItem) => void;
 	onRename: (image: ImageItem) => void;
+	onCopyLink: (image: ImageItem) => void;
+	onCopyImage: (image: ImageItem) => void;
 	onMove: (image: ImageItem) => void;
 	onDelete: (image: ImageItem) => void;
 }
@@ -15,27 +23,48 @@ interface ImageManagerCardActions {
 interface ImageManagerCardController {
 	element: HTMLElement;
 	imageEl: HTMLImageElement | null;
+	closeMenus: () => void;
+	dispose: () => void;
 }
 
 export function createImageManagerCard(
 	app: App,
 	document: Document,
 	image: ImageItem,
-	settings: ImageManagerSettings,
+	properties: readonly ImageCardProperty[],
 	actions: ImageManagerCardActions,
 ): ImageManagerCardController {
 	const itemEl = document.win.createDiv();
 	itemEl.addClass("image-manager-grid-item");
+	itemEl.setCssProps({
+		"--afm-manager-property-count": String(getImageCardDetailProperties(properties).length),
+	});
+	itemEl.toggleClass("image-manager-show-references", properties.includes("references"));
+	itemEl.tabIndex = 0;
+	itemEl.setAttribute("role", "button");
 	itemEl.dataset.path = image.path;
 	itemEl.toggleClass("image-manager-item-selected", actions.isSelected(image.path));
+	let imageEl: HTMLImageElement | null = null;
 	const activate = () => {
 		if (actions.isMultiSelect()) actions.onToggleSelection(image, itemEl);
-		else actions.onPreview(image);
+		else if (imageEl) actions.onPreview(image, imageEl);
 	};
+	itemEl.addEventListener("keydown", (event) => {
+		if (event.isComposing || event.defaultPrevented) return;
+		const target = event.target as Element | null;
+		if (target?.closest?.("button")) return;
+		if (event.key !== "Enter" && event.key !== " ") return;
+		event.preventDefault();
+		activate();
+	});
 
 	const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 	thumbnailEl.onclick = activate;
-	let imageEl: HTMLImageElement | null = null;
+	const selectionIndicator = thumbnailEl.createSpan({
+		cls: "image-manager-selection-indicator",
+		attr: { "aria-hidden": "true" },
+	});
+	setIcon(selectionIndicator, "check");
 	if (image.coverMissing) {
 		createUnavailableState(thumbnailEl, "file-x", "封面缺失");
 	} else {
@@ -58,39 +87,77 @@ export function createImageManagerCard(
 	}
 
 	const actionBar = thumbnailEl.createDiv("image-manager-image-actions");
-	createAction(actionBar, "folder-open", "打开", "image-manager-open-button", () => actions.onOpen(image));
+	let moreMenu: Menu | null = null;
+	let lastMoreMenuCloseTime = 0;
+	createAction(actionBar, "file", "打开文件", "image-manager-open-button", () => actions.onOpen(image));
 	createAction(actionBar, "pencil", "重命名", "image-manager-rename-button", () => actions.onRename(image));
-	createAction(actionBar, "folder-tree", "移动", "image-manager-move-button", () => actions.onMove(image));
-	createAction(actionBar, "trash-2", "删除", "image-manager-delete-button", () => actions.onDelete(image));
+	createAction(actionBar, "copy", "复制图片", "image-manager-copy-image-button", () => actions.onCopyImage(image));
+	createAction(actionBar, "link", "复制图片链接", "image-manager-copy-link-button", () => actions.onCopyLink(image));
+	const moreButton = createAction(
+		actionBar,
+		"ellipsis",
+		"更多",
+		"image-manager-more-button",
+		(event) => {
+			if (moreMenu) {
+				moreMenu.close();
+				return;
+			}
+			if (performance.now() - lastMoreMenuCloseTime < 250) return;
+			const menu = new Menu().setParentElement(moreButton);
+			moreMenu = menu;
+			itemEl.addClass("has-open-action-menu");
+			menu.onHide(() => {
+				if (moreMenu !== menu) return;
+				moreMenu = null;
+				lastMoreMenuCloseTime = performance.now();
+				itemEl.removeClass("has-open-action-menu");
+				moreButton.removeClass("has-active-menu");
+			});
+			menu.addItem((item) => item
+				.setTitle("移动")
+				.setIcon("folder-tree")
+				.setSection("action")
+				.onClick(() => actions.onMove(image)));
+			menu.addItem((item) => item
+				.setTitle("删除")
+				.setIcon("trash-2")
+				.setSection("action")
+				.onClick(() => actions.onDelete(image)));
+			menu.showAtMouseEvent(event);
+		},
+	);
 
-	const formatBadge = thumbnailEl.createDiv({
-		text: image.originalFile.extension.toUpperCase(),
-		cls: "image-manager-format-badge",
-	});
-	formatBadge.addClass(image.isCustomType ? "image-manager-agx-format" : "image-manager-other-format");
-	if (image.references !== undefined) updateImageManagerReferenceBadge(itemEl, image);
+	if (properties.includes("extension")) renderImageFormatBadge(thumbnailEl, image);
+	if (properties.includes("references") && image.references !== undefined) {
+		updateImageManagerReferenceBadge(itemEl, image, (anchor) => actions.onOpenReferences(image, anchor));
+	}
 
-	const infoEl = itemEl.createDiv("image-manager-image-info");
-	infoEl.onclick = (event) => {
-		event.stopPropagation();
-		activate();
+	const infoEl = renderImageCardInfo(itemEl, image, properties);
+	if (infoEl) {
+		infoEl.onclick = (event) => {
+			event.stopPropagation();
+			activate();
+		};
+	}
+	const closeMenus = (): void => moreMenu?.close();
+	return {
+		element: itemEl,
+		imageEl,
+		closeMenus,
+		dispose: closeMenus,
 	};
-	infoEl.createDiv({ text: image.name, cls: "image-manager-image-name", attr: { title: image.path } });
-	const metaEl = infoEl.createDiv("image-manager-image-meta");
-	if (settings.showFileSize) {
-		metaEl.createSpan({ text: formatFileSize(image.stat.size), cls: "image-manager-meta-item image-manager-meta-size" });
-	}
-	if (settings.showModifiedTime) {
-		metaEl.createSpan({ text: new Date(image.stat.mtime).toLocaleDateString(), cls: "image-manager-meta-item image-manager-meta-date" });
-	}
-	return { element: itemEl, imageEl };
 }
 
-export function updateImageManagerReferenceBadge(itemEl: HTMLElement, image: ImageItem): void {
+export function updateImageManagerReferenceBadge(
+	itemEl: HTMLElement,
+	image: ImageItem,
+	onOpen?: (anchor: HTMLElement) => void,
+): void {
 	const thumbnailEl = itemEl.querySelector<HTMLElement>(".image-manager-thumbnail");
 	if (!thumbnailEl) return;
 	const existing = thumbnailEl.querySelector<HTMLElement>(".image-manager-reference-badge");
-	if (image.references === undefined) {
+	if (!itemEl.hasClass("image-manager-show-references") || image.references === undefined) {
 		existing?.remove();
 		return;
 	}
@@ -98,6 +165,31 @@ export function updateImageManagerReferenceBadge(itemEl: HTMLElement, image: Ima
 	const badge = existing ?? thumbnailEl.createDiv("image-manager-reference-badge");
 	badge.setText(count === 0 ? "未引用" : `${count} 引用`);
 	badge.toggleClass("image-manager-reference-badge-has-refs", count > 0);
+	badge.toggleClass("is-interactive", Boolean(onOpen));
+	badge.onclick = onOpen ? (event) => {
+		event.stopPropagation();
+		onOpen(badge);
+	} : null;
+	badge.onkeydown = onOpen ? (event) => {
+		if (event.isComposing || event.defaultPrevented) return;
+		if (event.key !== "Enter" && event.key !== " ") return;
+		event.preventDefault();
+		event.stopPropagation();
+		onOpen(badge);
+	} : null;
+	if (onOpen) {
+		badge.tabIndex = 0;
+		badge.setAttribute("role", "button");
+		badge.setAttribute("aria-label", count === 0 ? "没有引用笔记" : `查看 ${count} 个引用`);
+	} else {
+		badge.removeAttribute("tabindex");
+		badge.removeAttribute("role");
+		badge.removeAttribute("aria-label");
+	}
+}
+
+export function updateImageManagerSelectionState(itemEl: HTMLElement, selected: boolean): void {
+	itemEl.toggleClass("image-manager-item-selected", selected);
 }
 
 function createUnavailableState(container: HTMLElement, icon: string, text: string): void {
@@ -113,8 +205,8 @@ function createAction(
 	icon: string,
 	label: string,
 	className: string,
-	callback: () => void,
-): void {
+	callback: (event: MouseEvent) => void,
+): HTMLButtonElement {
 	const button = container.createEl("button", {
 		cls: `image-manager-action-button ${className} clickable-icon`,
 		attr: { "aria-label": label },
@@ -122,12 +214,7 @@ function createAction(
 	setIcon(button, icon);
 	button.onclick = (event) => {
 		event.stopPropagation();
-		callback();
+		callback(event);
 	};
-}
-
-function formatFileSize(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	return button;
 }

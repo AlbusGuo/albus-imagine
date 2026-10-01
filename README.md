@@ -191,7 +191,7 @@ When the viewer is enabled, hold `Ctrl` and select an image to open it. The view
 - Selecting the background or pressing `Escape` to close.
 - A checkerboard background for images with transparency.
 
-An optional setting disables Obsidian's built-in single-click image viewer while preserving normal image selection, context menus, resizing, and Imagine's `Ctrl`-click viewer.
+The ordinary-click setting can keep Obsidian's viewer, suppress ordinary-click viewing, or replace Obsidian's viewer with Imagine. In Live Preview, the same choice also controls the zoom button in Obsidian's selected-image toolbar. Image selection, context menus, resizing, and the independent `Ctrl`-click shortcut remain available.
 
 ## Custom file types
 
@@ -240,8 +240,8 @@ Imagine keeps the same tabbed settings interface across supported Obsidian versi
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
-| Enable image viewer | On | Enable Imagine's `Ctrl`-click viewer |
-| Disable built-in click viewer | Off | Block Obsidian's ordinary single-click image viewer |
+| Enable Ctrl-click viewer | On | Enable Imagine's independent `Ctrl`-click shortcut |
+| Ordinary image click | Obsidian viewer | Use Obsidian's viewer, open nothing, or use Imagine's viewer |
 
 ### Custom file types (Image manager)
 

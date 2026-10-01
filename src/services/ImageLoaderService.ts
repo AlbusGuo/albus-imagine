@@ -14,7 +14,8 @@ import { ImageCatalogService } from "./ImageCatalogService";
 
 export class ImageLoaderService {
 	private customFileTypes: CustomFileTypeConfig[] = [];
-	private excludedFolders: string[] = [];
+	private customFileTypeByExtension = new Map<string, CustomFileTypeConfig>();
+	private coverOwnerByPath = new Map<string, string>();
 
 	constructor(
 		private app: App,
@@ -33,13 +34,9 @@ export class ImageLoaderService {
 			seenExtensions.add(fileExtension);
 			return [{ ...type, fileExtension, coverExtension }];
 		});
-	}
-
-	/**
-	 * 设置排除的文件夹列表
-	 */
-	setExcludedFolders(folders: string[]): void {
-		this.excludedFolders = Array.from(new Set(folders.map(normalizeVaultFolder).filter(Boolean)));
+		this.customFileTypeByExtension = new Map(
+			this.customFileTypes.map((config) => [config.fileExtension, config]),
+		);
 	}
 
 	/**
@@ -49,59 +46,83 @@ export class ImageLoaderService {
 		folderPath: string
 	): ImageItem[] {
 		const normalizedFolderPath = normalizeVaultFolder(folderPath);
-		const customTypeByExtension = new Map(this.customFileTypes.map((config) => [config.fileExtension, config]));
-		const candidateExtensions = new Set<string>(SUPPORTED_IMAGE_EXTENSIONS);
-		for (const config of this.customFileTypes) {
-			candidateExtensions.add(config.fileExtension);
-			candidateExtensions.add(config.coverExtension);
-		}
-		const allFiles = this.catalog.getFilesByExtensions(candidateExtensions);
-
-		// 找出所有自定义文件类型及其对应的封面文件
-		const usedCoverPaths = new Set<string>();
-		for (const file of allFiles) {
-			const config = customTypeByExtension.get(file.extension.toLowerCase());
-			if (config) usedCoverPaths.add(getCoverPath(file.path, config));
-		}
-
-		// 筛选图片文件
-		const imageFiles = allFiles.filter((file) => {
-			// 排除文件夹逻辑
-			for (const excludedFolder of this.excludedFolders) {
-				if (file.path.startsWith(excludedFolder + "/") || file.path === excludedFolder) {
-					return false;
-				}
-			}
-
-			// 文件夹筛选逻辑
-			let inFolder = true;
-			if (normalizedFolderPath) {
-				inFolder =
-					file.path.startsWith(normalizedFolderPath + "/") ||
-					file.path === normalizedFolderPath;
-			}
-
-			// 文件类型筛选
-			const extension = file.extension.toLowerCase();
-			const isImage = SUPPORTED_IMAGE_EXTENSIONS.includes(
-				extension as ImageExtension
-			);
-
-			// 检查是否为自定义文件类型
-			const isCustomType = customTypeByExtension.has(extension);
-
-			// 如果是封面文件且已被自定义类型使用, 则跳过
-			if (usedCoverPaths.has(file.path)) {
-				return false;
-			}
-
-			return inFolder && (isImage || isCustomType);
-		});
-
-		// 处理 AGX 文件和自定义文件类型的封面
+		const allFiles = this.getCandidateFiles();
+		this.rebuildCoverOwners(allFiles);
+		const imageFiles = allFiles.filter((file) => this.shouldIncludeInFolder(file, normalizedFolderPath));
 		return Array.from(
 			new Map(imageFiles.map((file) => [file.path, this.processImageFile(file)])).values()
 		);
+	}
+
+	async loadImagesTimeSliced(folderPath: string): Promise<ImageItem[]> {
+		const normalizedFolderPath = normalizeVaultFolder(folderPath);
+		const allFiles = this.getCandidateFiles();
+		const coverOwners = new Map<string, string>();
+		let sliceStarted = performance.now();
+		for (let index = 0; index < allFiles.length; index += 1) {
+			const file = allFiles[index];
+			const config = this.customFileTypeByExtension.get(file.extension.toLowerCase());
+			if (config) coverOwners.set(getCoverPath(file.path, config), file.path);
+			if ((index + 1) % 100 === 0 && performance.now() - sliceStarted > 8) {
+				await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+				sliceStarted = performance.now();
+			}
+		}
+		this.coverOwnerByPath = coverOwners;
+		const result = new Map<string, ImageItem>();
+		for (let index = 0; index < allFiles.length; index += 1) {
+			const file = allFiles[index];
+			if (this.shouldIncludeInFolder(file, normalizedFolderPath)) {
+				result.set(file.path, this.processImageFile(file));
+			}
+			if ((index + 1) % 100 === 0 && performance.now() - sliceStarted > 8) {
+				await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+				sliceStarted = performance.now();
+			}
+		}
+		return Array.from(result.values());
+	}
+
+	isCustomSource(file: TFile): boolean {
+		return this.customFileTypeByExtension.has(file.extension.toLowerCase());
+	}
+
+	isKnownCover(path: string): boolean {
+		return this.coverOwnerByPath.has(path);
+	}
+
+	shouldInclude(file: TFile): boolean {
+		if (this.isKnownCover(file.path)) return false;
+		const extension = file.extension.toLowerCase();
+		return SUPPORTED_IMAGE_EXTENSIONS.includes(extension as ImageExtension) ||
+			this.customFileTypeByExtension.has(extension);
+	}
+
+	createImageItem(file: TFile): ImageItem {
+		return this.processImageFile(file);
+	}
+
+	private getCandidateFiles(): TFile[] {
+		const extensions = new Set<string>(SUPPORTED_IMAGE_EXTENSIONS);
+		for (const config of this.customFileTypes) {
+			extensions.add(config.fileExtension);
+			extensions.add(config.coverExtension);
+		}
+		return this.catalog.getFilesByExtensions(extensions);
+	}
+
+	private rebuildCoverOwners(files: readonly TFile[]): void {
+		const coverOwners = new Map<string, string>();
+		for (const file of files) {
+			const config = this.customFileTypeByExtension.get(file.extension.toLowerCase());
+			if (config) coverOwners.set(getCoverPath(file.path, config), file.path);
+		}
+		this.coverOwnerByPath = coverOwners;
+	}
+
+	private shouldIncludeInFolder(file: TFile, folderPath: string): boolean {
+		if (!this.shouldInclude(file)) return false;
+		return !folderPath || file.path === folderPath || file.path.startsWith(`${folderPath}/`);
 	}
 
 	/**
@@ -115,9 +136,7 @@ export class ImageLoaderService {
 		let coverMissing = false;
 
 		// 检查是否为自定义文件类型
-		const matchedConfig = this.customFileTypes.find(
-			(config) => config.fileExtension.toLowerCase() === extension
-		);
+		const matchedConfig = this.customFileTypeByExtension.get(extension);
 		if (matchedConfig) {
 			isCustomType = true;
 			customTypeConfig = matchedConfig;

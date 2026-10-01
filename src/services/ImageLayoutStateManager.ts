@@ -3,10 +3,12 @@ import { Component } from "obsidian";
 const EMBED_SELECTOR = ".image-embed";
 const WRAP_SELECTOR = ".image-embed.afm-wrap-left, .image-embed.afm-wrap-right";
 const LAYOUT_CLASSES = [
+	"afm-align-center",
 	"afm-align-left",
 	"afm-align-right",
 	"afm-wrap-left",
 	"afm-wrap-right",
+	"afm-inline",
 ] as const;
 
 interface DocumentState {
@@ -148,10 +150,12 @@ export class ImageLayoutStateManager extends Component {
 		);
 
 		for (const className of LAYOUT_CLASSES) embed.removeClass(className);
+		if (hasParameter("center")) embed.addClass("afm-align-center");
 		if (hasParameter("align-left")) embed.addClass("afm-align-left");
 		if (hasParameter("align-right")) embed.addClass("afm-align-right");
 		if (hasParameter("left")) embed.addClass("afm-wrap-left");
 		if (hasParameter("right")) embed.addClass("afm-wrap-right");
+		if (hasParameter("inline")) embed.addClass("afm-inline");
 	}
 
 	private updateLine(line: HTMLElement): void {

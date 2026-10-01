@@ -5,11 +5,10 @@
 
 import type CPlugin from "@src/main";
 import { PluginSettingTab, SettingDefinitionItem } from "obsidian";
-import { showImageManagerSettings } from "./image-manager-settings";
 import { showImageResizeSettings } from "./image-resize-settings";
 import { showImageViewerSettings } from "./image-viewer-settings";
 
-type SettingsTabKey = "IMAGE_MANAGER" | "IMAGE_RESIZE" | "IMAGE_VIEWER";
+type SettingsTabKey = "IMAGE_RESIZE" | "IMAGE_VIEWER";
 
 interface SettingsTab {
 	key: SettingsTabKey;
@@ -18,32 +17,22 @@ interface SettingsTab {
 }
 
 const SETTINGS_TABS: SettingsTab[] = [
-	{ key: "IMAGE_MANAGER", name: "图片管理器", render: showImageManagerSettings },
 	{ key: "IMAGE_RESIZE", name: "图片拖拽", render: showImageResizeSettings },
 	{ key: "IMAGE_VIEWER", name: "图片查看器", render: showImageViewerSettings },
 ];
 
 const SETTING_SEARCH_ALIASES = [
-	"图片管理器",
-	"显示文件大小",
-	"显示修改时间",
-	"默认排序字段",
-	"默认排序顺序",
-	"排除文件夹",
-	"删除确认",
-	"深色模式下 SVG 图片反色",
 	"图片拖拽",
 	"启用 callout 外图片拖拽调整大小",
 	"启用 callout 内图片拖拽调整大小",
 	"调整大小的时间间隔",
 	"边缘检测区域大小",
 	"图片查看器",
-	"启用图片查看器",
-	"禁用内置点击查看图片",
-	"自定义文件类型",
-	"文件扩展名",
-	"封面扩展名",
-	"封面文件夹",
+	"启用 Ctrl+单击查看",
+	"普通单击图片",
+	"Obsidian 查看器",
+	"不打开查看器",
+	"Imagine 查看器",
 ];
 
 export class NativePluginSettingTab extends PluginSettingTab {
@@ -64,7 +53,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		return [
 			{
 				name: "Imagine",
-				desc: "图片管理器, 图片拖拽, 图片查看器和自定义文件类型",
+				desc: "图片拖拽和图片查看器",
 				aliases: SETTING_SEARCH_ALIASES,
 				render: (setting) => this.queueCustomRender(setting.settingEl.ownerDocument),
 			},
@@ -103,7 +92,7 @@ export class NativePluginSettingTab extends PluginSettingTab {
 		containerEl.addClass('afm-settings-root');
 
 		// 恢复上次选择的标签页
-		const activeTabKey = this.plugin.settings.settingsTab || "IMAGE_MANAGER";
+		const activeTabKey = this.plugin.settings.settingsTab || "IMAGE_RESIZE";
 
 		// 固定顶部标签栏
 		const tabsEl = containerEl.createDiv({ cls: 'afm-settings-tabs' });

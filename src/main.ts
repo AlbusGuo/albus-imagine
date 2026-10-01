@@ -2,15 +2,20 @@ import { type Editor, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidi
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
-import { IMAGE_MANAGER_VIEW_TYPE, ImageManagerView } from "./views/ImageManagerView";
+import {
+	IMAGE_MANAGER_VIEW_TYPE,
+	ImageManagerVaultChange,
+	ImageManagerView,
+} from "./views/ImageManagerView";
 import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers/ResizeHandler";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
-import { SUPPORTED_IMAGE_EXTENSIONS } from "./types/image-manager.types";
+import { ImageManagerSettings, SUPPORTED_IMAGE_EXTENSIONS } from "./types/image-manager.types";
 import { ImageCatalogService } from "./services/ImageCatalogService";
 import { ReferenceCheckService } from "./services/ReferenceCheckService";
 import { ImageLayoutStateManager } from "./services/ImageLayoutStateManager";
+import { ViewIconService } from "./services/ViewIconService";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -21,11 +26,21 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private resizeHandler: ResizeHandler | null = null;
 	private imageViewerManager: ImageViewerManager | null = null;
 	private imageLayoutStateManager: ImageLayoutStateManager | null = null;
+	private viewIconService: ViewIconService | null = null;
 	private workspaceDocuments = new Set<Document>();
-	private referenceInvalidationTimer: number | null = null;
+	private hasCompletedInitialLinkResolution = false;
+	private readonly pendingVaultChanges = new Map<string, ImageManagerVaultChange>();
 
 	async onload() {
 		await this.settingsStore.loadSettings();
+		const viewIconService = new ViewIconService(
+			this.app,
+			this.manifest.id,
+			() => this.refreshImageManagerIcons(),
+		);
+		this.viewIconService = viewIconService;
+		void this.syncRequiredViewIcons();
+		this.app.workspace.onLayoutReady(() => { void this.syncRequiredViewIcons(); });
 		this.workspaceDocuments.add(document);
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			this.workspaceDocuments.add(leaf.view.containerEl.ownerDocument);
@@ -40,10 +55,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		}
 
 		// 初始化图片查看器
-		if (
-			this.settings.imageViewer?.enabled ||
-			this.settings.imageViewer?.disableNativeImageViewer
-		) {
+		if (this.settings.imageViewer && (
+			this.settings.imageViewer.enabled ||
+			this.settings.imageViewer.clickBehavior !== "obsidian"
+		)) {
 			this.initializeImageViewer();
 		}
 
@@ -61,7 +76,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			(leaf) => new ImageManagerView(
 				leaf,
 				this.settings.imageManager || {},
-				(folder) => this.saveLastSelectedFolder(folder),
+				(patch) => this.saveImageManagerSettings(patch),
+				(sourceImage) => this.openManagerImageViewer(sourceImage),
+				viewIconService,
 				this.imageCatalog,
 				this.referenceIndex,
 			)
@@ -70,7 +87,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 添加功能区图标 - 打开图片管理器
 		const ribbonIconEl = this.addRibbonIcon(
 			"images",
-			"图片管理器",
+			"附件管理",
 			() => {
 				void this.openImageManager();
 			}
@@ -80,7 +97,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 添加命令 - 打开图片管理器
 		this.addCommand({
 			id: "open-image-manager",
-			name: "打开图片管理器",
+			name: "打开附件管理",
 			callback: () => {
 				void this.openImageManager();
 			},
@@ -136,6 +153,17 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.workspaceDocuments.forEach((doc) => this.imageViewerManager?.refreshViewTrigger(doc));
 	}
 
+	private openManagerImageViewer(sourceImage: HTMLImageElement): void {
+		if (!this.imageViewerManager) {
+			this.imageViewerManager = new ImageViewerManager(this.settings.imageViewer ?? {
+				enabled: false,
+				clickBehavior: "obsidian",
+			});
+			this.imageViewerManager.initialize();
+		}
+		this.imageViewerManager.open(sourceImage, true);
+	}
+
 	/**
 	 * 初始化图片上下文菜单
 	 */
@@ -181,10 +209,14 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 * 打开图片选择器
 	 */
 	openImagePicker(editor: Editor, sourcePath: string): void {
+		const viewIconService = this.viewIconService;
+		if (!viewIconService) return;
 		const modal = new ImagePickerModal(
 			this.app,
 			this.settings.imageManager || {},
 			this.imageCatalog,
+			this.referenceIndex,
+			viewIconService,
 			editor,
 			sourcePath,
 		);
@@ -200,17 +232,16 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 		if (this.imageViewerManager) {
 			this.imageViewerManager.cleanup();
-			this.imageViewerManager = null;
+		this.imageViewerManager = null;
 		}
+		this.viewIconService?.destroy();
+		this.viewIconService = null;
 
 		if (this.vaultChangeTimer !== null) {
 			window.clearTimeout(this.vaultChangeTimer);
 			this.vaultChangeTimer = null;
 		}
-		if (this.referenceInvalidationTimer !== null) {
-			window.clearTimeout(this.referenceInvalidationTimer);
-			this.referenceInvalidationTimer = null;
-		}
+		this.pendingVaultChanges.clear();
 		this.workspaceDocuments.forEach((doc) => doc.body.removeClass("afm-no-svg-invert"));
 		this.workspaceDocuments.clear();
 	}
@@ -235,10 +266,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		}
 
 		// 更新图片查看器设置
-		if (
-			this.settings.imageViewer?.enabled ||
-			this.settings.imageViewer?.disableNativeImageViewer
-		) {
+		if (this.settings.imageViewer && (
+			this.settings.imageViewer.enabled ||
+			this.settings.imageViewer.clickBehavior !== "obsidian"
+		)) {
 			if (!this.imageViewerManager) {
 				this.initializeImageViewer();
 			} else {
@@ -280,10 +311,28 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.resizeHandler = null;
 	}
 
-	private async saveLastSelectedFolder(folder: string): Promise<void> {
+	private async saveImageManagerSettings(patch: Partial<ImageManagerSettings>): Promise<void> {
 		if (!this.settings.imageManager) return;
-		this.settings.imageManager.lastSelectedFolder = folder ? normalizePath(folder) : "";
+		Object.assign(this.settings.imageManager, patch);
+		if (patch.lastSelectedFolder !== undefined) {
+			this.settings.imageManager.lastSelectedFolder = patch.lastSelectedFolder
+				? normalizePath(patch.lastSelectedFolder)
+				: "";
+		}
 		await this.saveData(this.settings);
+		if (patch.filterPresets !== undefined) void this.syncRequiredViewIcons();
+	}
+
+	private syncRequiredViewIcons(): Promise<void> {
+		const icons = (this.settings.imageManager?.filterPresets ?? [])
+			.map((view) => view.icon ?? "layout-grid");
+		return this.viewIconService?.syncRequiredIcons(icons) ?? Promise.resolve();
+	}
+
+	private refreshImageManagerIcons(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE)) {
+			if (leaf.view instanceof ImageManagerView) leaf.view.refreshIcons();
+		}
 	}
 
 	/**
@@ -291,17 +340,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 * 当图片或自定义文件类型发生创建, 删除, 重命名时, 实时更新所有已打开的图片管理器视图
 	 */
 	private registerVaultChangeListeners(): void {
-		const handleVaultChange = (file: TFile) => {
-			if (this.isRelevantFile(file)) {
-				this.scheduleViewRefresh();
-			}
-		};
-
 		this.registerEvent(
 			this.app.vault.on('create', (file) => {
 				if (file instanceof TFile) {
 					this.imageCatalog.upsert(file);
-					handleVaultChange(file);
+					if (this.isRelevantFile(file)) this.scheduleViewRefresh({ type: "create", file });
 				}
 			})
 		);
@@ -310,7 +353,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			this.app.vault.on('delete', (file) => {
 				if (file instanceof TFile) {
 					this.imageCatalog.remove(file.path);
-					handleVaultChange(file);
+					this.notifyReferencePaths(this.referenceIndex.removeSource(file.path));
+					this.referenceIndex.removeCacheKey(file.path);
+					if (this.isRelevantFile(file)) this.scheduleViewRefresh({ type: "delete", file });
 				}
 			})
 		);
@@ -318,8 +363,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
 				if (file instanceof TFile) this.imageCatalog.rename(file, oldPath);
+				if (file instanceof TFile) this.notifyReferencePaths(this.referenceIndex.renamePath(oldPath, file.path));
 				if (file instanceof TFile && (this.isRelevantFile(file) || this.isRelevantPath(oldPath))) {
-					this.scheduleViewRefresh();
+					this.scheduleViewRefresh({ type: "rename", file, oldPath });
 				}
 			})
 		);
@@ -327,21 +373,23 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			this.app.vault.on('modify', (file) => {
 				if (file instanceof TFile && this.isRelevantFile(file)) {
 					this.imageCatalog.upsert(file);
-					this.scheduleViewRefresh();
+					this.scheduleViewRefresh({ type: "modify", file });
 				}
 			})
 		);
 
-		// 启动恢复工作区时, 视图可能先于全库链接图完成初始化.
-		// 只监听全局 `resolved`, 避免索引期间每个文件的 `resolve` 都触发重绘.
-		this.registerEvent(this.app.metadataCache.on("resolved", () => {
-			this.scheduleReferenceInvalidation();
+		this.registerEvent(this.app.metadataCache.on("resolve", (file) => {
+			if (!this.hasCompletedInitialLinkResolution) return;
+			this.notifyReferencePaths(this.referenceIndex.refreshSource(file));
 		}));
-		this.registerEvent(this.app.metadataCache.on("changed", (file) => {
-			if (file.extension === "md") this.scheduleReferenceInvalidation();
+		this.registerEvent(this.app.metadataCache.on("resolved", () => {
+			if (this.hasCompletedInitialLinkResolution) return;
+			this.hasCompletedInitialLinkResolution = true;
+			if (this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE).length === 0) return;
+			void this.referenceIndex.rebuild().then((paths) => this.notifyReferencePaths(paths));
 		}));
 		this.registerEvent(this.app.metadataCache.on("deleted", (file) => {
-			if (file.extension === "md") this.scheduleReferenceInvalidation();
+			this.notifyReferencePaths(this.referenceIndex.removeSource(file.path));
 		}));
 	}
 
@@ -367,7 +415,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		}
 
 		// 用户自定义文件类型 (含封面文件)
-		const customTypes = this.settings.imageManager?.customFileTypes || [];
+		const managerSettings = this.settings.imageManager;
+		const customTypes = [
+			...(managerSettings?.customFileTypes ?? []),
+			...(managerSettings?.filterPresets ?? []).flatMap((view) => view.mappings ?? []),
+		];
 		for (const ct of customTypes) {
 			if (
 				ct.fileExtension.toLowerCase() === ext ||
@@ -386,38 +438,39 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	/**
 	 * 防抖调度视图刷新 (200ms 内的多次变更合并为一次刷新)
 	 */
-	private scheduleViewRefresh(): void {
+	private scheduleViewRefresh(change: ImageManagerVaultChange): void {
+		const key = change.oldPath ?? change.file.path;
+		const existing = this.pendingVaultChanges.get(key);
+		this.pendingVaultChanges.set(key, existing?.type === "rename"
+			? { ...existing, file: change.file }
+			: change);
 		if (this.vaultChangeTimer !== null) {
 			window.clearTimeout(this.vaultChangeTimer);
 		}
 		this.vaultChangeTimer = window.setTimeout(() => {
 			this.vaultChangeTimer = null;
-			this.notifyImageManagerViews();
+			const changes = Array.from(this.pendingVaultChanges.values());
+			this.pendingVaultChanges.clear();
+			this.notifyImageManagerViews(changes);
 		}, 200);
 	}
 
-	private scheduleReferenceInvalidation(): void {
-		if (this.referenceInvalidationTimer !== null) {
-			window.clearTimeout(this.referenceInvalidationTimer);
+	private notifyReferencePaths(paths: ReadonlySet<string>): void {
+		if (paths.size === 0) return;
+		for (const leaf of this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE)) {
+			if (leaf.view instanceof ImageManagerView) void leaf.view.refreshReferencePaths(paths);
 		}
-		this.referenceInvalidationTimer = window.setTimeout(() => {
-			this.referenceInvalidationTimer = null;
-			this.referenceIndex.clearCache();
-			for (const leaf of this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE)) {
-				if (leaf.view instanceof ImageManagerView) leaf.view.invalidateReferences(false);
-			}
-		}, 100);
 	}
 
 	/**
 	 * 通知所有打开的图片管理器视图刷新
 	 */
-	private notifyImageManagerViews(): void {
+	private notifyImageManagerViews(changes: readonly ImageManagerVaultChange[]): void {
 		const leaves = this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
 		leaves.forEach(leaf => {
 			const view = leaf.view;
 			if (view instanceof ImageManagerView) {
-				view.refreshFromVault();
+				view.applyVaultChanges(changes);
 			}
 		});
 	}

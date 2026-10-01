@@ -8,9 +8,8 @@ import {
 	TFile,
 } from "obsidian";
 import type { ImageManagerSettings } from "../types/image-manager.types";
-import { SUPPORTED_IMAGE_EXTENSIONS } from "../types/image-manager.types";
 import { ImagePosition, parseImageLink, updateImageLink } from "../utils/imageLink";
-import { joinVaultPath, normalizeExtension, normalizeVaultFolder } from "../utils/vaultPaths";
+import { joinVaultPath, normalizeExtension } from "../utils/vaultPaths";
 import { DesktopIntegrationService } from "./DesktopIntegrationService";
 import { EditorImageLinkService } from "./EditorImageLinkService";
 import { ImageCaptionEditor } from "../components/ImageCaptionEditor";
@@ -66,10 +65,10 @@ export class ImageContextMenu extends Component {
 	private registerDocument(doc: Document): void {
 		if (this.registeredDocuments.has(doc)) return;
 		this.registeredDocuments.add(doc);
-		this.registerDomEvent(doc, "contextmenu", (event) => {
+		const ownerWindow = doc.defaultView;
+		if (!ownerWindow) return;
+		this.registerDomEvent(ownerWindow, "contextmenu", (event) => {
 			this.contextImage = null;
-			const ownerWindow = doc.defaultView;
-			if (!ownerWindow) return;
 			const directImage = event.composedPath().find(
 				(node): node is HTMLImageElement => node instanceof ownerWindow.HTMLImageElement,
 			);
@@ -79,6 +78,21 @@ export class ImageContextMenu extends Component {
 			if (!image.closest(".internal-embed, .image-embed")) return;
 			this.contextImage = image;
 			this.contextImageTimestamp = Date.now();
+			if (!image.closest(".callout")) return;
+			const imagePath = this.editorLinks.resolveImagePath(image);
+			const file = imagePath ? this.app.vault.getFileByPath(imagePath) : null;
+			if (!file) return;
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const menu = Menu.forEvent(event).setParentElement(image);
+			this.app.workspace.handleLinkContextMenu(
+				menu,
+				file.path,
+				activeView?.file?.path ?? "",
+				activeView?.leaf,
+			);
 		}, true);
 	}
 
@@ -230,13 +244,7 @@ export class ImageContextMenu extends Component {
 				const sourceFile = this.getSourceFileForCover(file);
 				const fileToOpen = sourceFile || file;
 
-				const ext = fileToOpen.extension.toLowerCase();
-				if ((SUPPORTED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-					this.desktop.openWithDefaultApp(fileToOpen);
-				} else {
-					const leaf = this.app.workspace.getLeaf(false);
-					void leaf.openFile(fileToOpen);
-				}
+				this.desktop.openWithDefaultApp(fileToOpen);
 			});
 		});
 	}
@@ -246,7 +254,10 @@ export class ImageContextMenu extends Component {
 	 * 如果当前文件是某个自定义文件类型的封面, 返回对应的工程文件, 否则返回 null
 	 */
 	private getSourceFileForCover(coverFile: TFile): TFile | null {
-		const customFileTypes = this.settings.customFileTypes || [];
+		const customFileTypes = [
+			...(this.settings.customFileTypes ?? []),
+			...(this.settings.filterPresets ?? []).flatMap((view) => view.mappings ?? []),
+		];
 		if (customFileTypes.length === 0) {
 			return null;
 		}
@@ -277,40 +288,14 @@ export class ImageContextMenu extends Component {
 	/**
 	 * 从封面文件路径推导出源文件路径
 	 */
-	private getSourcePathFromCover(coverPath: string, config: { fileExtension: string; coverExtension: string; coverFolder: string; }): string | null {
+	private getSourcePathFromCover(coverPath: string, config: { fileExtension: string; coverExtension: string; }): string | null {
 		const separatorIndex = coverPath.lastIndexOf("/");
 		const directory = separatorIndex >= 0 ? coverPath.substring(0, separatorIndex) : "";
 		const fileName = separatorIndex >= 0 ? coverPath.substring(separatorIndex + 1) : coverPath;
 		const baseName = fileName.substring(0, fileName.lastIndexOf("."));
 
-		// 确定源文件所在的目录
-		let sourceDir = directory;
-		if (config.coverFolder && config.coverFolder.trim() !== "") {
-			// 如果配置了封面文件夹, 需要从封面目录回到源文件目录
-			const rawCoverFolder = config.coverFolder.trim();
-			const coverFolder = normalizeVaultFolder(rawCoverFolder);
-
-			if (rawCoverFolder.startsWith("/")) {
-				// 绝对路径: 不支持反向推导
-				return null;
-			} else {
-				// 相对路径: 移除封面文件夹部分
-				if (directory.endsWith("/" + coverFolder)) {
-					sourceDir = directory.substring(0, directory.length - coverFolder.length - 1);
-				} else if (directory.endsWith(coverFolder)) {
-					sourceDir = directory.substring(0, directory.length - coverFolder.length);
-					if (sourceDir.endsWith("/")) {
-						sourceDir = sourceDir.substring(0, sourceDir.length - 1);
-					}
-				} else {
-					// 封面文件不在预期的文件夹中
-					return null;
-				}
-			}
-		}
-
 		// 构建源文件路径
-		return joinVaultPath(sourceDir, `${baseName}.${normalizeExtension(config.fileExtension)}`);
+		return joinVaultPath(directory, `${baseName}.${normalizeExtension(config.fileExtension)}`);
 	}
 
 	/**

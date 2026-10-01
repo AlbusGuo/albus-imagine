@@ -7,6 +7,7 @@ interface ImagePanZoomState {
 
 interface ImagePanZoomOptions {
 	fitRatio?: number;
+	viewportPadding?: number;
 	minSize?: number;
 	draggingClass?: string;
 }
@@ -14,6 +15,7 @@ interface ImagePanZoomOptions {
 /** Shared mouse pan/zoom behavior for image canvases. */
 export class ImagePanZoomController {
 	private readonly fitRatio: number;
+	private readonly viewportPadding: number;
 	private readonly minSize: number;
 	private readonly draggingClass: string;
 	private state: ImagePanZoomState | null = null;
@@ -25,6 +27,7 @@ export class ImagePanZoomController {
 		options: ImagePanZoomOptions = {}
 	) {
 		this.fitRatio = options.fitRatio ?? 0.9;
+		this.viewportPadding = options.viewportPadding ?? 0;
 		this.minSize = options.minSize ?? 50;
 		this.draggingClass = options.draggingClass ?? "is-dragging";
 
@@ -39,11 +42,13 @@ export class ImagePanZoomController {
 		const containerWidth = this.containerEl.clientWidth;
 		const containerHeight = this.containerEl.clientHeight;
 		if (!naturalWidth || !naturalHeight || !containerWidth || !containerHeight) return false;
+		const availableWidth = Math.max(1, containerWidth - this.viewportPadding * 2);
+		const availableHeight = Math.max(1, containerHeight - this.viewportPadding * 2);
 
 		const scale = Math.min(
 			1,
-			(containerWidth * this.fitRatio) / naturalWidth,
-			(containerHeight * this.fitRatio) / naturalHeight
+			(availableWidth * this.fitRatio) / naturalWidth,
+			(availableHeight * this.fitRatio) / naturalHeight
 		);
 		const width = naturalWidth * scale;
 		const height = naturalHeight * scale;
@@ -55,6 +60,10 @@ export class ImagePanZoomController {
 		};
 		this.applyTransform();
 		return true;
+	}
+
+	stopInteraction(): void {
+		this.stopDragging();
 	}
 
 	destroy(): void {

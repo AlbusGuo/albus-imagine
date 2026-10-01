@@ -1,5 +1,11 @@
-import { App } from "obsidian";
-import { ImageItem, ImageManagerSettings } from "../types/image-manager.types";
+import { App, setIcon } from "obsidian";
+import { ImageCardProperty, ImageItem } from "../types/image-manager.types";
+import {
+	getImageCardDetailProperties,
+	renderImageCardInfo,
+	renderImageFormatBadge,
+} from "./ImageCardProperties";
+import { updateImageManagerReferenceBadge } from "./ImageManagerCard";
 
 interface ImagePickerCardController {
 	element: HTMLElement;
@@ -10,15 +16,21 @@ export function createImagePickerCard(
 	app: App,
 	document: Document,
 	image: ImageItem,
-	settings: ImageManagerSettings,
+	properties: readonly ImageCardProperty[],
 	isSelected: boolean,
 	onActivate: (element: HTMLElement) => void,
 ): ImagePickerCardController {
 	const itemEl = document.win.createDiv();
 	itemEl.addClass("image-manager-grid-item");
+	itemEl.setCssProps({
+		"--afm-manager-property-count": String(getImageCardDetailProperties(properties).length),
+	});
 	itemEl.toggleClass("image-manager-item-selected", isSelected);
+	itemEl.toggleClass("image-manager-show-references", properties.includes("references"));
 	const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 	thumbnailEl.onclick = () => onActivate(itemEl);
+	const selectionIndicator = thumbnailEl.createSpan({ cls: "image-manager-selection-indicator", attr: { "aria-hidden": "true" } });
+	setIcon(selectionIndicator, "check");
 
 	let imageEl: HTMLImageElement | null = null;
 	if (!image.coverMissing) {
@@ -33,29 +45,10 @@ export function createImagePickerCard(
 		imageEl.decoding = "async";
 	}
 
-	const formatBadge = thumbnailEl.createDiv({
-		text: image.originalFile.extension.toUpperCase(),
-		cls: "image-manager-format-badge",
-	});
-	formatBadge.addClass(image.isCustomType ? "image-manager-agx-format" : "image-manager-other-format");
-
-	const infoEl = itemEl.createDiv("image-manager-image-info");
-	infoEl.createDiv({ text: image.name, cls: "image-manager-image-name", attr: { title: image.path } });
-	const metaEl = infoEl.createDiv("image-manager-image-meta");
-	if (settings.showFileSize) {
-		metaEl.createSpan({ text: formatFileSize(image.stat.size), cls: "image-manager-meta-item image-manager-meta-size" });
+	if (properties.includes("extension")) renderImageFormatBadge(thumbnailEl, image);
+	if (properties.includes("references") && image.references !== undefined) {
+		updateImageManagerReferenceBadge(itemEl, image);
 	}
-	if (settings.showModifiedTime) {
-		metaEl.createSpan({
-			text: new Date(image.stat.mtime).toLocaleDateString(),
-			cls: "image-manager-meta-item image-manager-meta-date",
-		});
-	}
+	renderImageCardInfo(itemEl, image, properties);
 	return { element: itemEl, imageEl };
-}
-
-function formatFileSize(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

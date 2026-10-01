@@ -57,8 +57,6 @@ export interface CustomFileTypeConfig {
 	fileExtension: string;
 	/** 封面文件的扩展名 (如 "svg","png") */
 	coverExtension: string;
-	/** 封面文件夹 (相对路径; 以 / 开头表示 Vault 根目录; 空字符串表示同级目录) */
-	coverFolder: string;
 }
 
 /**
@@ -69,22 +67,26 @@ export interface ImageManagerSettings {
 	folderPath?: string;
 	/** 上次选择的文件夹路径 (自动记录) */
 	lastSelectedFolder?: string;
-	/** 显示文件大小 */
-	showFileSize?: boolean;
-	/** 显示修改时间 */
-	showModifiedTime?: boolean;
-	/** 删除前确认 */
-	confirmDelete?: boolean;
 	/** 深色模式下 SVG 图片反色处理 */
 	invertSvgInDarkMode?: boolean;
 	/** 自定义文件类型配置 */
 	customFileTypes?: CustomFileTypeConfig[];
-	/** 默认排序字段 */
-	defaultSortField?: SortField;
-	/** 默认排序顺序 */
-	defaultSortOrder?: SortOrder;
-	/** 排除的文件夹列表 (不在图片管理器中显示) */
-	excludedFolders?: string[];
+	/** 用户保存的附件视图 */
+	filterPresets?: ImageFilterPreset[];
+	/** 上次启用的视图 */
+	activeFilterId?: string;
+	/** 旧版“全部”视图是否已迁移为普通视图 */
+	viewsMigrated?: boolean;
+	/** “全部”视图显示的属性 */
+	allViewProperties?: ImageCardProperty[];
+	/** “全部”视图排序规则 */
+	allViewSort?: ImageSortRule[];
+	/** “全部”视图的筛选组合方式 */
+	allViewFilterMatch?: ImageFilterMatch;
+	/** “全部”视图的筛选条件 */
+	allViewFilterRules?: ImageFilterRule[];
+	/** “全部”视图是否仅显示未引用附件 */
+	allViewUnreferencedOnly?: boolean;
 }
 
 /**
@@ -96,6 +98,92 @@ export type SortField = "mtime" | "ctime" | "size" | "name" | "references";
  * 排序顺序
  */
 export type SortOrder = "asc" | "desc";
+
+export interface ImageSortRule {
+	field: SortField;
+	order: SortOrder;
+}
+
+export type ImageCardProperty =
+	| "name"
+	| "extension"
+	| "size"
+	| "mtime"
+	| "ctime"
+	| "folder"
+	| "references";
+
+export type ImageManagerLayout = "grid" | "masonry";
+
+export const IMAGE_CARD_PROPERTY_ORDER: readonly ImageCardProperty[] = [
+	"name",
+	"extension",
+	"references",
+	"size",
+	"ctime",
+	"mtime",
+	"folder",
+];
+
+export type ImageFilterMatch = "all" | "any" | "none";
+
+export type ImageFilterField =
+	| "name"
+	| "folder"
+	| "extension"
+	| "references"
+	| "size"
+	| "ctime"
+	| "mtime";
+
+export type ImageFilterOperator =
+	| "is"
+	| "is-not"
+	| "contains"
+	| "not-contains"
+	| "starts-with"
+	| "ends-with"
+	| "greater-than"
+	| "less-than"
+	| "before"
+	| "after";
+
+export interface ImageFilterRule {
+	id: string;
+	field: ImageFilterField;
+	operator: ImageFilterOperator;
+	value: string;
+}
+
+export interface ImageFilterGroup {
+	id: string;
+	match: ImageFilterMatch;
+	children: Array<ImageFilterGroup | ImageFilterRule>;
+}
+
+export interface ImageFilterPreset {
+	id: string;
+	name: string;
+	/** 视图标签图标 ID */
+	icon?: string;
+	/** 卡片最小宽度, 与 Bases 卡片大小参数一致 */
+	cardSize?: number;
+	/** 当前视图是否在深色模式下反转 SVG */
+	invertSvgInDarkMode?: boolean;
+	/** 当前视图使用的文件扩展名映射 */
+	mappings?: CustomFileTypeConfig[];
+	/** 卡片布局 */
+	layout?: ImageManagerLayout;
+	/** 递归筛选器树 */
+	filter?: ImageFilterGroup;
+	/** 旧版扁平筛选组合方式, 仅用于迁移 */
+	match?: ImageFilterMatch;
+	/** 旧版扁平筛选条件, 仅用于迁移 */
+	rules?: ImageFilterRule[];
+	properties?: ImageCardProperty[];
+	sort?: ImageSortRule[];
+	unreferencedOnly?: boolean;
+}
 
 /**
  * 引用检查结果
