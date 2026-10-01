@@ -124,7 +124,7 @@
 	min-width: 0;
 	flex: 0 0 auto;
 	align-items: center;
-	column-gap: var(--size-2-2);
+	gap: var(--size-2-2);
 }
 
 .afm-manager-result-count {
