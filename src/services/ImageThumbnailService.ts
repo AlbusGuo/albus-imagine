@@ -80,10 +80,16 @@ export class ImageThumbnailService {
 
 	private trimCache(): void {
 		while (this.cache.size > this.maximumEntries) {
-			const oldest = this.cache.entries().next().value as [string, string] | undefined;
-			if (!oldest) return;
-			this.cache.delete(oldest[0]);
-			URL.revokeObjectURL(oldest[1]);
+			let oldestSource: string | null = null;
+			let oldestUrl: string | null = null;
+			for (const [source, url] of this.cache) {
+				oldestSource = source;
+				oldestUrl = url;
+				break;
+			}
+			if (oldestSource === null || oldestUrl === null) return;
+			this.cache.delete(oldestSource);
+			URL.revokeObjectURL(oldestUrl);
 		}
 	}
 }

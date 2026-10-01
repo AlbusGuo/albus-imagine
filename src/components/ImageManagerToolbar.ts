@@ -787,7 +787,7 @@ export class ImageManagerToolbar {
 			left,
 			"filter-property-select",
 			"过滤字段",
-			() => Object.entries(FIELD_LABELS) as Array<[ImageFilterField, string]>,
+			() => Object.entries(FIELD_LABELS),
 			() => rule.field,
 			(value) => {
 				rule.field = value as ImageFilterField;
@@ -883,7 +883,7 @@ export class ImageManagerToolbar {
 						wrapper,
 						"bases-sort-property",
 						"排序依据",
-						() => Object.entries(SORT_LABELS) as Array<[SortField, string]>,
+						() => Object.entries(SORT_LABELS),
 						() => rule.field ?? "",
 						(value) => {
 							rule.field = value as SortField;

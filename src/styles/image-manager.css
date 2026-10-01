@@ -120,7 +120,11 @@
 }
 
 .afm-manager-toolbar-actions {
-	display: contents;
+	display: flex;
+	min-width: 0;
+	flex: 0 0 auto;
+	align-items: center;
+	column-gap: var(--size-2-2);
 }
 
 .afm-manager-result-count {
