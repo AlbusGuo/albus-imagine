@@ -3,14 +3,25 @@
  */
 
 import { App, MarkdownView, Notice, TFile } from "obsidian";
-import { ImageItem, SUPPORTED_IMAGE_EXTENSIONS } from "../types/image-manager.types";
-import { getCoverPath, joinVaultPath, normalizeVaultFolder } from "../utils/vaultPaths";
+import {
+	ImageItem,
+	SUPPORTED_IMAGE_EXTENSIONS,
+} from "../types/image-manager.types";
+import {
+	getCoverPath,
+	joinVaultPath,
+	normalizeVaultFolder,
+} from "../utils/vaultPaths";
 import { DesktopIntegrationService } from "./DesktopIntegrationService";
+import { t } from "../i18n";
 
 export class FileOperationService {
 	private readonly desktop: DesktopIntegrationService;
 
-	constructor(private app: App, desktop?: DesktopIntegrationService) {
+	constructor(
+		private app: App,
+		desktop?: DesktopIntegrationService,
+	) {
 		this.desktop = desktop ?? new DesktopIntegrationService(app);
 	}
 
@@ -38,18 +49,24 @@ export class FileOperationService {
 			newPath = oldPath.replace(/[^/]+$/, newName);
 			this.ensureDestinationAvailable(newPath, oldPath);
 			const coverMove = this.getCoverMove(image, newPath);
-			if (coverMove) this.ensureDestinationAvailable(coverMove.newPath, coverMove.file.path);
-			await this.app.fileManager.renameFile(
-				image.originalFile,
-				newPath
-			);
+			if (coverMove)
+				this.ensureDestinationAvailable(
+					coverMove.newPath,
+					coverMove.file.path,
+				);
+			await this.app.fileManager.renameFile(image.originalFile, newPath);
 			sourceMoved = true;
 
-			if (coverMove) await this.app.fileManager.renameFile(coverMove.file, coverMove.newPath);
+			if (coverMove)
+				await this.app.fileManager.renameFile(
+					coverMove.file,
+					coverMove.newPath,
+				);
 
-			new Notice("文件重命名成功");
+			new Notice(t("service.fileRenameSuccess"));
 		} catch (error) {
-			if (sourceMoved) await this.rollbackRename(image.originalFile, oldPath);
+			if (sourceMoved)
+				await this.rollbackRename(image.originalFile, oldPath);
 			new Notice(`重命名失败: ${this.getErrorMessage(error)}`);
 			throw error;
 		}
@@ -64,14 +81,16 @@ export class FileOperationService {
 		try {
 			let coverFile: TFile | null = null;
 			if (image.isCustomType && image.customTypeConfig) {
-				coverFile = this.app.vault.getFileByPath(getCoverPath(image.path, image.customTypeConfig));
+				coverFile = this.app.vault.getFileByPath(
+					getCoverPath(image.path, image.customTypeConfig),
+				);
 			}
 			// 先处理附属封面, 避免源文件已删除后才发现封面操作失败.
 			if (coverFile) await this.app.fileManager.trashFile(coverFile);
 			await this.app.fileManager.trashFile(image.originalFile);
 
 			if (!silent) {
-				new Notice("文件删除成功");
+				new Notice(t("service.fileDeleteSuccess"));
 			}
 		} catch (error) {
 			if (!silent) {
@@ -95,28 +114,44 @@ export class FileOperationService {
 	 * 移动文件到目标文件夹
 	 * @returns 移动后的新路径; 若文件已在目标文件夹中则返回 null
 	 */
-	async moveFile(image: ImageItem, targetFolder: string, silent: boolean = false): Promise<string | null> {
+	async moveFile(
+		image: ImageItem,
+		targetFolder: string,
+		silent: boolean = false,
+	): Promise<string | null> {
 		const oldPath = image.originalFile.path;
 		let sourceMoved = false;
 		try {
 			const normalizedFolder = normalizeVaultFolder(targetFolder);
-			const newPath = joinVaultPath(normalizedFolder, image.originalFile.name);
+			const newPath = joinVaultPath(
+				normalizedFolder,
+				image.originalFile.name,
+			);
 			if (newPath === image.originalFile.path) {
-				if (!silent) new Notice("文件已在该文件夹中");
+				if (!silent) new Notice(t("service.fileAlreadyInFolder"));
 				return null;
 			}
 			this.ensureDestinationAvailable(newPath, oldPath);
 			const coverMove = this.getCoverMove(image, newPath);
-			if (coverMove) this.ensureDestinationAvailable(coverMove.newPath, coverMove.file.path);
+			if (coverMove)
+				this.ensureDestinationAvailable(
+					coverMove.newPath,
+					coverMove.file.path,
+				);
 			await this.app.fileManager.renameFile(image.originalFile, newPath);
 			sourceMoved = true;
 
-			if (coverMove) await this.app.fileManager.renameFile(coverMove.file, coverMove.newPath);
+			if (coverMove)
+				await this.app.fileManager.renameFile(
+					coverMove.file,
+					coverMove.newPath,
+				);
 
-			if (!silent) new Notice("文件移动成功");
+			if (!silent) new Notice(t("service.fileMoveSuccess"));
 			return newPath;
 		} catch (error) {
-			if (sourceMoved) await this.rollbackRename(image.originalFile, oldPath);
+			if (sourceMoved)
+				await this.rollbackRename(image.originalFile, oldPath);
 			if (!silent) new Notice(`移动失败: ${this.getErrorMessage(error)}`);
 			throw error;
 		}
@@ -125,7 +160,10 @@ export class FileOperationService {
 	/**
 	 * 打开引用文件
 	 */
-	async openReferenceFile(filePath: string, position?: { start: { line: number; col: number; }; }): Promise<void> {
+	async openReferenceFile(
+		filePath: string,
+		position?: { start: { line: number; col: number } },
+	): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (file instanceof TFile) {
 			const leaf = this.app.workspace.getLeaf(false);
@@ -136,7 +174,10 @@ export class FileOperationService {
 				leaf.setEphemeralState({ line });
 				// 编辑模式下额外设置光标
 				const view = leaf.view;
-				if (view instanceof MarkdownView && view.getMode() === "source") {
+				if (
+					view instanceof MarkdownView &&
+					view.getMode() === "source"
+				) {
 					const editor = view.editor;
 					editor.setCursor(line, position.start.col);
 				}
@@ -144,19 +185,32 @@ export class FileOperationService {
 		}
 	}
 
-	private getCoverMove(image: ImageItem, newSourcePath: string): { file: TFile; newPath: string; } | null {
+	private getCoverMove(
+		image: ImageItem,
+		newSourcePath: string,
+	): { file: TFile; newPath: string } | null {
 		if (!image.isCustomType || !image.customTypeConfig) return null;
-		const coverFile = this.app.vault.getFileByPath(getCoverPath(image.path, image.customTypeConfig));
+		const coverFile = this.app.vault.getFileByPath(
+			getCoverPath(image.path, image.customTypeConfig),
+		);
 		if (!coverFile) return null;
-		return { file: coverFile, newPath: getCoverPath(newSourcePath, image.customTypeConfig) };
+		return {
+			file: coverFile,
+			newPath: getCoverPath(newSourcePath, image.customTypeConfig),
+		};
 	}
 
-	private ensureDestinationAvailable(destination: string, currentPath: string): void {
+	private ensureDestinationAvailable(
+		destination: string,
+		currentPath: string,
+	): void {
 		const existing = this.app.vault.getAbstractFileByPath(destination);
 		if (existing && destination !== currentPath) {
 			throw new Error(`目标路径已存在: ${destination}`);
 		}
-		const parentPath = destination.includes("/") ? destination.slice(0, destination.lastIndexOf("/")) : "";
+		const parentPath = destination.includes("/")
+			? destination.slice(0, destination.lastIndexOf("/"))
+			: "";
 		if (parentPath && !this.app.vault.getFolderByPath(parentPath)) {
 			throw new Error(`目标文件夹不存在: ${parentPath}`);
 		}
@@ -166,7 +220,7 @@ export class FileOperationService {
 		try {
 			await this.app.fileManager.renameFile(file, oldPath);
 		} catch (rollbackError) {
-			console.error("文件操作回滚失败:", rollbackError);
+			console.error(t("error.rollbackFailed"), rollbackError);
 		}
 	}
 

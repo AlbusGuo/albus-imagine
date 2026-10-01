@@ -3,6 +3,7 @@
  */
 
 import { App, SuggestModal, TFolder } from "obsidian";
+import { t } from "../i18n";
 
 export class FolderPickerModal extends SuggestModal<TFolder> {
 	private onChoose: (folder: TFolder) => void;
@@ -10,7 +11,7 @@ export class FolderPickerModal extends SuggestModal<TFolder> {
 	constructor(app: App, onChoose: (folder: TFolder) => void) {
 		super(app);
 		this.onChoose = onChoose;
-		this.setPlaceholder("选择目标文件夹...");
+		this.setPlaceholder(t("folderPicker.placeholder"));
 	}
 
 	getSuggestions(query: string): TFolder[] {

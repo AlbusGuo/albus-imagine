@@ -1,4 +1,5 @@
 import { Component } from "obsidian";
+import { t } from "../i18n";
 
 interface ImageCaptionEditorOptions {
 	imageEl: HTMLImageElement;
@@ -27,7 +28,7 @@ export class ImageCaptionEditor extends Component {
 		super();
 		this.ownerDocument = options.embedEl.ownerDocument;
 		const ownerWindow = this.ownerDocument.defaultView;
-		if (!ownerWindow) throw new Error("图片所在窗口不可用");
+		if (!ownerWindow) throw new Error(t("component.imageNotAvailable"));
 		this.ownerWindow = ownerWindow;
 		const obsidianWindow = this.ownerDocument.win;
 
@@ -37,11 +38,13 @@ export class ImageCaptionEditor extends Component {
 		this.inputEl.addClass("afm-caption-input");
 		this.inputEl.rows = 1;
 		this.inputEl.placeholder = options.placeholder;
-		this.inputEl.ariaLabel = "图片标题";
+		this.inputEl.ariaLabel = t("component.imageTitle");
 		this.inputEl.spellcheck = false;
 		this.inputEl.value = options.value;
 		this.overlayEl.appendChild(this.inputEl);
-		this.resizeObserver = new ownerWindow.ResizeObserver(() => this.schedulePosition());
+		this.resizeObserver = new ownerWindow.ResizeObserver(() =>
+			this.schedulePosition(),
+		);
 	}
 
 	open(): void {
@@ -56,8 +59,17 @@ export class ImageCaptionEditor extends Component {
 		this.registerDomEvent(this.inputEl, "blur", this.handleBlur);
 		this.registerDomEvent(this.inputEl, "mousedown", this.stopPropagation);
 		this.registerDomEvent(this.inputEl, "click", this.stopPropagation);
-		this.registerDomEvent(this.ownerDocument, "scroll", this.handleViewportChange, true);
-		this.registerDomEvent(this.ownerWindow, "resize", this.handleViewportChange);
+		this.registerDomEvent(
+			this.ownerDocument,
+			"scroll",
+			this.handleViewportChange,
+			true,
+		);
+		this.registerDomEvent(
+			this.ownerWindow,
+			"resize",
+			this.handleViewportChange,
+		);
 		this.resizeObserver.observe(this.options.imageEl);
 		this.updateGeometry();
 		this.scheduleFocus();
@@ -95,7 +107,8 @@ export class ImageCaptionEditor extends Component {
 	};
 
 	private readonly handleBlur = (): void => this.close(true);
-	private readonly stopPropagation = (event: Event): void => event.stopPropagation();
+	private readonly stopPropagation = (event: Event): void =>
+		event.stopPropagation();
 	private readonly handleViewportChange = (): void => this.schedulePosition();
 
 	private scheduleFocus(): void {
@@ -116,7 +129,10 @@ export class ImageCaptionEditor extends Component {
 		if (this.finished || this.positionFrame !== null) return;
 		this.positionFrame = this.ownerWindow.requestAnimationFrame(() => {
 			this.positionFrame = null;
-			if (!this.options.imageEl.isConnected || !this.options.embedEl.isConnected) {
+			if (
+				!this.options.imageEl.isConnected ||
+				!this.options.embedEl.isConnected
+			) {
 				this.close(true);
 				return;
 			}
@@ -127,12 +143,23 @@ export class ImageCaptionEditor extends Component {
 	private updateGeometry(): void {
 		this.updateInputHeight();
 		const imageRect = this.options.imageEl.getBoundingClientRect();
-		const embedStyle = this.ownerWindow.getComputedStyle(this.options.embedEl);
+		const embedStyle = this.ownerWindow.getComputedStyle(
+			this.options.embedEl,
+		);
 		const viewportPadding = 8;
-		const width = Math.max(1, Math.min(imageRect.width, this.ownerWindow.innerWidth - viewportPadding * 2));
+		const width = Math.max(
+			1,
+			Math.min(
+				imageRect.width,
+				this.ownerWindow.innerWidth - viewportPadding * 2,
+			),
+		);
 		const left = Math.min(
 			Math.max(viewportPadding, imageRect.left),
-			Math.max(viewportPadding, this.ownerWindow.innerWidth - width - viewportPadding),
+			Math.max(
+				viewportPadding,
+				this.ownerWindow.innerWidth - width - viewportPadding,
+			),
 		);
 		this.overlayEl.setCssProps({
 			"--afm-caption-editor-left": `${left}px`,
@@ -145,9 +172,9 @@ export class ImageCaptionEditor extends Component {
 		});
 		const inputStyle = this.ownerWindow.getComputedStyle(this.inputEl);
 		const reservedHeight =
-			this.inputEl.offsetHeight
-			+ Number.parseFloat(inputStyle.marginTop)
-			+ Number.parseFloat(inputStyle.marginBottom);
+			this.inputEl.offsetHeight +
+			Number.parseFloat(inputStyle.marginTop) +
+			Number.parseFloat(inputStyle.marginBottom);
 		this.options.embedEl.setCssProps({
 			"--afm-caption-editor-space": `${reservedHeight}px`,
 		});

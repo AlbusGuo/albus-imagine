@@ -5,12 +5,16 @@
 import { App, Modal, setIcon } from "obsidian";
 import { ImagePanZoomController } from "../components/ImagePanZoomController";
 import { ImageItem, ReferenceInfo } from "../types/image-manager.types";
+import { t } from "../i18n";
 
 export class ImagePreviewModal extends Modal {
 	private image: ImageItem;
 	private references: ReferenceInfo[];
 	private getImagePath: (image: ImageItem) => string;
-	private onOpenReference?: (filePath: string, position?: { start: { line: number; col: number; }; }) => void;
+	private onOpenReference?: (
+		filePath: string,
+		position?: { start: { line: number; col: number } },
+	) => void;
 
 	private panZoom: ImagePanZoomController | null = null;
 	private loadTimeout: number | null = null;
@@ -20,7 +24,10 @@ export class ImagePreviewModal extends Modal {
 		image: ImageItem,
 		references: ReferenceInfo[],
 		getImagePath: (image: ImageItem) => string,
-		onOpenReference?: (filePath: string, position?: { start: { line: number; col: number; }; }) => void
+		onOpenReference?: (
+			filePath: string,
+			position?: { start: { line: number; col: number } },
+		) => void,
 	) {
 		super(app);
 		this.image = image;
@@ -89,23 +96,26 @@ export class ImagePreviewModal extends Modal {
 			const errorDiv = imageContainer.createDiv({
 				cls: "image-manager-preview-error",
 			});
-			const errorIcon = errorDiv.createDiv({ cls: "image-manager-preview-error-icon" });
+			const errorIcon = errorDiv.createDiv({
+				cls: "image-manager-preview-error-icon",
+			});
 			setIcon(errorIcon, "alert-triangle");
 			errorDiv.createDiv({
-				text: "图片加载失败",
+				text: t("preview.loadError"),
 				cls: "image-manager-preview-error-text",
 			});
 			errorDiv.createDiv({
-				text: "文件可能已损坏, 过大或格式不支持",
+				text: t("preview.loadError.hint"),
 				cls: "image-manager-preview-error-hint",
 			});
 		};
 
-		this.loadTimeout = this.contentEl.ownerDocument.defaultView?.setTimeout(() => {
-			if (!img.complete && !loadFailed) {
-				img.onerror?.(new Event("error"));
-			}
-		}, 15000) ?? null;
+		this.loadTimeout =
+			this.contentEl.ownerDocument.defaultView?.setTimeout(() => {
+				if (!img.complete && !loadFailed) {
+					img.onerror?.(new Event("error"));
+				}
+			}, 15000) ?? null;
 
 		img.onload = () => {
 			this.clearLoadTimeout();
@@ -140,7 +150,7 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-detail-section",
 		});
 
-		detailSection.createEl("h4", { text: "详细信息" });
+		detailSection.createEl("h4", { text: t("preview.details") });
 
 		if (this.image.isCustomType) {
 			// 自定义文件类型 - 双栏布局显示源文件和封面信息
@@ -159,16 +169,24 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-detail-list",
 		});
 
-		this.createDetailItem(detailList, "路径", this.image.path);
+		this.createDetailItem(detailList, t("preview.path"), this.image.path);
 
 		const sizeKB = (this.image.stat.size / 1024).toFixed(2);
-		this.createDetailItem(detailList, "大小", `${sizeKB} KB`);
+		this.createDetailItem(
+			detailList,
+			t("preview.size"),
+			`${sizeKB} ${t("common.kb")}`,
+		);
 
-		const createTime = new Date(this.image.stat.ctime).toLocaleString("zh-CN");
-		this.createDetailItem(detailList, "创建时间", createTime);
+		const createTime = new Date(this.image.stat.ctime).toLocaleString();
+		this.createDetailItem(detailList, t("preview.createdTime"), createTime);
 
-		const modifyTime = new Date(this.image.stat.mtime).toLocaleString("zh-CN");
-		this.createDetailItem(detailList, "修改时间", modifyTime);
+		const modifyTime = new Date(this.image.stat.mtime).toLocaleString();
+		this.createDetailItem(
+			detailList,
+			t("preview.modifiedTime"),
+			modifyTime,
+		);
 	}
 
 	/**
@@ -183,47 +201,87 @@ export class ImagePreviewModal extends Modal {
 		const leftColumn = dualColumns.createDiv({
 			cls: "image-manager-detail-column",
 		});
-		leftColumn.createEl("h5", { text: "源文件" });
-		const leftList = leftColumn.createDiv({ cls: "image-manager-detail-list" });
+		leftColumn.createEl("h5", { text: t("preview.sourceFile") });
+		const leftList = leftColumn.createDiv({
+			cls: "image-manager-detail-list",
+		});
 
-		this.createDetailItem(leftList, "路径", this.image.originalFile.path);
+		this.createDetailItem(
+			leftList,
+			t("preview.path"),
+			this.image.originalFile.path,
+		);
 
 		const origSizeKB = (this.image.stat.size / 1024).toFixed(2);
-		this.createDetailItem(leftList, "大小", `${origSizeKB} KB`);
+		this.createDetailItem(
+			leftList,
+			t("preview.size"),
+			`${origSizeKB} ${t("common.kb")}`,
+		);
 
-		const createTime = new Date(this.image.stat.ctime).toLocaleString("zh-CN");
-		this.createDetailItem(leftList, "创建时间", createTime);
+		const createTime = new Date(this.image.stat.ctime).toLocaleString();
+		this.createDetailItem(leftList, t("preview.createdTime"), createTime);
 
-		const modifyTime = new Date(this.image.stat.mtime).toLocaleString("zh-CN");
-		this.createDetailItem(leftList, "修改时间", modifyTime);
+		const modifyTime = new Date(this.image.stat.mtime).toLocaleString();
+		this.createDetailItem(leftList, t("preview.modifiedTime"), modifyTime);
 
 		if (this.image.customTypeConfig) {
-			this.createDetailItem(leftList, "类型", this.image.customTypeConfig.fileExtension.toUpperCase());
+			this.createDetailItem(
+				leftList,
+				t("preview.type"),
+				this.image.customTypeConfig.fileExtension.toUpperCase(),
+			);
 		}
 
 		// 右列 - 封面/显示文件信息
 		const rightColumn = dualColumns.createDiv({
 			cls: "image-manager-detail-column",
 		});
-		rightColumn.createEl("h5", { text: "封面文件" });
-		const rightList = rightColumn.createDiv({ cls: "image-manager-detail-list" });
+		rightColumn.createEl("h5", { text: t("preview.coverFile") });
+		const rightList = rightColumn.createDiv({
+			cls: "image-manager-detail-list",
+		});
 
 		if (this.image.coverMissing) {
-			this.createDetailItem(rightList, "状态", "封面缺失");
+			this.createDetailItem(
+				rightList,
+				t("preview.path"),
+				t("preview.coverMissing"),
+			);
 		} else {
 			const coverStat = this.image.displayFile.stat;
-			this.createDetailItem(rightList, "路径", this.image.displayFile.path);
+			this.createDetailItem(
+				rightList,
+				t("preview.path"),
+				this.image.displayFile.path,
+			);
 
 			const coverSizeKB = (coverStat.size / 1024).toFixed(2);
-			this.createDetailItem(rightList, "大小", `${coverSizeKB} KB`);
+			this.createDetailItem(
+				rightList,
+				t("preview.size"),
+				`${coverSizeKB} ${t("common.kb")}`,
+			);
 
-			const coverCreateTime = new Date(coverStat.ctime).toLocaleString("zh-CN");
-			this.createDetailItem(rightList, "创建时间", coverCreateTime);
+			const coverCreateTime = new Date(coverStat.ctime).toLocaleString();
+			this.createDetailItem(
+				rightList,
+				t("preview.createdTime"),
+				coverCreateTime,
+			);
 
-			const coverModifyTime = new Date(coverStat.mtime).toLocaleString("zh-CN");
-			this.createDetailItem(rightList, "修改时间", coverModifyTime);
+			const coverModifyTime = new Date(coverStat.mtime).toLocaleString();
+			this.createDetailItem(
+				rightList,
+				t("preview.modifiedTime"),
+				coverModifyTime,
+			);
 
-			this.createDetailItem(rightList, "类型", this.image.displayFile.extension.toUpperCase());
+			this.createDetailItem(
+				rightList,
+				t("preview.type"),
+				this.image.displayFile.extension.toUpperCase(),
+			);
 		}
 	}
 
@@ -233,7 +291,7 @@ export class ImagePreviewModal extends Modal {
 	private createDetailItem(
 		container: HTMLElement,
 		label: string,
-		value: string
+		value: string,
 	): void {
 		const item = container.createDiv({
 			cls: "image-manager-detail-item",
@@ -258,7 +316,7 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-backlinks-section",
 		});
 
-		backlinksSection.createEl("h4", { text: "引用笔记" });
+		backlinksSection.createEl("h4", { text: t("preview.backlinks") });
 
 		const backlinksList = backlinksSection.createDiv({
 			cls: "image-manager-backlinks-list",
@@ -281,7 +339,7 @@ export class ImagePreviewModal extends Modal {
 			cls: "image-manager-no-backlinks",
 		});
 
-		noBacklinks.createDiv({ text: "暂无引用" });
+		noBacklinks.createDiv({ text: t("preview.noBacklinks") });
 	}
 
 	/**
@@ -289,7 +347,7 @@ export class ImagePreviewModal extends Modal {
 	 */
 	private renderBacklinkItem(
 		container: HTMLElement,
-		ref: ReferenceInfo
+		ref: ReferenceInfo,
 	): void {
 		const item = container.createDiv({
 			cls: "image-manager-backlink-item",
@@ -326,7 +384,9 @@ export class ImagePreviewModal extends Modal {
 
 	private clearLoadTimeout(): void {
 		if (this.loadTimeout === null) return;
-		this.contentEl.ownerDocument.defaultView?.clearTimeout(this.loadTimeout);
+		this.contentEl.ownerDocument.defaultView?.clearTimeout(
+			this.loadTimeout,
+		);
 		this.loadTimeout = null;
 	}
 }

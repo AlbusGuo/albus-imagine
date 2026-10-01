@@ -1,5 +1,6 @@
 import { App, setIcon } from "obsidian";
 import { ImageItem, ImageManagerSettings } from "../types/image-manager.types";
+import { t } from "../i18n";
 
 interface ImageManagerCardActions {
 	isSelected: (path: string) => boolean;
@@ -27,7 +28,10 @@ export function createImageManagerCard(
 	const itemEl = document.win.createDiv();
 	itemEl.addClass("image-manager-grid-item");
 	itemEl.dataset.path = image.path;
-	itemEl.toggleClass("image-manager-item-selected", actions.isSelected(image.path));
+	itemEl.toggleClass(
+		"image-manager-item-selected",
+		actions.isSelected(image.path),
+	);
 	const activate = () => {
 		if (actions.isMultiSelect()) actions.onToggleSelection(image, itemEl);
 		else actions.onPreview(image);
@@ -37,12 +41,17 @@ export function createImageManagerCard(
 	thumbnailEl.onclick = activate;
 	let imageEl: HTMLImageElement | null = null;
 	if (image.coverMissing) {
-		createUnavailableState(thumbnailEl, "file-x", "封面缺失");
+		createUnavailableState(
+			thumbnailEl,
+			"file-x",
+			t("component.coverMissing"),
+		);
 	} else {
 		imageEl = thumbnailEl.createEl("img", {
-			cls: image.displayFile.extension.toLowerCase() === "svg"
-				? "image-manager-svg-image"
-				: "image-manager-thumbnail-image",
+			cls:
+				image.displayFile.extension.toLowerCase() === "svg"
+					? "image-manager-svg-image"
+					: "image-manager-thumbnail-image",
 		});
 		imageEl.dataset.src = app.vault.getResourcePath(image.displayFile);
 		imageEl.alt = image.name;
@@ -53,54 +62,113 @@ export function createImageManagerCard(
 			if (loadFailed) return;
 			loadFailed = true;
 			imageEl?.addClass("image-manager-cover-hidden");
-			createUnavailableState(thumbnailEl, "circle-alert", "加载失败");
+			createUnavailableState(
+				thumbnailEl,
+				"circle-alert",
+				t("component.loadFailed"),
+			);
 		};
 	}
 
 	const actionBar = thumbnailEl.createDiv("image-manager-image-actions");
-	createAction(actionBar, "folder-open", "打开", "image-manager-open-button", () => actions.onOpen(image));
-	createAction(actionBar, "pencil", "重命名", "image-manager-rename-button", () => actions.onRename(image));
-	createAction(actionBar, "folder-tree", "移动", "image-manager-move-button", () => actions.onMove(image));
-	createAction(actionBar, "trash-2", "删除", "image-manager-delete-button", () => actions.onDelete(image));
+	createAction(
+		actionBar,
+		"folder-open",
+		t("component.open"),
+		"image-manager-open-button",
+		() => actions.onOpen(image),
+	);
+	createAction(
+		actionBar,
+		"pencil",
+		t("component.rename"),
+		"image-manager-rename-button",
+		() => actions.onRename(image),
+	);
+	createAction(
+		actionBar,
+		"folder-tree",
+		t("component.move"),
+		"image-manager-move-button",
+		() => actions.onMove(image),
+	);
+	createAction(
+		actionBar,
+		"trash-2",
+		t("component.delete"),
+		"image-manager-delete-button",
+		() => actions.onDelete(image),
+	);
 
 	const formatBadge = thumbnailEl.createDiv({
 		text: image.originalFile.extension.toUpperCase(),
 		cls: "image-manager-format-badge",
 	});
-	formatBadge.addClass(image.isCustomType ? "image-manager-agx-format" : "image-manager-other-format");
-	if (image.references !== undefined) updateImageManagerReferenceBadge(itemEl, image);
+	formatBadge.addClass(
+		image.isCustomType
+			? "image-manager-agx-format"
+			: "image-manager-other-format",
+	);
+	if (image.references !== undefined)
+		updateImageManagerReferenceBadge(itemEl, image);
 
 	const infoEl = itemEl.createDiv("image-manager-image-info");
 	infoEl.onclick = (event) => {
 		event.stopPropagation();
 		activate();
 	};
-	infoEl.createDiv({ text: image.name, cls: "image-manager-image-name", attr: { title: image.path } });
+	infoEl.createDiv({
+		text: image.name,
+		cls: "image-manager-image-name",
+		attr: { title: image.path },
+	});
 	const metaEl = infoEl.createDiv("image-manager-image-meta");
 	if (settings.showFileSize) {
-		metaEl.createSpan({ text: formatFileSize(image.stat.size), cls: "image-manager-meta-item image-manager-meta-size" });
+		metaEl.createSpan({
+			text: formatFileSize(image.stat.size),
+			cls: "image-manager-meta-item image-manager-meta-size",
+		});
 	}
 	if (settings.showModifiedTime) {
-		metaEl.createSpan({ text: new Date(image.stat.mtime).toLocaleDateString(), cls: "image-manager-meta-item image-manager-meta-date" });
+		metaEl.createSpan({
+			text: new Date(image.stat.mtime).toLocaleDateString(),
+			cls: "image-manager-meta-item image-manager-meta-date",
+		});
 	}
 	return { element: itemEl, imageEl };
 }
 
-export function updateImageManagerReferenceBadge(itemEl: HTMLElement, image: ImageItem): void {
-	const thumbnailEl = itemEl.querySelector<HTMLElement>(".image-manager-thumbnail");
+export function updateImageManagerReferenceBadge(
+	itemEl: HTMLElement,
+	image: ImageItem,
+): void {
+	const thumbnailEl = itemEl.querySelector<HTMLElement>(
+		".image-manager-thumbnail",
+	);
 	if (!thumbnailEl) return;
-	const existing = thumbnailEl.querySelector<HTMLElement>(".image-manager-reference-badge");
+	const existing = thumbnailEl.querySelector<HTMLElement>(
+		".image-manager-reference-badge",
+	);
 	if (image.references === undefined) {
 		existing?.remove();
 		return;
 	}
 	const count = image.referenceCount ?? 0;
-	const badge = existing ?? thumbnailEl.createDiv("image-manager-reference-badge");
-	badge.setText(count === 0 ? "未引用" : `${count} 引用`);
+	const badge =
+		existing ?? thumbnailEl.createDiv("image-manager-reference-badge");
+	badge.setText(
+		count === 0
+			? t("component.unreferenced")
+			: t("component.references").replace("{count}", count.toString()),
+	);
 	badge.toggleClass("image-manager-reference-badge-has-refs", count > 0);
 }
 
-function createUnavailableState(container: HTMLElement, icon: string, text: string): void {
+function createUnavailableState(
+	container: HTMLElement,
+	icon: string,
+	text: string,
+): void {
 	const state = container.createDiv("image-manager-cover-missing");
 	const content = state.createDiv("image-manager-cover-missing-content");
 	const iconEl = content.createSpan("image-manager-cover-missing-icon");

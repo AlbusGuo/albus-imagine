@@ -5,6 +5,7 @@
 import { App } from "obsidian";
 import { ImageItem, ReferenceInfo } from "../types/image-manager.types";
 import { ReferenceCache } from "../models/ReferenceCache";
+import { t } from "../i18n";
 
 export class ReferenceCheckService {
 	private referenceCache: ReferenceCache;
@@ -21,7 +22,7 @@ export class ReferenceCheckService {
 	async checkReferences(
 		images: ImageItem[],
 		onProgress?: (current: number, total: number) => void,
-		force = false
+		force = false,
 	): Promise<ImageItem[]> {
 		if (images.length === 0) return images;
 
@@ -69,7 +70,9 @@ export class ReferenceCheckService {
 				if (onProgress && processedCount % 10 === 0) {
 					onProgress(processedCount, updatedImages.length);
 					// 每处理 10 张图片, 给 UI 线程一些时间
-					await new Promise(resolve => window.setTimeout(resolve, 0));
+					await new Promise((resolve) =>
+						window.setTimeout(resolve, 0),
+					);
 				}
 			}
 
@@ -80,7 +83,7 @@ export class ReferenceCheckService {
 
 			return updatedImages;
 		} catch (error) {
-			console.error("检查引用时出错:", error);
+			console.error(t("error.checkReferenceFailed"), error);
 			throw error;
 		}
 	}
@@ -93,7 +96,10 @@ export class ReferenceCheckService {
 		const cacheKeysByTargetPath = new Map<string, string[]>();
 		for (const image of images) {
 			referencesByCacheKey.set(image.path, []);
-			const targetPaths = new Set([image.originalFile.path, image.displayFile.path]);
+			const targetPaths = new Set([
+				image.originalFile.path,
+				image.displayFile.path,
+			]);
 			for (const targetPath of targetPaths) {
 				const cacheKeys = cacheKeysByTargetPath.get(targetPath);
 				if (cacheKeys) cacheKeys.push(image.path);
@@ -102,9 +108,12 @@ export class ReferenceCheckService {
 		}
 		if (cacheKeysByTargetPath.size === 0) return referencesByCacheKey;
 
-		for (const [sourcePath, destinations] of Object.entries(this.app.metadataCache.resolvedLinks)) {
+		for (const [sourcePath, destinations] of Object.entries(
+			this.app.metadataCache.resolvedLinks,
+		)) {
 			const requestedTargets = Object.entries(destinations).filter(
-				([targetPath, count]) => count > 0 && cacheKeysByTargetPath.has(targetPath),
+				([targetPath, count]) =>
+					count > 0 && cacheKeysByTargetPath.has(targetPath),
 			);
 			if (requestedTargets.length === 0) continue;
 			const sourceFile = this.app.vault.getFileByPath(sourcePath);
@@ -112,7 +121,11 @@ export class ReferenceCheckService {
 			const cache = this.app.metadataCache.getFileCache(sourceFile);
 			const sourceReferencesByTarget = new Map<string, ReferenceInfo[]>();
 			const occurrenceKeysByTarget = new Map<string, Set<string>>();
-			const addReference = (targetPath: string, reference: ReferenceInfo, key: string): void => {
+			const addReference = (
+				targetPath: string,
+				reference: ReferenceInfo,
+				key: string,
+			): void => {
 				if (!cacheKeysByTargetPath.has(targetPath)) return;
 				let occurrenceKeys = occurrenceKeysByTarget.get(targetPath);
 				if (!occurrenceKeys) {
@@ -121,42 +134,67 @@ export class ReferenceCheckService {
 				}
 				if (occurrenceKeys.has(key)) return;
 				occurrenceKeys.add(key);
-				const sourceReferences = sourceReferencesByTarget.get(targetPath);
+				const sourceReferences =
+					sourceReferencesByTarget.get(targetPath);
 				if (sourceReferences) sourceReferences.push(reference);
 				else sourceReferencesByTarget.set(targetPath, [reference]);
 			};
 			for (const embed of cache?.embeds ?? []) {
-				const targetPath = this.app.metadataCache.getFirstLinkpathDest(embed.link, sourcePath)?.path;
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(
+					embed.link,
+					sourcePath,
+				)?.path;
 				if (targetPath) {
 					addReference(
 						targetPath,
-						{ file: sourceFile, type: "embed", position: embed.position },
+						{
+							file: sourceFile,
+							type: "embed",
+							position: embed.position,
+						},
 						`embed:${embed.position.start.line}:${embed.position.start.col}`,
 					);
 				}
 			}
 			for (const link of cache?.links ?? []) {
-				const targetPath = this.app.metadataCache.getFirstLinkpathDest(link.link, sourcePath)?.path;
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(
+					link.link,
+					sourcePath,
+				)?.path;
 				if (targetPath) {
 					addReference(
 						targetPath,
-						{ file: sourceFile, type: "link", position: link.position },
+						{
+							file: sourceFile,
+							type: "link",
+							position: link.position,
+						},
 						`link:${link.position.start.line}:${link.position.start.col}`,
 					);
 				}
 			}
 			for (const referenceLink of cache?.referenceLinks ?? []) {
-				const targetPath = this.app.metadataCache.getFirstLinkpathDest(referenceLink.link, sourcePath)?.path;
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(
+					referenceLink.link,
+					sourcePath,
+				)?.path;
 				if (targetPath) {
 					addReference(
 						targetPath,
-						{ file: sourceFile, type: "link", position: referenceLink.position },
+						{
+							file: sourceFile,
+							type: "link",
+							position: referenceLink.position,
+						},
 						`link:${referenceLink.position.start.line}:${referenceLink.position.start.col}`,
 					);
 				}
 			}
 			for (const frontmatterLink of cache?.frontmatterLinks ?? []) {
-				const targetPath = this.app.metadataCache.getFirstLinkpathDest(frontmatterLink.link, sourcePath)?.path;
+				const targetPath = this.app.metadataCache.getFirstLinkpathDest(
+					frontmatterLink.link,
+					sourcePath,
+				)?.path;
 				if (targetPath) {
 					addReference(
 						targetPath,
@@ -175,8 +213,11 @@ export class ReferenceCheckService {
 				while (exactReferences.length < resolvedCount) {
 					exactReferences.push({ file: sourceFile, type: "link" });
 				}
-				for (const cacheKey of cacheKeysByTargetPath.get(targetPath) ?? []) {
-					referencesByCacheKey.get(cacheKey)?.push(...exactReferences);
+				for (const cacheKey of cacheKeysByTargetPath.get(targetPath) ??
+					[]) {
+					referencesByCacheKey
+						.get(cacheKey)
+						?.push(...exactReferences);
 				}
 			}
 		}
@@ -198,5 +239,4 @@ export class ReferenceCheckService {
 	removeCacheKey(key: string): void {
 		this.referenceCache.delete(key);
 	}
-
 }

@@ -1,6 +1,13 @@
-import { App, ButtonComponent, Modal, ProgressBarComponent, Setting } from "obsidian";
+import {
+	App,
+	ButtonComponent,
+	Modal,
+	ProgressBarComponent,
+	Setting,
+} from "obsidian";
 import { ImageItem } from "../types/image-manager.types";
 import { setDestructiveButton } from "../utils/obsidianCompatibility";
+import { t } from "../i18n";
 
 export class BatchDeleteConfirmModal extends Modal {
 	private progressBar: ProgressBarComponent | null = null;
@@ -14,34 +21,46 @@ export class BatchDeleteConfirmModal extends Modal {
 		app: App,
 		private readonly images: ImageItem[],
 		private readonly onConfirm: (
-			onProgress: (current: number, total: number) => void
-		) => Promise<void>
+			onProgress: (current: number, total: number) => void,
+		) => Promise<void>,
 	) {
 		super(app);
 	}
 
 	onOpen(): void {
-		this.setTitle("批量删除图片");
+		this.setTitle(t("batchDelete.title"));
 		this.render();
 	}
 
 	private render(): void {
 		this.contentEl.empty();
-		const customCount = this.images.filter((image) => image.isCustomType).length;
+		const customCount = this.images.filter(
+			(image) => image.isCustomType,
+		).length;
 		const totalFiles = this.images.length + customCount;
 
 		const message = this.contentEl.createEl("p");
-		message.createSpan({ text: "确认要删除 " });
-		message.createEl("strong", { text: `${this.images.length} 张图片` });
-		message.createSpan({ text: " 吗?" });
+		message.createSpan({ text: t("batchDelete.confirmPrefix") });
+		message.createEl("strong", {
+			text: `${this.images.length}${t("batchDelete.imagesCount")}`,
+		});
+		message.createSpan({ text: t("batchDelete.questionMark") });
 		this.contentEl.createDiv({
 			cls: "setting-item-description",
-			text: customCount > 0
-				? `其中 ${customCount} 张特殊图片包含封面, 共删除 ${totalFiles} 个文件.`
-				: `共删除 ${totalFiles} 个文件.`,
+			text:
+				customCount > 0
+					? t("batchDelete.customFilesInfo")
+							.replace("{customCount}", customCount.toString())
+							.replace("{totalFiles}", totalFiles.toString())
+					: t("batchDelete.totalFilesInfo").replace(
+							"{totalFiles}",
+							totalFiles.toString(),
+						),
 		});
 
-		const progressSetting = new Setting(this.contentEl).setName("删除进度");
+		const progressSetting = new Setting(this.contentEl).setName(
+			t("batchDelete.progress"),
+		);
 		this.progressSettingEl = progressSetting.settingEl;
 		progressSetting.settingEl.hide();
 		progressSetting.addProgressBar((progress) => {
@@ -51,11 +70,14 @@ export class BatchDeleteConfirmModal extends Modal {
 
 		new Setting(this.contentEl)
 			.addButton((button) => {
-				this.cancelButton = button.setButtonText("取消").onClick(() => this.close());
+				this.cancelButton = button
+					.setButtonText(t("batchDelete.cancel"))
+					.onClick(() => this.close());
 			})
 			.addButton((button) => {
-				this.confirmButton = setDestructiveButton(button.setButtonText("删除全部"))
-					.onClick(() => void this.handleConfirm());
+				this.confirmButton = setDestructiveButton(
+					button.setButtonText(t("batchDelete.confirm")),
+				).onClick(() => void this.handleConfirm());
 			});
 
 		this.contentEl.ownerDocument.defaultView?.requestAnimationFrame(() => {
@@ -66,15 +88,21 @@ export class BatchDeleteConfirmModal extends Modal {
 	private async handleConfirm(): Promise<void> {
 		if (this.isSubmitting) return;
 		this.isSubmitting = true;
-		this.confirmButton?.setDisabled(true).setButtonText("正在删除...");
+		this.confirmButton
+			?.setDisabled(true)
+			.setButtonText(t("batchDelete.deleting"));
 		this.cancelButton?.setDisabled(true);
 		this.progressSettingEl?.show();
 		try {
-			await this.onConfirm((current, total) => this.updateProgress(current, total));
+			await this.onConfirm((current, total) =>
+				this.updateProgress(current, total),
+			);
 			this.close();
 		} catch {
 			this.isSubmitting = false;
-			this.confirmButton?.setDisabled(false).setButtonText("删除全部");
+			this.confirmButton
+				?.setDisabled(false)
+				.setButtonText(t("batchDelete.confirm"));
 			this.cancelButton?.setDisabled(false);
 		}
 	}

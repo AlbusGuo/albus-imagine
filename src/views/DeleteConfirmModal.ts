@@ -5,6 +5,7 @@
 import { App, ButtonComponent, Modal, Setting } from "obsidian";
 import { ImageItem } from "../types/image-manager.types";
 import { setDestructiveButton } from "../utils/obsidianCompatibility";
+import { t } from "../i18n";
 
 export class DeleteConfirmModal extends Modal {
 	private image: ImageItem;
@@ -17,7 +18,7 @@ export class DeleteConfirmModal extends Modal {
 		app: App,
 		image: ImageItem,
 		extraMessage: string,
-		onConfirm: () => Promise<void>
+		onConfirm: () => Promise<void>,
 	) {
 		super(app);
 		this.image = image;
@@ -27,11 +28,11 @@ export class DeleteConfirmModal extends Modal {
 
 	onOpen(): void {
 		const { contentEl } = this;
-		this.setTitle("删除图片");
+		this.setTitle(t("delete.title"));
 		const messageEl = contentEl.createEl("p");
-		messageEl.createSpan({ text: "确定要删除文件 " });
+		messageEl.createSpan({ text: t("delete.confirmMessage") });
 		messageEl.createEl("strong", { text: this.image.name });
-		messageEl.createSpan({ text: " 吗?" });
+		messageEl.createSpan({ text: t("delete.questionMark") });
 
 		if (this.extraMessage) {
 			contentEl.createDiv({
@@ -43,30 +44,36 @@ export class DeleteConfirmModal extends Modal {
 		let cancelButton: ButtonComponent | null = null;
 		new Setting(contentEl)
 			.addButton((button) => {
-				cancelButton = button.setButtonText("取消").onClick(() => this.close());
+				cancelButton = button
+					.setButtonText(t("delete.cancel"))
+					.onClick(() => this.close());
 			})
 			.addButton((button) => {
-				this.confirmButton = setDestructiveButton(button.setButtonText("删除"))
-					.onClick(() => void this.handleConfirm());
+				this.confirmButton = setDestructiveButton(
+					button.setButtonText(t("delete.confirm")),
+				).onClick(() => void this.handleConfirm());
 			});
 
 		this.contentEl.ownerDocument.defaultView?.requestAnimationFrame(() => {
 			cancelButton?.buttonEl.focus();
 		});
-
 	}
 
 	private async handleConfirm(): Promise<void> {
 		if (this.isSubmitting) return;
 		this.isSubmitting = true;
-		this.confirmButton?.setDisabled(true).setButtonText("正在删除...");
+		this.confirmButton
+			?.setDisabled(true)
+			.setButtonText(t("delete.deleting"));
 		try {
 			await this.onConfirm();
 			this.close();
 		} catch {
 			// 错误已在调用方处理, 保持模态框打开以便用户看到错误提示
 			this.isSubmitting = false;
-			this.confirmButton?.setDisabled(false).setButtonText("删除");
+			this.confirmButton
+				?.setDisabled(false)
+				.setButtonText(t("delete.confirm"));
 		}
 	}
 
