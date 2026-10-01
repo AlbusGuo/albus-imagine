@@ -1,7 +1,4 @@
-![Imagine](https://socialify.git.ci/AlbusGuo/albus-imagine/image?description=1&font=Raleway&forks=1&issues=1&name=1&owner=1&pattern=Circuit+Board&pulls=1&stargazers=1&theme=Light)
-
-[![版本](https://img.shields.io/github/v/release/AlbusGuo/albus-imagine)](https://github.com/AlbusGuo/albus-imagine/releases)
-[![下载量](https://img.shields.io/github/downloads/AlbusGuo/albus-imagine/total)](https://github.com/AlbusGuo/albus-imagine/releases)
+![Imagine](https://socialify.git.ci/albusguo/albus-imagine/image?description=1&font=Inter&name=1&owner=1&pattern=Transparent&theme=Auto)
 
 # Imagine
 
