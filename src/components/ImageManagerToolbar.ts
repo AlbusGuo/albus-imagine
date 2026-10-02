@@ -1116,14 +1116,6 @@ export class ImageManagerToolbar {
 			`menu bases-toolbar-menu afm-manager-popover ${type === "sort" ? "bases-toolbar-sort-menu afm-manager-sort-menu" : type === "filter" ? "bases-toolbar-filter-menu" : type === "mapping" ? "bases-toolbar-filter-menu afm-manager-mapping-menu" : type === "properties" ? "bases-toolbar-properties-menu" : "bases-toolbar-filter-menu afm-manager-view-editor-menu"}`,
 		);
 		panel.createDiv("menu-grabber");
-		const mobileHeader = panel.createDiv("modal-header");
-		mobileHeader.createDiv({ cls: "modal-title", text: type === "sort" ? "排序" : type === "filter" ? "过滤" : type === "properties" ? "属性" : type === "mapping" ? "映射" : "视图" });
-		const closeButton = mobileHeader.createDiv("modal-header-button tappable mod-raised clickable-icon");
-		setIcon(closeButton, "check");
-		closeButton.addEventListener("click", (event) => {
-			event.preventDefault();
-			this.closePopover(true);
-		});
 		const scrollEl = panel.createDiv("menu-scroll");
 		this.popoverEl = panel;
 		this.popoverBgEl = background;
