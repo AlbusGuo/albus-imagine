@@ -15,10 +15,22 @@ export class FileOperationService {
 	}
 
 	/**
-	 * 使用系统默认应用打开源附件.
+	 * 按映射配置打开源附件; 普通图片与旧映射继续使用系统默认应用.
 	 */
 	openFile(image: ImageItem): void {
+		if (image.isCustomType && image.customTypeConfig?.openMode === "obsidian") {
+			void this.openInObsidian(image.originalFile);
+			return;
+		}
 		this.desktop.openWithDefaultApp(image.originalFile);
+	}
+
+	private async openInObsidian(file: TFile): Promise<void> {
+		try {
+			await this.app.workspace.getLeaf("tab").openFile(file);
+		} catch (error) {
+			new Notice(`打开文件失败: ${this.getErrorMessage(error)}`);
+		}
 	}
 
 	/**

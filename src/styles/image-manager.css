@@ -250,6 +250,7 @@
 }
 
 .afm-manager-mapping-row {
+	align-items: center;
 	gap: var(--size-4-2);
 }
 
@@ -258,12 +259,21 @@
 	min-width: 0;
 	flex: 1 1 auto;
 	align-items: center;
+	gap: var(--size-4-3);
+}
+
+.afm-manager-mapping-extension-fields {
+	display: flex;
+	min-width: 0;
+	flex: 0 1 auto;
+	align-items: center;
 	gap: var(--size-4-2);
 }
 
 .afm-manager-mapping-row .metadata-input-text {
+	width: auto;
 	min-width: 0;
-	flex: 1 1 0;
+	flex: 0 1 auto;
 }
 
 .afm-manager-mapping-arrow {
@@ -272,6 +282,20 @@
 	align-items: center;
 	padding-inline: var(--size-2-1);
 	color: var(--text-faint);
+}
+
+.afm-manager-mapping-open-mode {
+	display: flex;
+	min-width: 0;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.afm-manager-mapping-open-mode select {
+	width: auto;
+	max-width: 100%;
+	flex: 0 1 auto;
 }
 
 .afm-manager-view {

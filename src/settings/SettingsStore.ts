@@ -221,7 +221,11 @@ function sanitizeMappings(mappings: readonly CustomFileTypeConfig[] | undefined)
 		const coverExtension = normalizeExtension(mapping.coverExtension);
 		if (!fileExtension || !coverExtension || seen.has(fileExtension)) return [];
 		seen.add(fileExtension);
-		return [{ fileExtension, coverExtension }];
+		return [{
+			fileExtension,
+			coverExtension,
+			openMode: mapping.openMode === "obsidian" ? "obsidian" as const : "system" as const,
+		}];
 	});
 }
 

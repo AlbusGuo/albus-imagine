@@ -53,6 +53,8 @@ interface ComboboxControl {
 	refresh: () => void;
 }
 
+const OPEN_WITH_OBSIDIAN_LABEL = "用 Obsidian 打开";
+
 const SORT_LABELS: Record<SortField, string> = {
 	mtime: "修改时间",
 	ctime: "创建时间",
@@ -603,7 +605,11 @@ export class ImageManagerToolbar {
 						continue;
 					}
 					seen.add(fileExtension);
-					normalized.push({ fileExtension, coverExtension });
+					normalized.push({
+						fileExtension,
+						coverExtension,
+						openMode: mapping.openMode === "obsidian" ? "obsidian" : "system",
+					});
 				}
 				if (!valid) {
 					if (notifyInvalid) new Notice("映射字段不完整、格式无效或存在重复, 本次修改未保存");
@@ -631,16 +637,17 @@ export class ImageManagerToolbar {
 				for (const [index, mapping] of draft.entries()) {
 					const row = mappings.createDiv("base-toolbar-sort-item afm-manager-mapping-row");
 					const fields = row.createDiv("afm-manager-mapping-fields");
-					const sourceInput = fields.createEl("input", {
+					const extensionFields = fields.createDiv("afm-manager-mapping-extension-fields");
+					const sourceInput = extensionFields.createEl("input", {
 						cls: "metadata-input metadata-input-text",
 						type: "text",
 						value: mapping.fileExtension,
 						placeholder: "源扩展名",
 						attr: { "aria-label": "源文件扩展名" },
 					});
-					const arrow = fields.createSpan("afm-manager-mapping-arrow");
+					const arrow = extensionFields.createSpan("afm-manager-mapping-arrow");
 					setIcon(arrow, "arrow-right");
-					const coverInput = fields.createEl("input", {
+					const coverInput = extensionFields.createEl("input", {
 						cls: "metadata-input metadata-input-text",
 						type: "text",
 						value: mapping.coverExtension,
@@ -657,6 +664,15 @@ export class ImageManagerToolbar {
 						mapping.coverExtension = coverInput.value;
 						scheduleSave();
 					});
+					const openModeRow = fields.createDiv("afm-manager-mapping-open-mode");
+					new DropdownComponent(openModeRow)
+						.addOption("obsidian", OPEN_WITH_OBSIDIAN_LABEL)
+						.addOption("system", "用系统默认应用打开")
+						.setValue(mapping.openMode === "obsidian" ? "obsidian" : "system")
+						.onChange((value) => {
+							mapping.openMode = value === "obsidian" ? "obsidian" : "system";
+							validateAndSave();
+						});
 					this.createIconButton(row, "trash-2", "删除映射", () => {
 						draft.splice(index, 1);
 						renderRows();
@@ -672,7 +688,7 @@ export class ImageManagerToolbar {
 			setIcon(addIcon, "plus");
 			addInfo.createDiv({ cls: "bases-toolbar-menu-item-name", text: "添加映射" });
 			bindActivation(add, () => {
-				draft.push({ fileExtension: "", coverExtension: "" });
+				draft.push({ fileExtension: "", coverExtension: "", openMode: "system" });
 				renderRows();
 				queueMicrotask(() => sourceInputs.last()?.focus({ preventScroll: true }));
 			});

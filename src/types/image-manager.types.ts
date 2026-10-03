@@ -57,6 +57,8 @@ export interface CustomFileTypeConfig {
 	fileExtension: string;
 	/** 封面文件的扩展名 (如 "svg","png") */
 	coverExtension: string;
+	/** 源文件的打开方式; 旧配置默认使用系统应用 */
+	openMode?: "obsidian" | "system";
 }
 
 /**
