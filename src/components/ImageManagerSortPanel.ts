@@ -159,7 +159,7 @@ export function renderImageManagerSortPanel(
 		const available = [...rows];
 		const saved = rules.map((rule) => {
 			const index = available.findIndex((row) => row.field === rule.field && row.order === rule.order);
-			if (index >= 0) return available.splice(index, 1)[0]!;
+			if (index >= 0) return available.splice(index, 1)[0];
 			return createRow(rule.field, rule.order);
 		});
 		rows = [...saved, ...available.filter((row) => row.field === null)];

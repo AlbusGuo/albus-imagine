@@ -121,6 +121,10 @@ Selecting one card inserts a Wiki embed at the active editor selection. Multi-se
 > ![[photo-3.jpg]]
 ```
 
+### Local plugin integration
+
+Another Obsidian plugin can request the picker through the workspace event `albus-imagine:image-picker-request:v1`. Send an object with `version: 1`, a `multiple` boolean, an `accept()` callback, and an `onSelect(paths)` callback. Imagine calls `accept()` after opening the picker and passes only the images the user selects to `onSelect()` as vault-relative paths. Selection mode shows supported image formats; for a custom file type with a cover image, the selected path is the cover image path. A single-selection request cannot be switched to multi-select. This integration makes no network request.
+
 ## Image layout syntax
 
 Imagine stores layout parameters in Wiki links and renders them consistently in Reading View and Live Preview.

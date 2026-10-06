@@ -121,6 +121,10 @@ Imagine 使用 Obsidian 公开的元数据缓存和已解析链接图。它会�
 > ![[photo-3.jpg]]
 ```
 
+### 本地插件调用
+
+其他 Obsidian 插件可通过 Workspace 事件 `albus-imagine:image-picker-request:v1` 请求图片选择器。请求对象包含 `version: 1`、布尔值 `multiple`、`accept()` 回调和 `onSelect(paths)` 回调。Imagine 打开选择器后调用 `accept()`, 仅在用户确认后将所选图片的 Vault 相对路径传给 `onSelect()`。选择模式只显示受支持的图片格式; 自定义文件类型有封面时返回封面路径。单选请求不能切换为多选。此调用不发送网络请求。
+
 ## 图片排版语法
 
 Imagine 将排版参数存储在 Wiki 链接中，并在阅读模式和实时预览模式中保持一致的呈现。

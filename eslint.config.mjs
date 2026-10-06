@@ -26,6 +26,7 @@ export default [
 	{
 		ignores: [
 			"node_modules/**",
+			"dist/**",
 			".tmp/**",
 			"main.js",
 			"scripts/**",

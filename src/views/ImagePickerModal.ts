@@ -7,6 +7,7 @@ import {
 	ImageManagerLayout,
 	ImageManagerSettings,
 	ImageSortRule,
+	SUPPORTED_IMAGE_EXTENSIONS,
 } from "../types/image-manager.types";
 import { ImageLoaderService } from "../services/ImageLoaderService";
 import { ReferenceCheckService } from "../services/ReferenceCheckService";
@@ -51,6 +52,7 @@ export class ImagePickerModal extends Modal {
 	private invertColor = false;
 	private imageCaption = "";
 	private isMultiSelectMode = false;
+	private isSubmittingSelection = false;
 	private readonly selectedImages = new Set<string>();
 	private readonly imageLoader: ImageLoaderService;
 	private readonly thumbnailService = new ImageThumbnailService();
@@ -102,7 +104,10 @@ export class ImagePickerModal extends Modal {
 				this.searchQuery = query;
 				this.updateQueryResult();
 			},
-			onToggleMultiSelect: () => this.setMultiSelectMode(!this.isMultiSelectMode),
+			onToggleMultiSelect: () => {
+				if (this.action.kind === "select" && !this.action.multiple) return;
+				this.setMultiSelectMode(!this.isMultiSelectMode);
+			},
 			onInsertSelected: () => { void this.handleGridInsert(); },
 		}, this.getToolbarState());
 		this.optionsContainer = this.contentEl.createDiv("bases-search-row image-picker-options");
@@ -161,6 +166,7 @@ export class ImagePickerModal extends Modal {
 			totalCount: this.images.length,
 			searchQuery: this.searchQuery,
 			isMultiSelect: this.isMultiSelectMode,
+			allowMultiSelect: this.action.kind === "insert" || this.action.multiple,
 			selectedCount: this.selectedImages.size,
 			selectionActionLabel: this.action.kind === "select" ? "选择" : "插入",
 			selectionActionAriaLabel: this.action.kind === "select" ? "确认选择附件" : "插入选中附件",
@@ -230,7 +236,12 @@ export class ImagePickerModal extends Modal {
 		this.isLoading = true;
 		this.renderGrid();
 		try {
-			this.images = await this.imageLoader.loadImagesTimeSliced("");
+			const loadedImages = await this.imageLoader.loadImagesTimeSliced("");
+			this.images = this.action.kind === "select"
+				? loadedImages.filter((image) =>
+					(SUPPORTED_IMAGE_EXTENSIONS as readonly string[])
+						.includes(image.displayFile.extension.toLowerCase()))
+				: loadedImages;
 			if (this.isClosed) return;
 			this.images = await this.referenceChecker.checkReferences(this.images);
 			if (this.isClosed) return;
@@ -329,9 +340,9 @@ export class ImagePickerModal extends Modal {
 	}
 
 	private setMultiSelectMode(enabled: boolean): void {
-		this.isMultiSelectMode = enabled;
-		if (!enabled) this.selectedImages.clear();
-		this.contentEl.toggleClass("is-multi-select", enabled);
+		this.isMultiSelectMode = enabled && (this.action.kind === "insert" || this.action.multiple);
+		if (!this.isMultiSelectMode) this.selectedImages.clear();
+		this.contentEl.toggleClass("is-multi-select", this.isMultiSelectMode);
 		this.renderOptionsPanel();
 		this.toolbar?.update(this.getToolbarState());
 		this.viewport?.refreshVisible();
@@ -371,7 +382,8 @@ export class ImagePickerModal extends Modal {
 	}
 
 	private async commitSelection(paths: string[]): Promise<void> {
-		if (this.action.kind !== "select" || paths.length === 0) return;
+		if (this.action.kind !== "select" || this.isClosed || this.isSubmittingSelection || paths.length === 0) return;
+		this.isSubmittingSelection = true;
 		try {
 			await this.action.onSelect(paths);
 			if (!this.isClosed) this.close();
@@ -379,6 +391,8 @@ export class ImagePickerModal extends Modal {
 			if (!this.isClosed) {
 				new Notice(`处理所选图片失败: ${error instanceof Error ? error.message : String(error)}`);
 			}
+		} finally {
+			this.isSubmittingSelection = false;
 		}
 	}
 

@@ -1,4 +1,4 @@
-import { type Editor, type Events, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { type Editor, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -7,7 +7,6 @@ import {
 	ImageManagerVaultChange,
 	ImageManagerView,
 } from "./views/ImageManagerView";
-import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers/ResizeHandler";
 import { ImageViewerManager } from "./views/ImageViewerManager";
 import { ImageContextMenu } from "./services/ImageContextMenu";
@@ -16,10 +15,7 @@ import { ImageCatalogService } from "./services/ImageCatalogService";
 import { ReferenceCheckService } from "./services/ReferenceCheckService";
 import { ImageLayoutStateManager } from "./services/ImageLayoutStateManager";
 import { ViewIconService } from "./services/ViewIconService";
-import {
-	IMAGINE_IMAGE_PICKER_EVENT,
-	isImagineImagePickerRequestV1,
-} from "./types/image-picker-integration";
+import { ImagePickerIntegration } from "./integrations/ImagePickerIntegration";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -34,6 +30,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	private workspaceDocuments = new Set<Document>();
 	private hasCompletedInitialLinkResolution = false;
 	private readonly pendingVaultChanges = new Map<string, ImageManagerVaultChange>();
+	private imagePickerIntegration: ImagePickerIntegration | null = null;
 
 	async onload() {
 		await this.settingsStore.loadSettings();
@@ -43,6 +40,14 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			() => this.refreshImageManagerIcons(),
 		);
 		this.viewIconService = viewIconService;
+		this.imagePickerIntegration = new ImagePickerIntegration(
+			this,
+			() => this.settings.imageManager || {},
+			this.imageCatalog,
+			this.referenceIndex,
+			viewIconService,
+		);
+		this.imagePickerIntegration.register();
 		void this.syncRequiredViewIcons();
 		this.app.workspace.onLayoutReady(() => { void this.syncRequiredViewIcons(); });
 		this.workspaceDocuments.add(document);
@@ -115,27 +120,6 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				this.openImagePicker(editor, context.file?.path ?? "");
 			},
 		});
-
-		const workspaceEvents = this.app.workspace as Events;
-		this.registerEvent(workspaceEvents.on(IMAGINE_IMAGE_PICKER_EVENT, (...data: unknown[]) => {
-			const request = data[0];
-			const viewIconService = this.viewIconService;
-			if (!viewIconService || !isImagineImagePickerRequestV1(request)) return;
-			const modal = new ImagePickerModal(
-				this.app,
-				this.settings.imageManager || {},
-				this.imageCatalog,
-				this.referenceIndex,
-				viewIconService,
-				{
-					kind: "select",
-					multiple: request.multiple,
-					onSelect: request.onSelect,
-				},
-			);
-			modal.open();
-			request.accept();
-		}));
 
 		// 添加设置选项卡
 		this.addSettingTab(new NativePluginSettingTab(this));
@@ -234,20 +218,12 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	 * 打开图片选择器
 	 */
 	openImagePicker(editor: Editor, sourcePath: string): void {
-		const viewIconService = this.viewIconService;
-		if (!viewIconService) return;
-		const modal = new ImagePickerModal(
-			this.app,
-			this.settings.imageManager || {},
-			this.imageCatalog,
-			this.referenceIndex,
-			viewIconService,
-			{ kind: "insert", editor, sourcePath },
-		);
-		modal.open();
+		this.imagePickerIntegration?.openInsert(editor, sourcePath);
 	}
 
 	onunload() {
+		this.imagePickerIntegration?.closeAll();
+		this.imagePickerIntegration = null;
 		this.disposeResizeHandler();
 		if (this.imageLayoutStateManager) {
 			this.removeChild(this.imageLayoutStateManager);

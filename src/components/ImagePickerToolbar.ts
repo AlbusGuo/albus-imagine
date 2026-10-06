@@ -9,6 +9,7 @@ interface ImagePickerToolbarState {
 	totalCount: number;
 	searchQuery: string;
 	isMultiSelect: boolean;
+	allowMultiSelect: boolean;
 	selectedCount: number;
 	selectionActionLabel: string;
 	selectionActionAriaLabel: string;
@@ -87,6 +88,7 @@ export class ImagePickerToolbar {
 		}
 		this.resultCountEl.setText(`${state.resultCount.toLocaleString()} 个结果`);
 		this.searchButtonEl.toggleClass("is-active", this.searchRowEl.isShown());
+		this.multiSelectButtonEl.toggle(state.allowMultiSelect);
 		this.multiSelectButtonEl.toggleClass("is-active", state.isMultiSelect);
 		this.renderSelectionRow();
 	}

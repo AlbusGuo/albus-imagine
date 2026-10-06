@@ -1,6 +1,6 @@
 import { App, Notice, setIcon, TextComponent } from "obsidian";
 import { ImageGroupBy, ImageGroupField } from "../types/image-manager.types";
-import { formatGroupLabel, ImageGroup, IMAGE_GROUP_FIELDS } from "../utils/imageGrouping";
+import { formatGroupLabel, IMAGE_GROUP_FIELDS, ImageGroup } from "../utils/imageGrouping";
 import { bindBasesVerticalReorder } from "../utils/basesReorder";
 import { normalizeExtension, normalizeVaultFolder } from "../utils/vaultPaths";
 import { FolderSuggest } from "./FolderSuggest";
