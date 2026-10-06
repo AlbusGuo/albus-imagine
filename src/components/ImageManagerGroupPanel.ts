@@ -51,6 +51,7 @@ export function renderImageManagerGroupPanel(
 ): () => void {
 	let removedOrder: string[] | undefined;
 	let addingGroup = false;
+	const addedGroupKeys = new Set<string>();
 	let folderSuggest: FolderSuggest | null = null;
 	const cleanup = (): void => {
 		folderSuggest?.close();
@@ -79,11 +80,15 @@ export function renderImageManagerGroupPanel(
 				if (!value || current.groupBy?.field === value) return;
 				removedOrder = undefined;
 				addingGroup = false;
+				addedGroupKeys.clear();
 				actions.onGroupChange(
 					{ field: value as ImageGroupField, direction: "asc" },
 					current.groupOrder !== undefined ? [] : undefined,
 				);
-				queueMicrotask(render);
+				queueMicrotask(() => {
+					render();
+					panel.querySelector<HTMLElement>(".bases-sort-direction")?.focus({ preventScroll: true });
+				});
 			},
 			(value) => FIELD_ICONS[value as ImageGroupField],
 			(value) => FIELD_IDS[value as ImageGroupField],
@@ -107,7 +112,10 @@ export function renderImageManagerGroupPanel(
 					if (current.groupOrder !== undefined) removedOrder = [...current.groupOrder];
 					actions.onGroupChange({ field: current.groupBy.field, direction: value === "desc" ? "desc" : "asc" });
 				}
-				queueMicrotask(render);
+				queueMicrotask(() => {
+					render();
+					panel.querySelector<HTMLElement>(".bases-sort-direction")?.focus({ preventScroll: true });
+				});
 			},
 		);
 		const remove = row.createDiv({
@@ -118,6 +126,7 @@ export function renderImageManagerGroupPanel(
 		const clearGroup = (): void => {
 			removedOrder = undefined;
 			addingGroup = false;
+			addedGroupKeys.clear();
 			actions.onGroupChange(undefined);
 			render();
 		};
@@ -137,8 +146,15 @@ export function renderImageManagerGroupPanel(
 		const rowsGroup = list.createDiv({ cls: "suggestion-group", attr: { "data-group": "rows" } });
 		const actionsGroup = list.createDiv({ cls: "suggestion-group", attr: { "data-group": "actions" } });
 		const available = new Map(state.groups.map((group) => [group.key, group]));
-		const visible = [...state.groupOrder];
-		const hidden = state.groups.map((group) => group.key).filter((key) => !visible.includes(key));
+		for (const key of addedGroupKeys) {
+			if (!available.has(key)) available.set(key, { key, label: formatGroupLabel(key), items: [] });
+		}
+		const visible = state.groupOrder.filter((key) => available.has(key));
+		const unshownOrder = state.groupOrder.filter((key) => !available.has(key));
+		const hidden = [...available.keys()].filter((key) => !visible.includes(key));
+		const saveVisibleOrder = (order: string[]): void => {
+			actions.onGroupOrderChange([...order, ...unshownOrder.filter((key) => !order.includes(key))]);
+		};
 
 		const selectItem = (item: HTMLElement): void => {
 			for (const selected of Array.from(list.querySelectorAll<HTMLElement>(".suggestion-item.is-selected"))) {
@@ -177,7 +193,7 @@ export function renderImageManagerGroupPanel(
 			});
 			item.createDiv({ cls: "bases-group-row-count", text: (group?.items.length ?? 0).toLocaleString() });
 			const toggle = (): void => {
-				actions.onGroupOrderChange(isVisible ? visible.filter((value) => value !== key) : [...visible, key]);
+				saveVisibleOrder(isVisible ? visible.filter((value) => value !== key) : [...visible, key]);
 				render();
 				Array.from(panel.querySelectorAll<HTMLElement>(".bases-group-row[data-group-key]"))
 					.find((row) => row.dataset.groupKey === key)?.focus();
@@ -195,7 +211,7 @@ export function renderImageManagerGroupPanel(
 					const reordered = [...visible];
 					const [moved] = reordered.splice(index, 1);
 					if (moved !== undefined) reordered.splice(nextIndex, 0, moved);
-					actions.onGroupOrderChange(reordered);
+					saveVisibleOrder(reordered);
 					render();
 					Array.from(panel.querySelectorAll<HTMLElement>(".bases-group-row[data-group-key]"))
 						.find((row) => row.dataset.groupKey === key)?.focus();
@@ -215,7 +231,7 @@ export function renderImageManagerGroupPanel(
 					const reordered = [...visible];
 					const [moved] = reordered.splice(index, 1);
 					if (moved !== undefined) reordered.splice(targetIndex, 0, moved);
-					actions.onGroupOrderChange(reordered);
+					saveVisibleOrder(reordered);
 					render();
 				});
 			}
@@ -257,7 +273,8 @@ export function renderImageManagerGroupPanel(
 					return;
 				}
 				addingGroup = false;
-				actions.onGroupOrderChange(visible.includes(key) ? visible : [...visible, key]);
+				addedGroupKeys.add(key);
+				saveVisibleOrder(visible.includes(key) ? visible : [...visible, key]);
 				render();
 			};
 			if (state.groupBy.field === "folder") {
@@ -311,7 +328,7 @@ export function renderImageManagerGroupPanel(
 			panel.querySelector<HTMLInputElement>(".bases-group-add-line input")?.focus();
 		});
 		action(visible.length > 0 ? "eye-off" : "eye", visible.length > 0 ? "全部隐藏" : "显示全部", () => {
-			actions.onGroupOrderChange(visible.length > 0 ? [] : hidden);
+			saveVisibleOrder(visible.length > 0 ? [] : hidden);
 			render();
 		});
 		list.querySelector<HTMLElement>(".suggestion-item")?.addClass("is-selected");

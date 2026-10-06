@@ -9,16 +9,15 @@ import {
 	ImageFilterRule,
 	ImageGroupBy,
 	ImageSortRule,
-	SortField,
 } from "../types/image-manager.types";
 import { FolderSuggest } from "./FolderSuggest";
 import { ImageManagerPropertiesPanel } from "./ImageManagerPropertiesPanel";
-import { bindBasesVerticalReorder } from "../utils/basesReorder";
 import { normalizeExtension } from "../utils/vaultPaths";
 import { ViewTabsReorderController } from "./ViewTabsReorderController";
 import { ViewIconService } from "../services/ViewIconService";
 import { ImageGroup } from "../utils/imageGrouping";
 import { renderImageManagerGroupPanel } from "./ImageManagerGroupPanel";
+import { renderImageManagerSortPanel } from "./ImageManagerSortPanel";
 
 export interface ImageManagerToolbarState {
 	filters: readonly ImageFilterPreset[];
@@ -63,15 +62,6 @@ interface ComboboxControl {
 
 const OPEN_WITH_OBSIDIAN_LABEL = "用 Obsidian 打开";
 
-const SORT_LABELS: Record<SortField, string> = {
-	mtime: "修改时间",
-	ctime: "创建时间",
-	size: "文件大小",
-	name: "文件名",
-	extension: "扩展名",
-	references: "引用数量",
-};
-
 const FIELD_LABELS: Record<ImageFilterField, string> = {
 	name: "文件名",
 	folder: "文件夹",
@@ -90,24 +80,6 @@ const FIELD_ICONS: Record<ImageCardProperty, string> = {
 	size: "file-chart-column",
 	ctime: "calendar-plus",
 	mtime: "calendar-clock",
-};
-
-const SORT_ICONS: Record<SortField, string> = {
-	name: "text",
-	ctime: "clock",
-	mtime: "clock",
-	size: "binary",
-	extension: "text",
-	references: "binary",
-};
-
-const SORT_PROPERTY_IDS: Record<SortField, string> = {
-	name: "file.name",
-	ctime: "file.ctime",
-	mtime: "file.mtime",
-	size: "file.size",
-	extension: "file.ext",
-	references: "imagine.references",
 };
 
 const TEXT_OPERATORS: Array<[ImageFilterOperator, string]> = [
@@ -138,6 +110,7 @@ export class ImageManagerToolbar {
 	private state: ImageManagerToolbarState;
 	private tabsSignature = "";
 	private sortButtonEl: HTMLElement | null = null;
+	private sortBadgeEl: HTMLElement | null = null;
 	private groupButtonEl: HTMLElement | null = null;
 	private filterButtonEl: HTMLElement | null = null;
 	private searchButtonEl: HTMLElement | null = null;
@@ -145,6 +118,7 @@ export class ImageManagerToolbar {
 	private searchTimer: number | null = null;
 	private readonly folderSuggests = new Map<string, FolderSuggest>();
 	private suggestionEl: HTMLElement | null = null;
+	private sortPanel: { update: (rules: readonly ImageSortRule[]) => void } | null = null;
 	private groupPanelCleanup: (() => void) | null = null;
 	private suggestionAnchor: HTMLElement | null = null;
 	private suggestionAbort: AbortController | null = null;
@@ -234,6 +208,7 @@ export class ImageManagerToolbar {
 		}
 		this.renderSelectionRow();
 		this.updateActionButtonStates();
+		this.sortPanel?.update(state.sortRules);
 	}
 
 		destroy(): void {
@@ -312,16 +287,19 @@ export class ImageManagerToolbar {
 	private renderActions(): void {
 		this.actionsEl.empty();
 		this.sortButtonEl = null;
+		this.sortBadgeEl = null;
 		this.groupButtonEl = null;
 		this.filterButtonEl = null;
 		this.searchButtonEl = null;
 		this.multiSelectButtonEl = null;
 		const sortButton = this.sortButtonEl = this.createTextButton(
-			"arrow-up-down",
+			"lucide-arrow-up-down",
 			"排序",
 			() => this.openSortPanel(sortButton),
 		);
 		sortButton.parentElement?.addClass("bases-toolbar-sort-menu");
+		this.sortBadgeEl = sortButton.createSpan("flair toolbar-badge");
+		this.sortBadgeEl.hide();
 		const groupButton = this.groupButtonEl = this.createTextButton(
 			"lucide-stretch-horizontal",
 			"分组",
@@ -352,13 +330,8 @@ export class ImageManagerToolbar {
 	private updateActionButtonStates(): void {
 		if (this.sortButtonEl) {
 			this.sortButtonEl.toggleClass("is-active", this.state.sortRules.length > 0);
-			this.sortButtonEl.querySelector(".toolbar-badge")?.remove();
-			if (this.state.sortRules.length > 0) {
-				this.sortButtonEl.createSpan({
-					cls: "flair toolbar-badge",
-					text: String(this.state.sortRules.length),
-				});
-			}
+			this.sortBadgeEl?.setText(String(this.state.sortRules.length));
+			this.sortBadgeEl?.toggle(this.state.sortRules.length > 0);
 		}
 		this.groupButtonEl?.toggleClass("is-active", Boolean(this.state.groupBy));
 		this.filterButtonEl?.toggleClass("is-active", this.state.unreferencedOnly);
@@ -895,79 +868,12 @@ export class ImageManagerToolbar {
 	}
 
 	private openSortPanel(anchor: HTMLElement): void {
-		type DraftSort = { field: SortField | null; order: "asc" | "desc" };
-		const draft: DraftSort[] = this.state.sortRules.map((rule) => ({ ...rule }));
-		if (draft.length === 0) draft.push({ field: null, order: "asc" });
-		const save = (): void => {
-			this.actions.onSortChange(draft.filter(
-				(rule): rule is ImageSortRule => rule.field !== null,
-			));
-		};
 		this.openPopover(anchor, "sort", (panel) => {
-			const section = panel.createDiv("bases-toolbar-section bases-sort-container");
-			section.createDiv({ cls: "bases-toolbar-section-header", text: "排序依据" });
-			const content = section.createDiv("bases-toolbar-section-content");
-			const rows = content.createDiv("bases-toolbar-items");
-			const renderRows = (): void => {
-				rows.empty();
-				for (const [index, rule] of draft.entries()) {
-					const row = rows.createDiv("base-toolbar-sort-item");
-					const grip = row.createDiv("grip-handle");
-					setIcon(grip, "grip-vertical");
-					bindBasesVerticalReorder(grip, row, rows, 10, (newIndex) => {
-						const currentIndex = draft.indexOf(rule);
-						if (currentIndex < 0 || currentIndex === newIndex) return;
-						const [moved] = draft.splice(currentIndex, 1);
-						if (moved) draft.splice(Math.min(newIndex, draft.length), 0, moved);
-						renderRows();
-						save();
-					});
-					const wrapper = row.createDiv("metadata-property bases-sort-property-container");
-					let directionControl: ComboboxControl;
-					this.createCombobox(
-						wrapper,
-						"bases-sort-property",
-						"排序依据",
-						() => Object.entries(SORT_LABELS),
-						() => rule.field ?? "",
-						(value) => {
-							rule.field = value as SortField;
-							directionControl.refresh();
-							save();
-						},
-						(value) => SORT_ICONS[value as SortField],
-						(value) => SORT_PROPERTY_IDS[value as SortField],
-					);
-					directionControl = this.createCombobox(
-						wrapper,
-						"bases-sort-direction",
-						"排序方式",
-						() => getSortDirections(rule.field),
-						() => rule.order,
-						(value) => {
-							rule.order = value === "desc" ? "desc" : "asc";
-							save();
-						},
-					);
-					this.createIconButton(row, "trash-2", "删除排序", () => {
-						draft.splice(index, 1);
-						if (draft.length === 0) draft.push({ field: null, order: "asc" });
-						renderRows();
-						save();
-					});
-				}
-			};
-			const addSort = content.createDiv({
-				cls: "text-icon-button",
-				attr: { tabindex: "0", role: "button" },
-			});
-			setIcon(addSort.createSpan("text-button-icon"), "plus");
-			addSort.createSpan({ cls: "text-button-label", text: "添加排序" });
-			bindActivation(addSort, () => {
-				draft.push({ field: null, order: "asc" });
-				renderRows();
-			});
-			renderRows();
+			this.sortPanel = renderImageManagerSortPanel(
+				panel, this.state.sortRules, this.actions.onSortChange,
+				(container, className, ariaLabel, getItems, getValue, onSelect, getIcon, getAux) =>
+					this.createCombobox(container, className, ariaLabel, getItems, getValue, onSelect, getIcon, getAux),
+			);
 		});
 	}
 
@@ -1256,6 +1162,7 @@ export class ImageManagerToolbar {
 	}
 
 	private closePopover(commit: boolean): void {
+		this.sortPanel = null;
 		this.groupPanelCleanup?.();
 		this.groupPanelCleanup = null;
 		const onClose = this.popoverOnClose;
@@ -1275,16 +1182,6 @@ export class ImageManagerToolbar {
 		this.popoverObserver = null;
 		if (commit) onClose?.();
 	}
-}
-
-function getSortDirections(field: SortField | null): Array<[string, string]> {
-	if (field === "ctime" || field === "mtime") {
-		return [["asc", "从旧到新"], ["desc", "从新到旧"]];
-	}
-	if (field === "size" || field === "references") {
-		return [["asc", "0 → 1"], ["desc", "1 → 0"]];
-	}
-	return [["asc", "排序 A → Z"], ["desc", "排序 Z → A"]];
 }
 
 function getOperators(field: ImageFilterField): Array<[ImageFilterOperator, string]> {
