@@ -25,6 +25,14 @@ interface PickerImageController extends ViewportGridController<ImageItem>, Viewp
 	imageEl: HTMLImageElement | null;
 }
 
+export type ImagePickerAction =
+	| { kind: "insert"; editor: Editor; sourcePath: string; }
+	| {
+		kind: "select";
+		multiple: boolean;
+		onSelect: (paths: string[]) => void | Promise<void>;
+	};
+
 export class ImagePickerModal extends Modal {
 	private readonly views: ImageFilterPreset[];
 	private activeViewId: string;
@@ -60,8 +68,7 @@ export class ImagePickerModal extends Modal {
 		imageCatalog: ImageCatalogService,
 		private readonly referenceChecker: ReferenceCheckService,
 		private readonly iconService: ViewIconService,
-		private readonly targetEditor: Editor,
-		private readonly sourcePath: string,
+		private readonly action: ImagePickerAction,
 	) {
 		super(app);
 		this.views = (settings.filterPresets ?? []).map((view) => cloneView(view));
@@ -71,6 +78,7 @@ export class ImagePickerModal extends Modal {
 			: this.views[0].id;
 		this.imageLoader = new ImageLoaderService(app, imageCatalog);
 		this.invertColor = settings.invertSvgInDarkMode !== false;
+		this.isMultiSelectMode = action.kind === "select" && action.multiple;
 		this.applyViewState();
 	}
 
@@ -95,7 +103,7 @@ export class ImagePickerModal extends Modal {
 				this.updateQueryResult();
 			},
 			onToggleMultiSelect: () => this.setMultiSelectMode(!this.isMultiSelectMode),
-			onInsertSelected: () => this.handleGridInsert(),
+			onInsertSelected: () => { void this.handleGridInsert(); },
 		}, this.getToolbarState());
 		this.optionsContainer = this.contentEl.createDiv("bases-search-row image-picker-options");
 		this.renderOptionsPanel();
@@ -154,6 +162,8 @@ export class ImagePickerModal extends Modal {
 			searchQuery: this.searchQuery,
 			isMultiSelect: this.isMultiSelectMode,
 			selectedCount: this.selectedImages.size,
+			selectionActionLabel: this.action.kind === "select" ? "选择" : "插入",
+			selectionActionAriaLabel: this.action.kind === "select" ? "确认选择附件" : "插入选中附件",
 		};
 	}
 
@@ -163,7 +173,7 @@ export class ImagePickerModal extends Modal {
 		this.activeViewId = id;
 		this.applyViewState();
 		this.viewport?.setItems([]);
-		this.setMultiSelectMode(false);
+		this.setMultiSelectMode(this.action.kind === "select" && this.action.multiple);
 		if (previousMappings !== JSON.stringify(this.getActiveView().mappings ?? [])) void this.loadImages();
 		else this.updateQueryResult();
 	}
@@ -185,8 +195,9 @@ export class ImagePickerModal extends Modal {
 
 	private renderOptionsPanel(): void {
 		this.optionsContainer.empty();
-		this.optionsContainer.toggleClass("is-hidden", this.isMultiSelectMode);
-		if (this.isMultiSelectMode) return;
+		const hidden = this.action.kind === "select" || this.isMultiSelectMode;
+		this.optionsContainer.toggleClass("is-hidden", hidden);
+		if (hidden) return;
 		const positionGroup = this.optionsContainer.createDiv("option-group mod-position");
 		positionGroup.createSpan({ text: "位置:", cls: "option-label" });
 		new DropdownComponent(positionGroup)
@@ -287,7 +298,7 @@ export class ImagePickerModal extends Modal {
 			(card) => {
 				const current = controller.item;
 				if (!this.isMultiSelectMode) {
-					this.insertSingle(current);
+					void this.handleSingle(current);
 					return;
 				}
 				if (this.selectedImages.has(current.path)) this.selectedImages.delete(current.path);
@@ -326,27 +337,49 @@ export class ImagePickerModal extends Modal {
 		this.viewport?.refreshVisible();
 	}
 
-	private insertSingle(image: ImageItem): void {
+	private async handleSingle(image: ImageItem): Promise<void> {
 		const file = image.isCustomType ? image.displayFile : image.originalFile;
-		const link = buildImageLink(this.app.metadataCache, file, this.sourcePath, {
+		if (this.action.kind === "select") {
+			await this.commitSelection([file.path]);
+			return;
+		}
+		const link = buildImageLink(this.app.metadataCache, file, this.action.sourcePath, {
 			position: this.imagePosition,
 			dark: this.invertColor,
 			caption: this.imageCaption,
 		});
-		this.targetEditor.replaceSelection(link);
+		this.action.editor.replaceSelection(link);
 		this.close();
 	}
 
-	private handleGridInsert(): void {
+	private async handleGridInsert(): Promise<void> {
 		if (this.selectedImages.size === 0) return;
-		const links = Array.from(this.selectedImages)
+		const files = Array.from(this.selectedImages)
 			.map((path) => this.images.find((image) => image.path === path))
 			.filter((image): image is ImageItem => Boolean(image))
-			.map((image) => image.isCustomType ? image.displayFile : image.originalFile)
-			.map((file) => `![[${this.app.metadataCache.fileToLinktext(file, this.sourcePath)}]]`)
+			.map((image) => image.isCustomType ? image.displayFile : image.originalFile);
+		if (this.action.kind === "select") {
+			await this.commitSelection(files.map((file) => file.path));
+			return;
+		}
+		const { editor, sourcePath } = this.action;
+		const links = files
+			.map((file) => `![[${this.app.metadataCache.fileToLinktext(file, sourcePath)}]]`)
 			.join("\n");
-		this.targetEditor.replaceSelection(`> [!grid]\n> ${links.split("\n").join("\n> ")}`);
+		editor.replaceSelection(`> [!grid]\n> ${links.split("\n").join("\n> ")}`);
 		this.close();
+	}
+
+	private async commitSelection(paths: string[]): Promise<void> {
+		if (this.action.kind !== "select" || paths.length === 0) return;
+		try {
+			await this.action.onSelect(paths);
+			if (!this.isClosed) this.close();
+		} catch (error) {
+			if (!this.isClosed) {
+				new Notice(`处理所选图片失败: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		}
 	}
 
 	onClose(): void {

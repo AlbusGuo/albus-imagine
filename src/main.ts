@@ -1,4 +1,4 @@
-import { type Editor, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { type Editor, type Events, normalizePath, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { NativePluginSettingTab } from "./settings/NativePluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
@@ -16,6 +16,10 @@ import { ImageCatalogService } from "./services/ImageCatalogService";
 import { ReferenceCheckService } from "./services/ReferenceCheckService";
 import { ImageLayoutStateManager } from "./services/ImageLayoutStateManager";
 import { ViewIconService } from "./services/ViewIconService";
+import {
+	IMAGINE_IMAGE_PICKER_EVENT,
+	isImagineImagePickerRequestV1,
+} from "./types/image-picker-integration";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -111,6 +115,27 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				this.openImagePicker(editor, context.file?.path ?? "");
 			},
 		});
+
+		const workspaceEvents = this.app.workspace as Events;
+		this.registerEvent(workspaceEvents.on(IMAGINE_IMAGE_PICKER_EVENT, (...data: unknown[]) => {
+			const request = data[0];
+			const viewIconService = this.viewIconService;
+			if (!viewIconService || !isImagineImagePickerRequestV1(request)) return;
+			const modal = new ImagePickerModal(
+				this.app,
+				this.settings.imageManager || {},
+				this.imageCatalog,
+				this.referenceIndex,
+				viewIconService,
+				{
+					kind: "select",
+					multiple: request.multiple,
+					onSelect: request.onSelect,
+				},
+			);
+			modal.open();
+			request.accept();
+		}));
 
 		// 添加设置选项卡
 		this.addSettingTab(new NativePluginSettingTab(this));
@@ -217,8 +242,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			this.imageCatalog,
 			this.referenceIndex,
 			viewIconService,
-			editor,
-			sourcePath,
+			{ kind: "insert", editor, sourcePath },
 		);
 		modal.open();
 	}

@@ -10,6 +10,8 @@ interface ImagePickerToolbarState {
 	searchQuery: string;
 	isMultiSelect: boolean;
 	selectedCount: number;
+	selectionActionLabel: string;
+	selectionActionAriaLabel: string;
 }
 
 interface ImagePickerToolbarActions {
@@ -135,10 +137,10 @@ export class ImagePickerToolbar {
 		const item = actions.createDiv("bases-toolbar-item afm-manager-toolbar-item");
 		const insert = item.createDiv({
 			cls: "text-icon-button",
-			attr: { tabindex: "0", role: "button", "aria-label": "插入选中附件" },
+			attr: { tabindex: "0", role: "button", "aria-label": this.state.selectionActionAriaLabel },
 		});
 		setIcon(insert.createSpan("text-button-icon"), "check");
-		insert.createSpan({ cls: "text-button-label", text: "插入" });
+		insert.createSpan({ cls: "text-button-label", text: this.state.selectionActionLabel });
 		insert.addEventListener("click", this.actions.onInsertSelected);
 	}
 
