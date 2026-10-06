@@ -31,6 +31,8 @@ Thumbs.db
 *.bat
 *.zip
 .env
-dist
+/dist/
+/DEVELOPMENT_NOTES.md
+/scripts/copy-to-vault.mjs
 mermaid-editor.js
 Plugin guidelines.md

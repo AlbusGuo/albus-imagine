@@ -7,6 +7,7 @@ import {
 	ImageFilterOperator,
 	ImageFilterPreset,
 	ImageFilterRule,
+	ImageGroupBy,
 	ImageSortRule,
 	SortField,
 } from "../types/image-manager.types";
@@ -16,6 +17,8 @@ import { bindBasesVerticalReorder } from "../utils/basesReorder";
 import { normalizeExtension } from "../utils/vaultPaths";
 import { ViewTabsReorderController } from "./ViewTabsReorderController";
 import { ViewIconService } from "../services/ViewIconService";
+import { ImageGroup } from "../utils/imageGrouping";
+import { renderImageManagerGroupPanel } from "./ImageManagerGroupPanel";
 
 export interface ImageManagerToolbarState {
 	filters: readonly ImageFilterPreset[];
@@ -23,6 +26,8 @@ export interface ImageManagerToolbarState {
 	resultCount: number;
 	totalCount: number;
 	sortRules: readonly ImageSortRule[];
+	groupBy?: ImageGroupBy;
+	groupOrder?: readonly string[];
 	searchQuery: string;
 	properties: readonly ImageCardProperty[];
 	unreferencedOnly: boolean;
@@ -39,6 +44,9 @@ interface ImageManagerToolbarActions {
 	onDeleteFilter: (id: string) => void;
 	onReorderFilters: (ids: string[]) => void;
 	onSortChange: (rules: ImageSortRule[]) => void;
+	onGroupChange: (groupBy: ImageGroupBy | undefined, groupOrder?: string[]) => void;
+	onGroupOrderChange: (order: string[]) => void;
+	getAllGroups: () => ImageGroup[];
 	onSearchChange: (query: string) => void;
 	onPropertiesChange: (properties: ImageCardProperty[]) => void;
 	onToggleUnreferenced: () => void;
@@ -60,6 +68,7 @@ const SORT_LABELS: Record<SortField, string> = {
 	ctime: "创建时间",
 	size: "文件大小",
 	name: "文件名",
+	extension: "扩展名",
 	references: "引用数量",
 };
 
@@ -84,11 +93,21 @@ const FIELD_ICONS: Record<ImageCardProperty, string> = {
 };
 
 const SORT_ICONS: Record<SortField, string> = {
-	name: FIELD_ICONS.name,
-	ctime: FIELD_ICONS.ctime,
-	mtime: FIELD_ICONS.mtime,
-	size: FIELD_ICONS.size,
-	references: FIELD_ICONS.references,
+	name: "text",
+	ctime: "clock",
+	mtime: "clock",
+	size: "binary",
+	extension: "text",
+	references: "binary",
+};
+
+const SORT_PROPERTY_IDS: Record<SortField, string> = {
+	name: "file.name",
+	ctime: "file.ctime",
+	mtime: "file.mtime",
+	size: "file.size",
+	extension: "file.ext",
+	references: "imagine.references",
 };
 
 const TEXT_OPERATORS: Array<[ImageFilterOperator, string]> = [
@@ -119,12 +138,14 @@ export class ImageManagerToolbar {
 	private state: ImageManagerToolbarState;
 	private tabsSignature = "";
 	private sortButtonEl: HTMLElement | null = null;
+	private groupButtonEl: HTMLElement | null = null;
 	private filterButtonEl: HTMLElement | null = null;
 	private searchButtonEl: HTMLElement | null = null;
 	private multiSelectButtonEl: HTMLElement | null = null;
 	private searchTimer: number | null = null;
 	private readonly folderSuggests = new Map<string, FolderSuggest>();
 	private suggestionEl: HTMLElement | null = null;
+	private groupPanelCleanup: (() => void) | null = null;
 	private suggestionAnchor: HTMLElement | null = null;
 	private suggestionAbort: AbortController | null = null;
 	private viewIconPreviewEl: HTMLElement | null = null;
@@ -291,6 +312,7 @@ export class ImageManagerToolbar {
 	private renderActions(): void {
 		this.actionsEl.empty();
 		this.sortButtonEl = null;
+		this.groupButtonEl = null;
 		this.filterButtonEl = null;
 		this.searchButtonEl = null;
 		this.multiSelectButtonEl = null;
@@ -300,6 +322,12 @@ export class ImageManagerToolbar {
 			() => this.openSortPanel(sortButton),
 		);
 		sortButton.parentElement?.addClass("bases-toolbar-sort-menu");
+		const groupButton = this.groupButtonEl = this.createTextButton(
+			"lucide-stretch-horizontal",
+			"分组",
+			() => this.openGroupPanel(groupButton),
+		);
+		groupButton.parentElement?.addClass("bases-toolbar-group-menu");
 		const filterButton = this.filterButtonEl = this.createTextButton(
 			"list-filter",
 			"过滤",
@@ -332,6 +360,7 @@ export class ImageManagerToolbar {
 				});
 			}
 		}
+		this.groupButtonEl?.toggleClass("is-active", Boolean(this.state.groupBy));
 		this.filterButtonEl?.toggleClass("is-active", this.state.unreferencedOnly);
 		this.multiSelectButtonEl?.toggleClass("is-active", this.state.isMultiSelect);
 	}
@@ -378,7 +407,7 @@ export class ImageManagerToolbar {
 	private createTextButton(icon: string, text: string, callback: () => void): HTMLElement {
 		const item = this.actionsEl.createDiv("bases-toolbar-item afm-manager-toolbar-item");
 		const button = item.createDiv({
-			cls: "text-icon-button",
+			cls: "text-icon-button tappable",
 			attr: { tabindex: "0", role: "button", "aria-label": text },
 		});
 		const iconEl = button.createSpan("text-button-icon");
@@ -907,6 +936,7 @@ export class ImageManagerToolbar {
 							save();
 						},
 						(value) => SORT_ICONS[value as SortField],
+						(value) => SORT_PROPERTY_IDS[value as SortField],
 					);
 					directionControl = this.createCombobox(
 						wrapper,
@@ -941,6 +971,20 @@ export class ImageManagerToolbar {
 		});
 	}
 
+	private openGroupPanel(anchor: HTMLElement): void {
+		this.openPopover(anchor, "group", (panel) => {
+			this.groupPanelCleanup = renderImageManagerGroupPanel(panel, this.app, () => ({
+				groupBy: this.state.groupBy,
+				groupOrder: this.state.groupOrder,
+				groups: this.actions.getAllGroups(),
+			}), {
+				onGroupChange: this.actions.onGroupChange,
+				onGroupOrderChange: this.actions.onGroupOrderChange,
+			}, (container, className, ariaLabel, getItems, getValue, onSelect, getIcon, getAux) =>
+				this.createCombobox(container, className, ariaLabel, getItems, getValue, onSelect, getIcon, getAux));
+		});
+	}
+
 	private createCombobox(
 		container: HTMLElement,
 		className: string,
@@ -949,6 +993,7 @@ export class ImageManagerToolbar {
 		getValue: () => string,
 		onSelect: (value: string) => void,
 		getIcon?: (value: string) => string | undefined,
+		getAux?: (value: string) => string | undefined,
 	): ComboboxControl {
 		const element = container.createDiv({
 			cls: `combobox-button ${className}`,
@@ -972,12 +1017,31 @@ export class ImageManagerToolbar {
 			iconEl.toggle(Boolean(icon));
 			if (icon) setIcon(iconEl, icon);
 		};
-		bindActivation(element, (event) => {
+		const toggleSuggestions = (event: Event): void => {
 			event.preventDefault();
+			if (this.suggestionAnchor === element) {
+				this.closeSuggestions();
+				return;
+			}
 			this.openSuggestions(element, getItems(), getValue(), (value) => {
 				onSelect(value);
 				refresh();
-			}, getIcon);
+			}, getIcon, getAux);
+		};
+		bindActivation(element, toggleSuggestions);
+		element.addEventListener("keydown", (event) => {
+			if (event.isComposing || event.defaultPrevented) return;
+			if (event.key !== "ArrowUp" && event.key !== "ArrowDown" &&
+				!(event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey)) return;
+			event.preventDefault();
+			if (this.suggestionAnchor !== element) toggleSuggestions(event);
+			if (event.key.length === 1) {
+				const input = this.suggestionEl?.querySelector<HTMLInputElement>(".search-input-container input");
+				if (input) {
+					input.value = event.key;
+					input.dispatchEvent(new (input.ownerDocument.defaultView?.Event ?? Event)("input", { bubbles: true }));
+				}
+			}
 		});
 		refresh();
 		return { element, refresh };
@@ -989,6 +1053,7 @@ export class ImageManagerToolbar {
 		current: string,
 		onSelect: (value: string) => void,
 		getIcon?: (value: string) => string | undefined,
+		getAux?: (value: string) => string | undefined,
 	): void {
 		this.closeSuggestions();
 		const ownerDocument = anchor.ownerDocument;
@@ -1044,6 +1109,8 @@ export class ImageManagerToolbar {
 					suggestionIcon.createDiv("suggestion-flair", (element) => setIcon(element, icon));
 				}
 				item.createDiv("suggestion-content").createDiv({ cls: "suggestion-title", text: label });
+				const aux = getAux?.(value);
+				if (aux) item.createDiv("suggestion-aux").createSpan({ cls: "suggestion-flair u-small", text: aux });
 				item.addEventListener("mouseenter", () => {
 					selectedIndex = index;
 					updateSelection();
@@ -1067,6 +1134,10 @@ export class ImageManagerToolbar {
 			top: `${rect.bottom + 4}px`,
 		});
 		const suggestionRect = container.getBoundingClientRect();
+		if (suggestionRect.bottom > ownerWindow.innerHeight - 8) {
+			const above = rect.top - suggestionRect.height - 4;
+			container.setCssStyles({ top: `${Math.max(8, above)}px` });
+		}
 		if (suggestionRect.right > ownerWindow.innerWidth - 8) {
 			container.setCssStyles({ left: `${Math.max(8, ownerWindow.innerWidth - suggestionRect.width - 8)}px` });
 		}
@@ -1081,7 +1152,10 @@ export class ImageManagerToolbar {
 			this.closeSuggestions();
 		}, { capture: true, signal: abort.signal });
 		ownerDocument.addEventListener("keydown", (event) => {
-			if (event.key === "Escape") {
+			if (event.key === "Tab") {
+				this.closeSuggestions();
+				anchor.focus({ preventScroll: true });
+			} else if (event.key === "Escape") {
 				event.preventDefault();
 				this.closeSuggestions();
 			} else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -1113,7 +1187,7 @@ export class ImageManagerToolbar {
 
 	private openPopover(
 		anchor: HTMLElement,
-		type: "sort" | "filter" | "view" | "properties" | "mapping",
+		type: "sort" | "group" | "filter" | "view" | "properties" | "mapping",
 		render: (panel: HTMLElement) => void,
 		onClose?: () => void,
 	): void {
@@ -1129,7 +1203,7 @@ export class ImageManagerToolbar {
 		background.addEventListener("mousedown", (event) => event.preventDefault());
 		background.addEventListener("click", () => this.closePopover(true));
 		const panel = ownerDocument.body.createDiv(
-			`menu bases-toolbar-menu afm-manager-popover ${type === "sort" ? "bases-toolbar-sort-menu afm-manager-sort-menu" : type === "filter" ? "bases-toolbar-filter-menu" : type === "mapping" ? "bases-toolbar-filter-menu afm-manager-mapping-menu" : type === "properties" ? "bases-toolbar-properties-menu" : "bases-toolbar-filter-menu afm-manager-view-editor-menu"}`,
+			`menu bases-toolbar-menu afm-manager-popover ${type === "sort" ? "bases-toolbar-sort-menu afm-manager-sort-menu" : type === "group" ? "bases-toolbar-group-menu afm-manager-group-menu" : type === "filter" ? "bases-toolbar-filter-menu" : type === "mapping" ? "bases-toolbar-filter-menu afm-manager-mapping-menu" : type === "properties" ? "bases-toolbar-properties-menu" : "bases-toolbar-filter-menu afm-manager-view-editor-menu"}`,
 		);
 		panel.createDiv("menu-grabber");
 		const scrollEl = panel.createDiv("menu-scroll");
@@ -1182,6 +1256,8 @@ export class ImageManagerToolbar {
 	}
 
 	private closePopover(commit: boolean): void {
+		this.groupPanelCleanup?.();
+		this.groupPanelCleanup = null;
 		const onClose = this.popoverOnClose;
 		this.popoverOnClose = null;
 		for (const suggest of this.folderSuggests.values()) suggest.close();
@@ -1231,6 +1307,9 @@ function cloneFilter(filter: ImageFilterPreset): ImageFilterPreset {
 		rules: filter.rules?.map((rule) => ({ ...rule })),
 		properties: filter.properties ? [...filter.properties] : undefined,
 		sort: filter.sort?.map((rule) => ({ ...rule })),
+		groupBy: filter.groupBy ? { ...filter.groupBy } : undefined,
+		groupOrder: filter.groupOrder ? [...filter.groupOrder] : undefined,
+		collapsedGroups: filter.collapsedGroups ? [...filter.collapsedGroups] : undefined,
 	};
 }
 

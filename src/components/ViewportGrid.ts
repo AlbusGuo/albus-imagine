@@ -6,6 +6,8 @@ export interface ViewportGridController<Item> {
 interface ViewportGridOptions<Item, Controller extends ViewportGridController<Item>> {
 	viewportEl: HTMLElement;
 	gridEl: HTMLElement;
+	/** Position of the viewport top in this grid's own scroll coordinates. */
+	getLocalViewportTop?: () => number;
 	getKey: (item: Item) => string;
 	create: (item: Item) => Controller;
 	update: (controller: Controller, item: Item) => void;
@@ -155,9 +157,20 @@ export class ViewportGrid<
 		const rowCount = Math.ceil(this.items.length / columns);
 		const overscanRows = this.options.overscanRows ?? 5;
 		const visibleRows = Math.max(1, Math.ceil(this.options.viewportEl.clientHeight / rowStride));
+		const localTop = this.options.getLocalViewportTop?.() ?? this.options.viewportEl.scrollTop;
+		const totalHeight = padding * 2 + rowCount * rowStride - gap;
+		const overscanHeight = overscanRows * rowStride;
+		if (localTop + this.options.viewportEl.clientHeight < -overscanHeight || localTop > totalHeight + overscanHeight) {
+			this.renderedStartRow = -1;
+			this.renderedEndRow = -1;
+			this.setSpacerHeight(this.topSpacerEl, rowCount * rowStride - gap);
+			this.reconcileChildren([this.topSpacerEl]);
+			this.notifyVisibleControllers();
+			return;
+		}
 		const unclampedStartRow = Math.max(
 			0,
-			Math.floor(Math.max(0, this.options.viewportEl.scrollTop - padding) / rowStride) - overscanRows,
+			Math.floor(Math.max(0, localTop - padding) / rowStride) - overscanRows,
 		);
 		const startRow = Math.min(Math.max(0, rowCount - visibleRows), unclampedStartRow);
 		const endRow = Math.min(rowCount, startRow + visibleRows + overscanRows * 2);

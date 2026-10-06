@@ -7,6 +7,8 @@ import {
 	ImageFilterGroup,
 	ImageFilterPreset,
 	ImageFilterRule,
+	ImageGroupBy,
+	ImageGroupField,
 	ImageItem,
 	ImageManagerLayout,
 	ImageManagerSettings,
@@ -21,6 +23,7 @@ import { BatchDeleteConfirmModal } from "./BatchDeleteConfirmModal";
 import { FolderPickerModal } from "./FolderPickerModal";
 import { ViewportGrid, ViewportGridController } from "../components/ViewportGrid";
 import { ViewportMasonry } from "../components/ViewportMasonry";
+import { GroupedImageViewport } from "../components/GroupedImageViewport";
 import { ViewportMediaController, ViewportMediaLoader } from "../components/ViewportMediaLoader";
 import { ImageCatalogService } from "../services/ImageCatalogService";
 import {
@@ -28,7 +31,8 @@ import {
 	updateImageManagerReferenceBadge,
 	updateImageManagerSelectionState,
 } from "../components/ImageManagerCard";
-import { filterAndSortImages } from "../utils/imageCollection";
+import { filterAndSortImages, filterImages } from "../utils/imageCollection";
+import { collectImageGroups, getGroupFieldLabel, orderImageGroups } from "../utils/imageGrouping";
 import { ImageManagerToolbar, ImageManagerToolbarState } from "../components/ImageManagerToolbar";
 import { ImageThumbnailService } from "../services/ImageThumbnailService";
 import { ImageClipboardService } from "../services/ImageClipboardService";
@@ -56,12 +60,16 @@ export class ImageManagerView extends ItemView {
 	private activeFilterId: string;
 	private searchQuery = "";
 	private sortRules: ImageSortRule[];
+	private groupBy: ImageGroupBy | undefined;
+	private groupOrder: string[] | undefined;
+	private readonly collapsedGroups = new Set<string>();
 	private cardProperties: ImageCardProperty[];
 	private cardSize = 200;
 	private invertSvgInDarkMode = true;
 	private currentMappings: CustomFileTypeConfig[] = [];
 	private layoutMode: ImageManagerLayout = "grid";
 	private renderedLayoutMode: ImageManagerLayout | null = null;
+	private renderedGroupField: ImageGroupField | null = null;
 	private viewFilter: ImageFilterGroup;
 	private showUnreferencedOnly: boolean;
 	private isLoading = false;
@@ -81,7 +89,7 @@ export class ImageManagerView extends ItemView {
 	private gridContainer!: HTMLElement;
 	private gridEl!: HTMLElement;
 	private gridStateEl!: HTMLElement;
-	private viewportGrid: ViewportGrid<ImageItem, ManagerImageController> | ViewportMasonry<ImageItem, ManagerImageController> | null = null;
+	private viewportGrid: ViewportGrid<ImageItem, ManagerImageController> | ViewportMasonry<ImageItem, ManagerImageController> | GroupedImageViewport<ManagerImageController> | null = null;
 	private mediaLoader: ViewportMediaLoader<ManagerImageController> | null = null;
 	private visibleControllers: readonly ManagerImageController[] = [];
 	private migratedLegacyFolder = false;
@@ -111,6 +119,8 @@ export class ImageManagerView extends ItemView {
 			? activeFilterId
 			: this.filterPresets[0].id;
 		this.sortRules = (settings.allViewSort ?? [{ field: "mtime", order: "desc" }]).map((rule) => ({ ...rule }));
+		this.groupBy = undefined;
+		this.groupOrder = undefined;
 		this.cardProperties = orderCardProperties(settings.allViewProperties ?? ["name", "size", "mtime"]);
 		this.viewFilter = createLegacyFilterGroup(
 			"active-filter",
@@ -220,6 +230,9 @@ export class ImageManagerView extends ItemView {
 				}
 				this.updateQueryResult();
 			},
+			onGroupChange: (groupBy, groupOrder) => this.updateGrouping(groupBy, groupOrder),
+			onGroupOrderChange: (order) => this.updateGrouping(this.groupBy, order),
+			getAllGroups: () => this.getAllGroups(),
 			onSearchChange: (query) => {
 				this.searchQuery = query;
 				this.updateQueryResult();
@@ -300,14 +313,35 @@ export class ImageManagerView extends ItemView {
 			padding: 12,
 			maxDetachedItems: 20,
 		};
-		this.viewportGrid = this.layoutMode === "masonry"
+		const detailCount = this.cardProperties.filter((property) =>
+			property !== "extension" && property !== "references").length;
+		const estimatedHeight = (_image: ImageItem, width: number, aspectRatio: number): number => {
+			return width / aspectRatio + (detailCount > 0 ? detailCount * 24 + 16 : 0);
+		};
+		this.viewportGrid = this.groupBy
+			? new GroupedImageViewport({
+				viewportEl: this.gridContainer,
+				rootEl: this.gridEl,
+				layout: this.layoutMode,
+				groupPropertyLabel: getGroupFieldLabel(this.groupBy.field),
+				minimumItemWidth: this.cardSize,
+				estimatedGridItemHeight: 174 + detailCount * 24,
+				getGroups: (items) => orderImageGroups(
+					collectImageGroups(items, this.groupBy!.field), this.groupBy!, this.groupOrder,
+				),
+				isCollapsed: (key) => this.collapsedGroups.has(key),
+				onToggleGroup: (key) => this.toggleGroup(key),
+				create: commonOptions.create,
+				update: commonOptions.update,
+				dispose: commonOptions.dispose,
+				shouldReuse: commonOptions.shouldReuse,
+				onVisibleChange: commonOptions.onVisibleChange,
+				getEstimatedHeight: estimatedHeight,
+			})
+			: this.layoutMode === "masonry"
 			? new ViewportMasonry({
 				...commonOptions,
-				getEstimatedHeight: (_image: ImageItem, width: number, aspectRatio: number): number => {
-					const detailCount = this.cardProperties.filter((property) =>
-						property !== "extension" && property !== "references").length;
-					return width / aspectRatio + (detailCount > 0 ? detailCount * 24 + 16 : 0);
-				},
+				getEstimatedHeight: estimatedHeight,
 				overscanPixels: this.gridContainer.clientHeight,
 			})
 			: new ViewportGrid({
@@ -316,6 +350,7 @@ export class ImageManagerView extends ItemView {
 				overscanRows: 3,
 			});
 		this.renderedLayoutMode = this.layoutMode;
+		this.renderedGroupField = this.groupBy?.field ?? null;
 		this.viewportGrid.setItems(this.filteredImages);
 	}
 
@@ -343,12 +378,18 @@ export class ImageManagerView extends ItemView {
 	}
 
 	private getToolbarState(): ImageManagerToolbarState {
+		const groups = this.groupBy ? collectImageGroups(this.filteredImages, this.groupBy.field) : [];
+		const visibleCount = this.groupBy
+			? orderImageGroups(groups, this.groupBy, this.groupOrder).reduce((count, group) => count + group.items.length, 0)
+			: this.filteredImages.length;
 		return {
 			filters: this.filterPresets,
 			activeFilterId: this.activeFilterId,
-			resultCount: this.filteredImages.length,
+			resultCount: visibleCount,
 			totalCount: this.images.length,
 			sortRules: this.sortRules,
+			groupBy: this.groupBy,
+			groupOrder: this.groupOrder,
 			searchQuery: this.searchQuery,
 			properties: this.cardProperties,
 			unreferencedOnly: this.showUnreferencedOnly,
@@ -362,6 +403,39 @@ export class ImageManagerView extends ItemView {
 		this.toolbar?.update(this.getToolbarState());
 	}
 
+	private getAllGroups(): ReturnType<typeof collectImageGroups> {
+		if (!this.groupBy) return [];
+		const images = filterImages(this.images, {
+			query: "",
+			unreferencedOnly: this.showUnreferencedOnly,
+			filter: { id: this.activeFilterId, name: "", filter: this.viewFilter },
+		});
+		return collectImageGroups(images, this.groupBy.field);
+	}
+
+	private updateGrouping(groupBy: ImageGroupBy | undefined, groupOrder?: string[]): void {
+		const previousField = this.groupBy?.field;
+		this.groupBy = groupBy ? { ...groupBy } : undefined;
+		this.groupOrder = groupBy && groupOrder !== undefined ? [...groupOrder] : undefined;
+		if (previousField !== groupBy?.field) this.collapsedGroups.clear();
+		this.persistCurrentViewState();
+		if (groupBy?.field === "references" && this.images.some((image) => image.references === undefined)) {
+			void this.checkReferences(false);
+		}
+		this.applyViewAppearance();
+		this.renderToolbar();
+		this.renderGrid();
+	}
+
+	private toggleGroup(key: string): void {
+		if (this.collapsedGroups.has(key)) this.collapsedGroups.delete(key);
+		else this.collapsedGroups.add(key);
+		const view = this.getActiveFilter();
+		if (view) view.collapsedGroups = Array.from(this.collapsedGroups);
+		this.scheduleFilterPersistence();
+		this.viewportGrid?.setItems(this.filteredImages);
+	}
+
 	refreshIcons(): void {
 		this.toolbar?.refreshIcons();
 	}
@@ -373,7 +447,7 @@ export class ImageManagerView extends ItemView {
 		this.applyActiveViewState();
 		this.viewportGrid?.setItems([]);
 		void this.persistManagerSettings({ activeFilterId: id });
-		if (filterUsesField(this.getActiveFilter()?.filter, "references")) {
+		if (filterUsesField(this.getActiveFilter()?.filter, "references") || this.groupBy?.field === "references") {
 			void this.checkReferences(false);
 		}
 		this.refreshAfterViewChange(previousMappings);
@@ -495,6 +569,10 @@ export class ImageManagerView extends ItemView {
 		);
 		this.sortRules = (view?.sort ?? this.settings.allViewSort ?? [{ field: "mtime", order: "desc" }])
 			.map((rule) => ({ ...rule }));
+		this.groupBy = view?.groupBy ? { ...view.groupBy } : undefined;
+		this.groupOrder = view?.groupOrder !== undefined ? [...view.groupOrder] : undefined;
+		this.collapsedGroups.clear();
+		for (const key of view?.collapsedGroups ?? []) this.collapsedGroups.add(key);
 		this.cardSize = view?.cardSize ?? 200;
 		this.invertSvgInDarkMode = view?.invertSvgInDarkMode ?? (this.settings.invertSvgInDarkMode !== false);
 		this.currentMappings = (view?.mappings ?? []).map((mapping) => ({ ...mapping }));
@@ -511,7 +589,9 @@ export class ImageManagerView extends ItemView {
 
 	private applyViewAppearance(): void {
 		this.contentEl.toggleClass("afm-manager-no-svg-invert", !this.invertSvgInDarkMode);
-		if (this.viewportGrid && this.renderedLayoutMode !== this.layoutMode) {
+		if (this.viewportGrid && (
+			this.renderedLayoutMode !== this.layoutMode || this.renderedGroupField !== (this.groupBy?.field ?? null)
+		)) {
 			this.createViewportLayout();
 			return;
 		}
@@ -523,6 +603,9 @@ export class ImageManagerView extends ItemView {
 		if (!view) return;
 		view.properties = [...this.cardProperties];
 		view.sort = this.sortRules.map((rule) => ({ ...rule }));
+		view.groupBy = this.groupBy ? { ...this.groupBy } : undefined;
+		view.groupOrder = this.groupOrder ? [...this.groupOrder] : undefined;
+		view.collapsedGroups = Array.from(this.collapsedGroups);
 		view.filter = cloneFilterGroup(this.viewFilter);
 		view.unreferencedOnly = this.showUnreferencedOnly;
 		this.scheduleFilterPersistence();
@@ -573,6 +656,12 @@ export class ImageManagerView extends ItemView {
 			const loading = this.gridStateEl.createDiv("image-manager-loading-state");
 			loading.createDiv("image-manager-loading-spinner");
 			loading.createSpan({ text: "正在加载附件..." });
+			return;
+		}
+		if (this.groupBy && this.groupOrder?.length === 0) {
+			this.gridEl.hide();
+			this.viewportGrid.setItems([]);
+			this.gridStateEl.createDiv({ cls: "image-manager-empty-state", text: "当前没有显示的分组" });
 			return;
 		}
 		if (this.filteredImages.length === 0) {
@@ -629,7 +718,7 @@ export class ImageManagerView extends ItemView {
 				if (!imageEl || !source) return;
 				imageEl.onload = () => {
 					imageEl.addClass("is-loaded");
-					if (this.viewportGrid instanceof ViewportMasonry && imageEl.naturalHeight > 0) {
+					if ((this.viewportGrid instanceof ViewportMasonry || this.viewportGrid instanceof GroupedImageViewport) && imageEl.naturalHeight > 0) {
 						this.viewportGrid.setItemAspectRatio(
 							controller.item.path,
 							imageEl.naturalWidth / imageEl.naturalHeight,
@@ -988,6 +1077,9 @@ function cloneFilters(filters: readonly ImageFilterPreset[]): ImageFilterPreset[
 		mappings: filter.mappings?.map((mapping) => ({ ...mapping })),
 		properties: filter.properties ? [...filter.properties] : undefined,
 		sort: filter.sort?.map((rule) => ({ ...rule })),
+		groupBy: filter.groupBy ? { ...filter.groupBy } : undefined,
+		groupOrder: filter.groupOrder ? [...filter.groupOrder] : undefined,
+		collapsedGroups: filter.collapsedGroups ? [...filter.collapsedGroups] : undefined,
 	}));
 }
 

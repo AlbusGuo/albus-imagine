@@ -18,12 +18,7 @@ interface ImageCollectionOptions {
 }
 
 export function filterAndSortImages(images: readonly ImageItem[], options: ImageCollectionOptions): ImageItem[] {
-	const tokens = tokenizeSearch(options.query);
-	const filtered = images.filter((image) =>
-		matchesSearch(image, tokens) &&
-		(!options.unreferencedOnly || (image.references !== undefined && image.referenceCount === 0)) &&
-		matchesPreset(image, options.filter),
-	);
+	const filtered = filterImages(images, options);
 	const sortRules = options.sortRules?.length
 		? options.sortRules
 		: [{ field: options.sortField, order: options.sortOrder }];
@@ -36,12 +31,25 @@ export function filterAndSortImages(images: readonly ImageItem[], options: Image
 	});
 }
 
+export function filterImages(
+	images: readonly ImageItem[],
+	options: Pick<ImageCollectionOptions, "query" | "unreferencedOnly" | "filter">,
+): ImageItem[] {
+	const tokens = tokenizeSearch(options.query);
+	return images.filter((image) =>
+		matchesSearch(image, tokens) &&
+		(!options.unreferencedOnly || (image.references !== undefined && image.referenceCount === 0)) &&
+		matchesPreset(image, options.filter),
+	);
+}
+
 function compareField(a: ImageItem, b: ImageItem, field: ImageSortRule["field"]): number {
 	switch (field) {
 		case "mtime": return a.stat.mtime - b.stat.mtime;
 		case "ctime": return a.stat.ctime - b.stat.ctime;
 		case "size": return a.stat.size - b.stat.size;
 		case "name": return a.name.localeCompare(b.name);
+		case "extension": return a.originalFile.extension.toLowerCase().localeCompare(b.originalFile.extension.toLowerCase());
 		case "references": return (a.referenceCount ?? 0) - (b.referenceCount ?? 0);
 	}
 }

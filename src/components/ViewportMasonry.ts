@@ -3,6 +3,7 @@ import { ViewportGridController } from "./ViewportGrid";
 interface ViewportMasonryOptions<Item, Controller extends ViewportGridController<Item>> {
 	viewportEl: HTMLElement;
 	gridEl: HTMLElement;
+	getLocalViewportTop?: () => number;
 	getKey: (item: Item) => string;
 	create: (item: Item) => Controller;
 	update: (controller: Controller, item: Item) => void;
@@ -145,8 +146,9 @@ export class ViewportMasonry<
 			return;
 		}
 		const overscan = this.options.overscanPixels ?? this.options.viewportEl.clientHeight;
-		const top = Math.max(0, this.options.viewportEl.scrollTop - overscan);
-		const bottom = this.options.viewportEl.scrollTop + this.options.viewportEl.clientHeight + overscan;
+		const localTop = this.options.getLocalViewportTop?.() ?? this.options.viewportEl.scrollTop;
+		const top = Math.max(0, localTop - overscan);
+		const bottom = localTop + this.options.viewportEl.clientHeight + overscan;
 		const visibleEntries = this.entries.filter((entry) => entry.y + entry.height >= top && entry.y <= bottom);
 		const desiredChildren: HTMLElement[] = [];
 		for (const entry of visibleEntries) {

@@ -350,6 +350,38 @@
 	padding: 0;
 }
 
+.image-manager-grid.afm-grouped-sections {
+	display: block;
+	padding: var(--size-4-3);
+}
+
+.image-manager-grid.afm-group-placeholder {
+	box-sizing: border-box;
+	height: var(--afm-group-placeholder-height, 0);
+}
+
+.afm-group-section {
+	padding-bottom: var(--size-4-4);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.afm-group-section.is-collapsed {
+	padding-bottom: 0;
+	border-bottom-width: 0;
+}
+
+.afm-group-section + .afm-group-section {
+	margin-top: var(--size-4-2);
+}
+
+.afm-group-header {
+	padding: var(--size-4-1) 0 var(--size-4-2);
+}
+
+.image-manager-grid.afm-group-grid {
+	padding: 0;
+}
+
 .afm-viewport-spacer {
 	grid-column: 1 / -1;
 	height: var(--afm-viewport-spacer-height, 0);

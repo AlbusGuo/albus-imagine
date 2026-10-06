@@ -75,6 +75,7 @@ export class ImageContextMenu extends Component {
 			const image = directImage;
 			if (!image) return;
 			if (!image.closest(".markdown-source-view, .markdown-preview-view, .markdown-rendered")) return;
+			if (image.closest(".markdown-preview-view")) return;
 			if (!image.closest(".internal-embed, .image-embed")) return;
 			this.contextImage = image;
 			this.contextImageTimestamp = Date.now();

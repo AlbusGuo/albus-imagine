@@ -7,6 +7,7 @@ import {
 	ImageCardProperty,
 	ImageFilterGroup,
 	ImageFilterRule,
+	ImageGroupBy,
 	ImageSortRule,
 } from "@src/types/image-manager.types";
 
@@ -25,7 +26,8 @@ export default class SettingsStore {
 function sanitizeSettings(settings: IPluginSettings): IPluginSettings {
 	const manager = settings.imageManager;
 	if (manager) {
-		const sortFields = new Set(["mtime", "ctime", "size", "name", "references"]);
+		const sortFields = new Set(["mtime", "ctime", "size", "name", "extension", "references"]);
+		const groupFields = new Set(["extension", "folder", "references", "size"]);
 		const propertyFields = new Set(["name", "extension", "size", "mtime", "ctime", "folder", "references"]);
 		const filterFields = new Set(["name", "folder", "extension", "references", "size", "ctime", "mtime"]);
 		const filterOperators = new Set([
@@ -67,6 +69,13 @@ function sanitizeSettings(settings: IPluginSettings): IPluginSettings {
 				),
 				properties: sanitizeProperties(preset.properties, propertyFields),
 				sort: sanitizeSort(preset.sort, sortFields),
+				groupBy: sanitizeGroupBy(preset.groupBy, groupFields),
+				groupOrder: Array.isArray(preset.groupOrder)
+					? Array.from(new Set(preset.groupOrder.filter((key): key is string => typeof key === "string")))
+					: undefined,
+				collapsedGroups: Array.isArray(preset.collapsedGroups)
+					? Array.from(new Set(preset.collapsedGroups.filter((key): key is string => typeof key === "string")))
+					: undefined,
 				unreferencedOnly: preset.unreferencedOnly === true,
 			}];
 		});
@@ -246,6 +255,14 @@ function sanitizeSort(
 		? [{ field: rule.field, order: rule.order }]
 		: []);
 	return (result.length > 0 ? result : [{ field: "mtime", order: "desc" }]) as ImageSortRule[];
+}
+
+function sanitizeGroupBy(groupBy: ImageGroupBy | undefined, fields: ReadonlySet<string>): ImageGroupBy | undefined {
+	if (!groupBy || !fields.has(groupBy.field)) return undefined;
+	return {
+		field: groupBy.field,
+		direction: groupBy.direction === "desc" ? "desc" : "asc",
+	};
 }
 
 function migrateLegacyImageViewerSettings(settings: IPluginSettings, saved: unknown): void {

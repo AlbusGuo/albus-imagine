@@ -10,7 +10,7 @@ Imagine is an all-in-one image workflow plugin for [Obsidian](https://obsidian.m
 
 - Browse vault images in a responsive, virtualized image manager.
 - Search by file name and filter by vault folder or reference status.
-- Sort by modified time, created time, file size, file name, or reference count.
+- Sort by modified time, created time, file size, file name, extension, or reference count, and group by one property.
 - Detect links and embeds through Obsidian's metadata cache, including frontmatter links.
 - Rename, move, open, preview, and trash image files without leaving Obsidian.
 - Move or trash multiple selected files, or safely recheck and trash unreferenced images.
@@ -69,7 +69,8 @@ The image manager opens as a regular workspace tab and keeps its state when Obsi
 - Filter by vault folder with path suggestions.
 - Search by file name.
 - Switch between all images and unreferenced images.
-- Sort in ascending or descending order by modified time, created time, size, name, or reference count.
+- Sort in ascending or descending order by modified time, created time, size, name, extension, or reference count.
+- Group by extension, folder, reference count, or size; order, hide, and collapse groups.
 - Exclude configured folders from the catalog.
 - Refresh the current results manually when needed.
 
@@ -247,7 +248,7 @@ Use the heading action in the Image manager settings to add a mapping. Existing 
 ## Limitations
 
 - The plugin is desktop-only.
-- Drag resizing and the custom image context menu require Live Preview.
+- Drag resizing and the context-menu actions for position, inversion, and captions require Live Preview. Right-clicking an image in Reading view follows the configured ordinary-click viewer behavior.
 - Context-menu link editing currently supports Wiki link image embeds, not standard Markdown image syntax.
 - The custom viewer uses `Ctrl` on all desktop platforms.
 

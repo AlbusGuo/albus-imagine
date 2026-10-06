@@ -94,7 +94,7 @@ export interface ImageManagerSettings {
 /**
  * 排序字段
  */
-export type SortField = "mtime" | "ctime" | "size" | "name" | "references";
+export type SortField = "mtime" | "ctime" | "size" | "name" | "extension" | "references";
 
 /**
  * 排序顺序
@@ -104,6 +104,13 @@ export type SortOrder = "asc" | "desc";
 export interface ImageSortRule {
 	field: SortField;
 	order: SortOrder;
+}
+
+export type ImageGroupField = "extension" | "folder" | "references" | "size";
+
+export interface ImageGroupBy {
+	field: ImageGroupField;
+	direction: SortOrder;
 }
 
 export type ImageCardProperty =
@@ -184,6 +191,11 @@ export interface ImageFilterPreset {
 	rules?: ImageFilterRule[];
 	properties?: ImageCardProperty[];
 	sort?: ImageSortRule[];
+	groupBy?: ImageGroupBy;
+	/** Presence selects manual mode; only listed group keys are visible. */
+	groupOrder?: string[];
+	/** Collapsed group keys for this view. */
+	collapsedGroups?: string[];
 	unreferencedOnly?: boolean;
 }
 

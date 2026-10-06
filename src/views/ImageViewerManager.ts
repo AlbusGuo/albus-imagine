@@ -41,17 +41,14 @@ export class ImageViewerManager {
 	 * 检查是否可点击 (必须按住 Ctrl 键且查看器已启用)
 	 */
 	private isClickable(targetEl: HTMLImageElement, event: MouseEvent): boolean {
-		if (!targetEl || targetEl.tagName !== 'IMG') {
+		if (!targetEl || targetEl.tagName !== 'IMG' || event.button !== 0) {
 			return false;
 		}
+		return this.isViewerShortcut(event);
+	}
 
-		// 必须按住 Ctrl 键
-		if (!event.ctrlKey || event.altKey || event.shiftKey) {
-			return false;
-		}
-
-		// 检查查看器是否启用
-		return this.settings.enabled;
+	private isViewerShortcut(event: MouseEvent): boolean {
+		return this.settings.enabled && event.ctrlKey && !event.altKey && !event.shiftKey;
 	}
 
 	private isMarkdownImage(target: EventTarget | null, doc: Document): target is HTMLImageElement {
@@ -59,8 +56,9 @@ export class ImageViewerManager {
 		return Boolean(
 			ownerWindow &&
 			target instanceof ownerWindow.HTMLImageElement &&
-			target.closest(".image-embed, .internal-embed") &&
-			target.closest(".markdown-source-view, .markdown-preview-view, .markdown-rendered"),
+			(target.closest(".markdown-preview-view") ||
+				(target.closest(".image-embed, .internal-embed") &&
+					target.closest(".markdown-source-view, .markdown-rendered"))),
 		);
 	}
 
@@ -90,12 +88,16 @@ export class ImageViewerManager {
 
 		doc.removeEventListener('click', this.clickImageCapture, true);
 		doc.removeEventListener('click', this.handleOrdinaryClickCapture, true);
+		doc.removeEventListener('contextmenu', this.handleReadingContextMenuCapture, true);
 		doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 
 		if (this.settings.enabled) doc.addEventListener('click', this.clickImageCapture, true);
 		if (this.settings.clickBehavior !== "obsidian") {
 			doc.addEventListener('mousedown', this.preserveSelectedImageFocus, true);
 			doc.addEventListener('click', this.handleOrdinaryClickCapture, true);
+		}
+		if (this.settings.enabled || this.settings.clickBehavior !== "obsidian") {
+			doc.addEventListener('contextmenu', this.handleReadingContextMenuCapture, true);
 		}
 	}
 
@@ -154,6 +156,22 @@ export class ImageViewerManager {
 		if (this.settings.clickBehavior === "imagine") this.viewer?.open(image);
 	};
 
+	/** Obsidian 1.14.4 delegates both click and contextmenu on reading images to its lightbox. */
+	private handleReadingContextMenuCapture = (event: MouseEvent): void => {
+		if (event.defaultPrevented) return;
+		const doc = event.currentTarget as Document;
+		const image = this.isMarkdownImage(event.target, doc) ? event.target : null;
+		if (!image || !image.closest(".markdown-preview-view")) return;
+		const shortcut = this.isViewerShortcut(event);
+		if (!shortcut && (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)) return;
+		const behavior = shortcut ? "imagine" : this.settings.clickBehavior;
+		if (behavior === "obsidian") return;
+		event.preventDefault();
+		event.stopPropagation();
+		event.stopImmediatePropagation();
+		if (behavior === "imagine") this.open(image);
+	};
+
 	/** Prevent the browser's mousedown focus transfer before the blocked click. */
 	private preserveSelectedImageFocus = (event: MouseEvent): void => {
 		const document = event.currentTarget as Document;
@@ -183,6 +201,7 @@ export class ImageViewerManager {
 		this.registeredDocs.forEach(doc => {
 			doc.removeEventListener('click', this.clickImageCapture, true);
 			doc.removeEventListener('click', this.handleOrdinaryClickCapture, true);
+			doc.removeEventListener('contextmenu', this.handleReadingContextMenuCapture, true);
 			doc.removeEventListener('mousedown', this.preserveSelectedImageFocus, true);
 		});
 		this.registeredDocs.clear();
